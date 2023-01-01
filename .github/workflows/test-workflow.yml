@@ -22,6 +22,12 @@ jobs:
     
     - name: run make tests
       run: make
-    
+
+    - name: run ls -la
+      run: ls -la
+
+    - name : run ls -la test/lib
+      run: ls -la test/lib
+      
     - name: run make clean_tests
       run: make clean_tests
