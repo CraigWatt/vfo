@@ -14,8 +14,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: test brew
+    - name: test brew is installed
       run: brew -v
+
+    - name: test cmocka library is installed
+      run: brew install cmocka
     
     - name: Install dependencies
       run: make
