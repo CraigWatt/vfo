@@ -20,8 +20,8 @@ jobs:
     - name: test cmocka library is installed
       run: brew install cmocka
     
-    - name: Install dependencies
+    - name: run make tests
       run: make
     
-    - name: make tests
-      run: make tests
+    - name: run make clean_tests
+      run: make clean_tests
