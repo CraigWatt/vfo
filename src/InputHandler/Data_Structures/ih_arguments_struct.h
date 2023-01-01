@@ -1,0 +1,49 @@
+/*
+ * Copyright (c) 2022 Craig Watt
+ *
+ * Contact: craig@webrefine.co.uk
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+#ifndef IH_ARGUMENTS_STRUCT_H
+#define IH_ARGUMENTS_STRUCT_H
+
+#include <stdbool.h>
+#include <stdlib.h>
+
+#include "../../utils.h"
+
+/* Defines the command line allowed arguments struct */
+struct arguments {
+  bool original_detected;
+  bool revert_detected;
+  bool source_detected;
+  bool alias_queue_detected;
+  bool all_aliases_detected;
+  bool do_it_all_detected;
+  bool wipe_detected;
+};
+/* Exports arguments as a global type */
+typedef struct arguments arguments_t;
+
+arguments_t* arguments_create_new_struct();
+void ih_arguments_parser(int argc, char* argv[], arguments_t* arguments);
+
+#endif // IH_ARGUMENTS_STRUCT_H
