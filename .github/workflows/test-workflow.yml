@@ -1,4 +1,4 @@
-name: Makefile CI - vfo test workflow
+name: CI workflow for vfo
 
 on:
   push:
