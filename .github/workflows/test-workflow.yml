@@ -16,7 +16,10 @@ jobs:
     
     - name: pwd
       run: pwd
-    
+
+    - name: ls -la
+      run: ls -la
+          
     - name: Install dependencies
       run: make
     
