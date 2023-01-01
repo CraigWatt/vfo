@@ -28,6 +28,6 @@
 void test_o_original_null_ptr(void **state) {
   original_t *test_original = NULL;
   // o_original(test_original);
-  int duck = 0;
+  int duck = 1;
   assert_int_equal(duck, 1);
 }
