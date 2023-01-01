@@ -1,4 +1,4 @@
-name: C/C++ CI - vfo test workflow
+name: Makefile CI - vfo test workflow
 
 on:
   push:
@@ -13,5 +13,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    
+    - name: config.mk
+      run: ./config.mk
+      
+    - name: Install dependencies
+      run: make
+    
     - name: make tests
       run: make tests
