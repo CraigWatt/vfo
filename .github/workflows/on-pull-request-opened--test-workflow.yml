@@ -1,6 +1,8 @@
-name: on pull_request CI workflow for vfo
+name: on pull_request opened CI workflow for vfo
 
-on: [pull_request]
+on:
+  pull_request:
+    types: [opened, reopened]
 
 jobs:
   build:
