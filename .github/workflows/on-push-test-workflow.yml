@@ -1,4 +1,4 @@
-name: CI workflow for vfo
+name: on push CI workflow for vfo
 
 on: [push]
 
