@@ -11,15 +11,23 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-
+    
     - name: test brew is installed
+      id: hello
       run: brew -v
 
     - name: test cmocka library is installed
+      id: world
       run: brew install cmocka
     
     - name: run make tests
+      id: hello2
       run: make tests
 
     - name: run make clean_tests
+      id: world2
       run: make clean_tests
+      
+    - name: Check on failures
+      if: steps.hello.outcome != 'success' || steps.world.outcome != 'success' || steps.hello2.outcome != 'success' || steps.world2.outcome != 'success'
+      run: exit 1
