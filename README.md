@@ -4,15 +4,15 @@ vfo is a CLI program.  vfo is currently in pre-release, but is in a usable state
 
 This C program currently runs on Mac.
 
-Dev is working on making program work & be easily installable on Mac, Linux & eventually Windows
+You will likely run into issues installing and running this program on linux and windows in it's current state, rest assured the program will be installable and runnable on these Operating Systems ASAP!
 
 Current release versions are static builds, place both the vfo executable and vfo_config.conf file into your machines $PATH
-
 For Mac this is typically your /usr/local/bin folder
 
 This will then enable the use of vfo in your terminal. e.g. vfo -v
-
 use vfo -h to see list of commands
+
+common examples:
 
 vfo original
 vfo source
