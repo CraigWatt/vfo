@@ -11,16 +11,50 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    
+    - name: check brew is installed
+      run: brew -v
+      
+    - name: install xmlstarlet
+      run: brew install xmlstarlet
+      
+    - name: check xmlstarlet is installed
+      run: xmlstarlet --version
+      
+    - name: install python
+      run: brew install python
+      
+    - name: check python is installed
+      run: python -v
           
-    - name: Build using make
+    - name: Build vfo using make
       run: make
       
-    - name: Release
+    - name: Copy bin/vfo executable to munki payload
+      run: cp bin/vfo munki-pkg-workspace/payload
+      
+    - name: Copy src/vfo_config.conf to munki payload
+      run: cp src/vfo_config.conf munki-pkg-workspace/payload
+      
+    - name: Change version string in build-info.plist
+      run: |
+        echo "Detecting tag name from GITHUB_REF_NAME to be: $GITHUB_REF_NAME"
+        xmlstarlet ed -u "/plist/dict/string[@id=9]/@id" -v $GITHUB_REF_NAME munki-pkg-workspace/vfo_macOS_installer/build-info.plist
+    
+    - name: Build Pkg file
+      run: |
+        python munki-pkg-workspace/munkipkg munki-pkg-workspace/vfo_macOS_installer 
+    
+    - name: Release static builds & macOS pkg
       uses: softprops/action-gh-release@v0.1.15
 #       if: startsWith(github.ref, 'refs/tags/')
       with:
         generate_release_notes: true
         body: "place vfo & vfo_config.conf files into /usr/local/bin/ (DEV: need to change make install procedure for myself locally so conf isn't in a folder)"
         files: |
+          munki-pkg-workspace/vfo_macOS_installer/build/*
           bin/vfo
           src/vfo_config.conf
+          
+    - name: Clean up
+      run: make clean
