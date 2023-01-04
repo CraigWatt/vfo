@@ -1,0 +1,22 @@
+HOW TO INSTALL VFO:
+
+  macOS installation options:
+    
+    macOS Option 1: 
+      Install via vfo_macOS_installer-${{ github.ref_name }}.pkg below.
+    
+    macOS Option 2:
+      Download and move the 2 static build files below (vfo & vfo_config.conf) to your $PATH.  This typically is the usr/local/bin directory.
+
+  Linux (Ubuntu or similar) installation options:
+
+    Linux Option 1:
+      TBA
+    Linux Option 2:
+      TBA
+
+  Windows (10 or 11 or similar) installation options:
+    
+    Windows Option 1:
+      TBA
+
