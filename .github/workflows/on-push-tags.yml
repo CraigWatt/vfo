@@ -49,7 +49,7 @@ jobs:
 #       if: startsWith(github.ref, 'refs/tags/')
       with:
         generate_release_notes: true
-        body: "place vfo & vfo_config.conf files into /usr/local/bin/ (DEV: need to change make install procedure for myself locally so conf isn't in a folder)"
+        body: "Option 1: To Install on macOS: Install via vfo_macOS_installer-$GITHUB_REF_NAME Option2: To Install on macOS: move the 2 static build files (vfo & vfo_config.conf) files to your $PATH.  This typically is the usr/local/bin directory"
         files: |
           munki-pkg-workspace/vfo_macOS_installer/build/*
           bin/vfo
