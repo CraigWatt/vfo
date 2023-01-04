@@ -74,7 +74,7 @@ int main (int argc, char **argv) {
   // }
 
   /* initiate config data extraction and validation */
-  const char *config_dir = "/usr/local/bin/vfo_conf_folder";
+  const char *config_dir = "/usr/local/bin";
   //extract config file data and unknown words from user input, to config struct
   config_t *config = con_init(config_dir, revised_argv, revised_argc);
   //does argv contain an unknown word << this is actually validated by the con_init, because if an arg doesn't match config pre defined words AND doesn't define an alias mentioned in the config file, we have found an unknown word and the program will stop
