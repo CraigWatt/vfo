@@ -38,7 +38,7 @@ jobs:
       
     - name: Change version string in build-info.plist
       run: |
-        xmlstarlet ed -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME munki-pkg-workspace/vfo_macOS_installer/build-info.plist
+        xmlstarlet ed --inplace -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME munki-pkg-workspace/vfo_macOS_installer/build-info.plist
     
     - name: Build Pkg file
       run: |
