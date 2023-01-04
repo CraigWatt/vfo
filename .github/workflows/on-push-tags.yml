@@ -38,8 +38,7 @@ jobs:
       
     - name: Change version string in build-info.plist
       run: |
-        echo "Detecting tag name from GITHUB_REF_NAME to be: $GITHUB_REF_NAME"
-        xmlstarlet ed -u "/plist/dict/string[@id=9]/@id" -v $GITHUB_REF_NAME munki-pkg-workspace/vfo_macOS_installer/build-info.plist
+        xmlstarlet ed -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME munki-pkg-workspace/vfo_macOS_installer/build-info.plist
     
     - name: Build Pkg file
       run: |
