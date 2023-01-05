@@ -7,7 +7,7 @@
 	<key>identifier</key>
 	<string>com.github.munki.pkg.vfo_macOS_installer</string>
 	<key>install_location</key>
-	<string>/usr/local/bin</string>
+	<string>/</string>
 	<key>name</key>
 	<string>vfo_macOS_installer-${version}.pkg</string>
 	<key>ownership</key>
