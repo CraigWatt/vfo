@@ -7,7 +7,7 @@
 	<key>identifier</key>
 	<string>com.github.munki.pkg.vfo_macOS_installer</string>
 	<key>install_location</key>
-	<string>/</string>
+	<string>/usr/local</string>
 	<key>name</key>
 	<string>vfo_macOS_installer-${version}.pkg</string>
 	<key>ownership</key>
@@ -19,6 +19,6 @@
 	<key>suppress_bundle_relocation</key>
 	<true/>
 	<key>version</key>
-	<string id="9">0.1.0</string>
+	<string id="9">0.0.0</string>
 </dict>
 </plist>
