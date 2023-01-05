@@ -1,6 +1,6 @@
 # vfo - Video File Organiser
 
-vfo is a CLI program.  vfo is currently in pre-release, but is in a usable state!  Please reach out to me here if you have any questions.
+vfo is a CLI program.  vfo is currently in pre-release, but is in a usable state!  Please reach out to me here if you have any quick fire questions. https://github.com/CraigWatt/vfo/discussions/27
 
 This C program currently runs on Mac.
 
