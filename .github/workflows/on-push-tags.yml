@@ -31,10 +31,10 @@ jobs:
       run: make
       
     - name: Copy bin/vfo executable to munki payload
-      run: cp bin/vfo munki-pkg-workspace/payload/usr/local/bin
+      run: cp bin/vfo munki-pkg-workspace/vfo_macOS_installer/payload/usr/local/bin
       
     - name: Copy src/vfo_config.conf to munki payload
-      run: cp src/vfo_config.conf munki-pkg-workspace/payload/usr/local/bin
+      run: cp src/vfo_config.conf munki-pkg-workspace/vfo_macOS_installer/payload/usr/local/bin
       
     - name: Change version string in build-info.plist
       run: |
