@@ -6,6 +6,10 @@ vfo stands for "Video File Organiser".
 
 VFO requires ffmpeg (and ffprobe) to be installed on your machine.
 
+This is a great project to dive into using and/or contributing to if you have any interest in C programming and/or video/audio encoding!  
+
+Feel free to ask any questions here: https://github.com/CraigWatt/vfo/discussions/27
+
 ## VFO runs on:
   
   macOS (Intel & Arm)
@@ -17,11 +21,7 @@ VFO requires ffmpeg (and ffprobe) to be installed on your machine.
   Windows (10 & 11 and similar)
   
 
-This is a great project to dive into using and/or contributing to if you have any interest in C programming and/or video/audio encoding!  
-
-Feel free to ask any questions here: https://github.com/CraigWatt/vfo/discussions/27
-
-### Description
+### Project Description
 
 VFO is like an evolution of HandBrake's queue feature.  Instead of having to 'apply preset to all' candidate videos or 'tweak each and every video 1 by 1', VFO makes it easier to encode/remux an entire portfolio of source video files WHILE STILL having the option to encode individual video files in particular ways, DEPENDING on what that source video candidate consists of.
 
