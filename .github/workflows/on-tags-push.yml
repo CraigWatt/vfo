@@ -98,6 +98,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: ⬇️ Checkout repo
+      uses: actions/checkout@v3.3.0
 
     - name: 🤌💭 fetch Application Cache
       uses: actions/cache@v3.2.2
@@ -114,7 +116,7 @@ jobs:
         cp bin/vfo static_build
         cp src/vfo_config.conf static_build
 
-    - name: 💁‍♂️🫳 generate and move static_buildREADME.txt INTO static build folder
+    - name: 💁‍♂️ generate static_build/README.txt
       run: |
         touch static_build/README.txt
         echo -e "Place vfo & vfo_config.conf into your $PATH" > static_build/README.txt
@@ -128,13 +130,6 @@ jobs:
       with:
         path: munki-pkg-workspace/vfo_macOS_installer/build/*
         key: ${{ github.sha }}
-
-    - name: DEV debugging 1
-      run: ls -la
-
-    - name: DEV debugging 2
-      run: ls -la static_build
-
   
     - name: 👷📦 Release static builds & macOS pkg
       uses: softprops/action-gh-release@v0.1.15
