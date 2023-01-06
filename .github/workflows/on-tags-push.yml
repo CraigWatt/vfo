@@ -6,38 +6,48 @@ on:
       - "v*.*.*"
 
 jobs:
-  apple-build:
-    name: Setup macOS vfo build
-    runs-on: macos-latest
-    outputs:
-      VFO: ${{steps.apple-build.outputs.VFO}}
+  linux-build:
+    name: 👷 Build files for packaging
+    runs-on: ubuntu-latest
 
     steps:
-    - name: ⬇️ Checkout repo
-    - uses: actions/checkout@v3
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v3.3.0
 
-    - name: Build vfo using make
-      run: make
+      - name: 🏗️ Build application
+        run: make
+
+      - name: 💭 Cache application
+        uses: actions/cache@v3.2.2
+        id: vfo-build
+        with:
+          path: |
+            ./bin/vfo
+            ./src/vfo_config.conf
+          key: ${{ github.sha }}
 
   apple-pkg:
-    name: Setup macOS .pkg
-    needs: [apple-build]
+    name: 👷 Setup macOS .pkg
     runs-on: macos-latest
+    needs: [linux-build]
+    
     steps:
-    - uses: actions/checkout@v3
-    - name: check brew is installed
+    - name: ⬇️ Checkout repo
+      uses: actions/checkout@v3.3.0
+
+    - name: ❓is brew installed
       run: brew -v
       
-    - name: install xmlstarlet
+    - name: 🔨 install xmlstarlet
       run: brew install xmlstarlet
       
-    - name: check xmlstarlet is installed
+    - name: ❓is xmlstarlet installed
       run: xmlstarlet --version
       
-    - name: install python
+    - name: 🔨 install python
       run: brew install python
       
-    - name: check python is installed
+    - name: ❓ is python installed
       run: python -v
 
     - name: Copy bin/vfo executable to munki payload
@@ -54,17 +64,14 @@ jobs:
       run: |
         python munki-pkg-workspace/munkipkg munki-pkg-workspace/vfo_macOS_installer
 
-  linux-build:
 
   linux-pkg:
     name: Setup Linux .pkg
     needs: [linux-build]
 
-  windows-build:
-
   windows-pkg:
     name: Setup Windows .pkg
-    needs: [windows-build]
+    needs: [linux-build]
 
   release:
     name: 📦 release
