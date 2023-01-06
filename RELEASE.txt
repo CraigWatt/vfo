@@ -1,6 +1,6 @@
 ## macOS Installation
 
-macOS Option 1: 
+### macOS Option 1: 
 Install by downloading the vfo_macOS_installer-v*.*.*.pkg in 'assets' below.
 For now, you will have to 'shift click open' the package.  This will will not be nearer v1.0.0 release day.
 Open the package and follow the instructions provided.
@@ -10,7 +10,7 @@ run: vfo -v
 
 vfo installed successfully.
     
-macOS Option 2:
+### macOS Option 2:
 Install by downloading the static_build.zip folder in 'assets' below.
 Unzip the folder on your machine.
 Drag BOTH the vfo file AND the vfo_config.conf file to usr/local/bin directory.  (Your $PATH).
@@ -19,15 +19,15 @@ run: vfo -v
 
 vfo installed successfully.
 
-  Linux (Ubuntu or similar) installation options:
+## Linux (Ubuntu or similar) installation options:
 
-    Linux Option 1:
-      TBA
-    Linux Option 2:
-      TBA
+### Linux Option 1:
+    TBA
+### Linux Option 2:
+    TBA
 
-  Windows (10 or 11 or similar) installation options:
+## Windows (10 or 11 or similar) installation options:
     
-    Windows Option 1:
-      TBA
+### Windows Option 1:
+    TBA
 
