@@ -14,11 +14,11 @@ jobs:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@v3.3.0
 
-      - name: 🏗️ Build application
-        run: make
-
       - name: 🤬 DEV debugging
         run: ls -la
+
+      - name: 🏗️ Build application
+        run: make
 
       - name: 💭 Cache application
         uses: actions/cache@v3.2.2
