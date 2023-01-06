@@ -17,6 +17,9 @@ jobs:
       - name: 🏗️ Build application
         run: make
 
+      - name: 🤬 DEV debugging
+        run: ls -la
+
       - name: 💭 Cache application
         uses: actions/cache@v3.2.2
         id: vfo-build
