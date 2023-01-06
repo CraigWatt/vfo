@@ -8,7 +8,8 @@ VFO requires ffmpeg (and ffprobe) to be installed on your machine.
 
 This is a great project to dive into using and/or contributing to if you have any interest in C programming and/or video/audio encoding!  
 
-Feel free to ask any questions here: https://github.com/CraigWatt/vfo/discussions/27
+Feel free to ask more general questions here: https://github.com/CraigWatt/vfo/discussions/27  
+Feel free to raise more specific issues (bugs,enhancements etc.) here: https://github.com/CraigWatt/vfo/issues
 
 ## VFO runs on:
   
