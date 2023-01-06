@@ -116,7 +116,8 @@ jobs:
 
     - name: 💁‍♂️🫳 generate and move static_buildREADME.txt INTO static build folder
       run: |
-        echo -e "Place vfo & vfo_config.conf into your $PATH" > /static_build/README.txt
+        touch static_build/README.txt
+        echo -e "Place vfo & vfo_config.conf into your $PATH" > static_build/README.txt
 
     - name: 🤐 zip static_build folder
       run: zip -r static_build.zip static_build
