@@ -50,36 +50,79 @@ jobs:
     - name: ❓ is python installed
       run: python -v
 
-    - name: Copy bin/vfo executable to munki payload
-      run: cp bin/vfo munki-pkg-workspace/vfo_macOS_installer/payload/bin
+    - name: 🤌💭 fetch Cache
+      uses: actions/cache@v3.2.2
+      id: vfo-build
+      with:
+        path: |
+            ./bin/vfo
+            ./src/vfo_config.conf
+        key: ${{ github.sha }}
+
+    - name: 🫳 position application to payload
+      run: |
+        cp bin/vfo munki-pkg-workspace/vfo_macOS_installer/payload/bin
+        cp src/vfo_config.conf munki-pkg-workspace/vfo_macOS_installer/payload/bin
       
-    - name: Copy src/vfo_config.conf to munki payload
-      run: cp src/vfo_config.conf munki-pkg-workspace/vfo_macOS_installer/payload/bin
       
-    - name: Change version string in build-info.plist
+    - name: ✍️ ReWrite version string in build-info.plist from tag
       run: |
         xmlstarlet ed --inplace -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME munki-pkg-workspace/vfo_macOS_installer/build-info.plist
     
-    - name: Build Pkg file
+    - name: 🏗️ Build Pkg file
       run: |
         python munki-pkg-workspace/munkipkg munki-pkg-workspace/vfo_macOS_installer
 
+    - name: 💭 Cache .pkg
+      uses: actions/cache@v3.2.2
+      id: macos-pkg
+      with:
+        path: munki-pkg-workspace/vfo_macOS_installer/build/*
+        key: ${{ github.sha }}
 
-  linux-pkg:
-    name: Setup Linux .pkg
-    needs: [linux-build]
 
-  windows-pkg:
-    name: Setup Windows .pkg
-    needs: [linux-build]
+
+
+  # linux-pkg:
+  #   name: Setup Linux .pkg
+  #   needs: [linux-build]
+
+  # windows-pkg:
+  #   name: Setup Windows .pkg
+  #   needs: [linux-build]
 
   release:
     name: 📦 release
-    needs: [apple-pkg, linux-pkg, windows-pkg]
-    runs-on: macos-latest
+    needs: [apple-pkg] 
+    # linux-pkg, windows-pkg
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Release static builds & macOS pkg
+
+    - name: 🤌💭 fetch Application Cache
+      uses: actions/cache@v3.2.2
+      id: vfo-build
+      with:
+        path: |
+            ./bin/vfo
+            ./src/vfo_config.conf
+        key: ${{ github.sha }}
+
+    - name: 🫳 position application to static build folder
+      run: |
+        mkdir static_build
+        cp bin/vfo static_build
+        cp src/vfo_config.conf static_build
+
+    - name: 🤌💭 fetch macOS .pkg Cache
+      uses: actions/cache@v3.2.2
+      id: macos-pkg
+      with:
+        path: munki-pkg-workspace/vfo_macOS_installer/build/*
+        key: ${{ github.sha }}
+
+
+    - name: 👷📦 Release static builds & macOS pkg
       uses: softprops/action-gh-release@v0.1.15
 #       if: startsWith(github.ref, 'refs/tags/')
       with:
@@ -87,7 +130,6 @@ jobs:
         body_path: RELEASE.txt
         files: |
           munki-pkg-workspace/vfo_macOS_installer/build/*
-          bin/vfo
-          src/vfo_config.conf
+          static_build
 
   
