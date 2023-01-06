@@ -12,7 +12,7 @@ VFO will, very soon, be able to run on:
 
 This is a great project to dive into using and/or contributing to if you have any interest in C programming and/or video/audio encoding!  
 
-Feel free to ask any questions here: 
+Feel free to ask any questions here: https://github.com/CraigWatt/vfo/discussions/27
 
 VFO is like an evolution of HandBrake's queue feature.  Instead of having to 'apply preset to all' candidate videos or 'tweak each and every video 1 by 1', VFO makes it easier to encode/remux an entire portfolio of source video files WHILE STILL having the option to encode individual video files in particular ways, DEPENDING on what that source video candidate consists of.
 
