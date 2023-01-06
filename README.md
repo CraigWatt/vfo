@@ -1,6 +1,6 @@
 # VFO
 
-vfo stands for "Video File Organiser".
+vfo stands for "Video File Organiser"
 
 [Download latest release from GitHub](https://github.com/CraigWatt/vfo/releases/latest)
 
