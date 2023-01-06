@@ -4,6 +4,16 @@ vfo stands for "Video File Organiser".
 
 [Download latest release from GitHub](https://github.com/CraigWatt/vfo/releases/latest)
 
+VFO runs on:
+  macOS (Intel & Arm)
+VFO will, very soon, be able to run on:
+  Linux (Ubuntu and similar)
+  Windows (10 & 11 and similar)
+
+This is a great project to dive into using and/or contributing to if you have any interest in C programming and/or video/audio encoding!  
+
+Feel free to ask any questions here: 
+
 VFO is like an evolution of HandBrake's queue feature.  Instead of having to 'apply preset to all' candidate videos or 'tweak each and every video 1 by 1', VFO makes it easier to encode/remux an entire portfolio of source video files WHILE STILL having the option to encode individual video files in particular ways, DEPENDING on what that source video candidate consists of.
 
 For example, let's say you are a streaming service, or you just happen to have a catalog of videos of which you can't say with certainty how consistent they are.  Maybe you have a bunch of h264 encoded videos, some below 720p, some around 720p, some around 1080p?  But a few of them are HDR while most aren't?  In fact you know a good portion might be hevc encoded too, but some are actually only of 8 bit color depth and some are 10 bit.  Perhaps none of their extensions are all the same?  Some use mp4 video container, some use .mkv, maybe some use webm?  Darn you also have those super old videos encoded in MPEG-2!  
