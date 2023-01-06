@@ -1,4 +1,4 @@
-name: release
+name: 📦 release
 
 on:
   push:
@@ -6,12 +6,25 @@ on:
       - "v*.*.*"
 
 jobs:
-  build:
+  apple-build:
+    name: Setup macOS vfo build
     runs-on: macos-latest
+    outputs:
+      VFO: ${{steps.apple-build.outputs.VFO}}
 
     steps:
+    - name: ⬇️ Checkout repo
     - uses: actions/checkout@v3
-    
+
+    - name: Build vfo using make
+      run: make
+
+  apple-pkg:
+    name: Setup macOS .pkg
+    needs: [apple-build]
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
     - name: check brew is installed
       run: brew -v
       
@@ -26,10 +39,7 @@ jobs:
       
     - name: check python is installed
       run: python -v
-          
-    - name: Build vfo using make
-      run: make
-      
+
     - name: Copy bin/vfo executable to munki payload
       run: cp bin/vfo munki-pkg-workspace/vfo_macOS_installer/payload/bin
       
@@ -42,8 +52,26 @@ jobs:
     
     - name: Build Pkg file
       run: |
-        python munki-pkg-workspace/munkipkg munki-pkg-workspace/vfo_macOS_installer 
-    
+        python munki-pkg-workspace/munkipkg munki-pkg-workspace/vfo_macOS_installer
+
+  linux-build:
+
+  linux-pkg:
+    name: Setup Linux .pkg
+    needs: [linux-build]
+
+  windows-build:
+
+  windows-pkg:
+    name: Setup Windows .pkg
+    needs: [windows-build]
+
+  release:
+    name: 📦 release
+    needs: [apple-pkg, linux-pkg, windows-pkg]
+    runs-on: macos-latest
+
+    steps:
     - name: Release static builds & macOS pkg
       uses: softprops/action-gh-release@v0.1.15
 #       if: startsWith(github.ref, 'refs/tags/')
@@ -54,6 +82,5 @@ jobs:
           munki-pkg-workspace/vfo_macOS_installer/build/*
           bin/vfo
           src/vfo_config.conf
-          
-    - name: Clean up
-      run: make clean
+
+  
