@@ -8,16 +8,11 @@ on:
 jobs:
   linux-build:
     name: 👷 Build files for packaging
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@v3.3.0
-
-      - name: 🤬 DEV debugging
-        run: |
-          ls -la
-          ls -la lib
 
       - name: 🏗️ Build application
         run: make
