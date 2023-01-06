@@ -114,6 +114,13 @@ jobs:
         cp bin/vfo static_build
         cp src/vfo_config.conf static_build
 
+    - name: 💁‍♂️🫳 generate and move static_buildREADME.txt INTO static build folder
+      run: |
+        echo -e "Place vfo & vfo_config.conf into your $PATH" > /static_build/README.txt
+
+    - name: 🤐 zip static_build folder
+      run: zip -r static_build.zip static_build
+
     - name: 🤌💭 fetch macOS .pkg Cache
       uses: actions/cache@v3.2.2
       id: macos-pkg
@@ -127,6 +134,7 @@ jobs:
     - name: DEV debugging 2
       run: ls -la static_build
 
+  
     - name: 👷📦 Release static builds & macOS pkg
       uses: softprops/action-gh-release@v0.1.15
 #       if: startsWith(github.ref, 'refs/tags/')
@@ -135,6 +143,6 @@ jobs:
         body_path: RELEASE.txt
         files: |
           munki-pkg-workspace/vfo_macOS_installer/build/*
-          /static_build
+          static_build.zip
 
   
