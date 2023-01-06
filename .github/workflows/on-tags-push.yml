@@ -1,4 +1,4 @@
-name: 📦 Release
+name: 👷📦 Generate release
 
 on:
   push:
