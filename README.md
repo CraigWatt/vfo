@@ -5,10 +5,15 @@ vfo stands for "Video File Organiser".
 [Download latest release from GitHub](https://github.com/CraigWatt/vfo/releases/latest)
 
 VFO runs on:
+
   macOS (Intel & Arm)
+  
 VFO will, very soon, be able to run on:
+
   Linux (Ubuntu and similar)
+  
   Windows (10 & 11 and similar)
+  
 
 This is a great project to dive into using and/or contributing to if you have any interest in C programming and/or video/audio encoding!  
 
