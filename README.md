@@ -11,18 +11,18 @@ This is a great project to dive into using and/or contributing to if you have an
 Feel free to ask more general questions here: https://github.com/CraigWatt/vfo/discussions/27  
 Feel free to raise more specific issues (bugs,enhancements etc.) here: https://github.com/CraigWatt/vfo/issues
 
-## VFO runs on:
+### VFO runs on:
   
   macOS (Intel & Arm)
   
-## VFO will, very soon, be able to run on:
+### VFO will, very soon, be able to run on:
   
   Linux (Ubuntu and similar)
   
   Windows (10 & 11 and similar)
   
 
-### Project Description
+## Project Description
 
 VFO is like an evolution of HandBrake's queue feature.  Instead of having to 'apply preset to all' candidate videos or 'tweak each and every video 1 by 1', VFO makes it easier to encode/remux an entire portfolio of source video files WHILE STILL having the option to encode individual video files in particular ways, DEPENDING on what that source video candidate consists of.
 
