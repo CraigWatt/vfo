@@ -121,8 +121,11 @@ jobs:
         path: munki-pkg-workspace/vfo_macOS_installer/build/*
         key: ${{ github.sha }}
 
-    - name: DEV debugging
+    - name: DEV debugging 1
       run: ls -la
+
+    - name: DEV debugging 2
+      run: ls -la static_build
 
     - name: 👷📦 Release static builds & macOS pkg
       uses: softprops/action-gh-release@v0.1.15
