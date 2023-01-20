@@ -5,14 +5,8 @@
 
 Think [HandBrake](https://github.com/HandBrake/HandBrake) queue but bigger.  vfo helps you encode/remux your entire video portfolio using a single command and a config file.  
 
-
-
-VFO requires ffmpeg (and ffprobe) to be installed on your machine.
-
-This is a great project to dive into using and/or contributing to if you have any interest in C programming and/or video/audio encoding!  
-
-Ask more general questions here: https://github.com/CraigWatt/vfo/discussions/27  
-Raise specific issues (bugs,enhancements etc.) here: https://github.com/CraigWatt/vfo/issues
+Ask more general questions here: [General Discussion](https://github.com/CraigWatt/vfo/discussions/27)
+Raise specific issues (bugs,enhancements etc.) here: [Issues](https://github.com/CraigWatt/vfo/issues)
 
 [Download latest release from GitHub](https://github.com/CraigWatt/vfo/releases/latest)
 
@@ -28,6 +22,8 @@ Raise specific issues (bugs,enhancements etc.) here: https://github.com/CraigWat
   
 
 ## Project Description
+
+This is a great project to dive into using and/or contributing to if you have any interest in C programming and/or video/audio encoding!  
 
 VFO is like an evolution of HandBrake's queue feature.  Instead of having to 'apply preset to all' candidate videos or 'tweak each and every video 1 by 1', VFO makes it easier to encode/remux an entire portfolio of source video files WHILE STILL having the option to encode individual video files in particular ways, DEPENDING on what that source video candidate consists of.
 
