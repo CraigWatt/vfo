@@ -43,7 +43,7 @@ Read on for more info.
 
 
 
-## Project Description (archive)
+## Project Description (soon to be archived)
 
 This is a great project to dive into using and/or contributing to if you have any interest in C programming and/or video/audio encoding!  
 
