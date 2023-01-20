@@ -5,10 +5,6 @@
 
 Think [HandBrake](https://github.com/HandBrake/HandBrake) queue but bigger.  vfo helps you encode/remux your entire video portfolio using a single command and a config file.  
 
-Ask more general questions here: [General Discussion](https://github.com/CraigWatt/vfo/discussions/27)
-
-Raise specific issues (bugs,enhancements etc.) here: [Issues](https://github.com/CraigWatt/vfo/issues)
-
 [Download latest release from GitHub](https://github.com/CraigWatt/vfo/releases/latest)
 
 ### VFO runs on:
@@ -59,8 +55,9 @@ This should save you time, especially when you are juggling with a large amount 
 
 2. two companion vidoes in future that 1: explains the basics on how to use this program 2: how the program works (i.e. the programming involved to make vfo).
 
-Again, feel free to ask more general questions here: https://github.com/CraigWatt/vfo/discussions/27  
-Feel free to raise more specific issues (bugs,enhancements etc.) here: https://github.com/CraigWatt/vfo/issues
+Ask more general questions here: [General Discussion](https://github.com/CraigWatt/vfo/discussions/27)
+
+Raise specific issues (bugs,enhancements etc.) here: [Issues](https://github.com/CraigWatt/vfo/issues)
 
 Thanks,
 
