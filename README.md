@@ -3,7 +3,9 @@
 
 # What is vfo?
 
-Think [HandBrake](https://github.com/HandBrake/HandBrake) queue but bigger.  vfo helps you encode/remux your entire video portfolio using a single command and a config file.  
+A utility for batch-encoding your video portfolio.  
+
+Think [HandBrake](https://github.com/HandBrake/HandBrake) queue but with decision making built in.  vfo will scan every video file individually and make encoding decisions based on the quality of that particular video.  
 
 ### vfo runs on:
   
