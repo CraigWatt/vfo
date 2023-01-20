@@ -5,7 +5,29 @@
 
 A utility for batch-encoding your video portfolio.  
 
-Think [HandBrake](https://github.com/HandBrake/HandBrake) queue but with decision making built in.  vfo will scan every video file individually and make encoding decisions based on the quality of that particular video.  
+Think [HandBrake](https://github.com/HandBrake/HandBrake) queue but with decision making built in.  vfo will scan every video file individually and make encoding decisions based on the quality of that particular video.
+
+**A very quick how-to:**
+
+1. Install a recent version of [ffmpeg](https://ffmpeg.org/download.html)
+2. [Download](https://github.com/CraigWatt/vfo/releases/latest) and install vfo
+3. Open /usr/local/bin/vfo_config.conf file to tweak settings to suite your encoding strategy.  
+4. Run `vfo all_aliases`
+
+Read on for more info.
+
+**Contents:**
+
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Description](#description)
+- [Examples](#examples)
+- [Detailed Options](#detailed-options)
+
+-------------
+
+## Requirements
 
 ### vfo runs on:
   
@@ -19,7 +41,9 @@ Think [HandBrake](https://github.com/HandBrake/HandBrake) queue but with decisio
   
 [Download latest release from GitHub](https://github.com/CraigWatt/vfo/releases/latest)
 
-## Project Description
+
+
+## Project Description (archive)
 
 This is a great project to dive into using and/or contributing to if you have any interest in C programming and/or video/audio encoding!  
 
