@@ -5,14 +5,16 @@
 
 Think [HandBrake](https://github.com/HandBrake/HandBrake) queue but bigger.  vfo helps you encode/remux your entire video portfolio using a single command and a config file.  
 
-[Download latest release from GitHub](https://github.com/CraigWatt/vfo/releases/latest)
+
 
 VFO requires ffmpeg (and ffprobe) to be installed on your machine.
 
 This is a great project to dive into using and/or contributing to if you have any interest in C programming and/or video/audio encoding!  
 
-Feel free to ask more general questions here: https://github.com/CraigWatt/vfo/discussions/27  
-Feel free to raise more specific issues (bugs,enhancements etc.) here: https://github.com/CraigWatt/vfo/issues
+Ask more general questions here: https://github.com/CraigWatt/vfo/discussions/27  
+Raise specific issues (bugs,enhancements etc.) here: https://github.com/CraigWatt/vfo/issues
+
+[Download latest release from GitHub](https://github.com/CraigWatt/vfo/releases/latest)
 
 ### VFO runs on:
   
