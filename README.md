@@ -59,6 +59,6 @@ Ask more general questions here: [General Discussion](https://github.com/CraigWa
 
 Raise specific issues (bugs,enhancements etc.) here: [Issues](https://github.com/CraigWatt/vfo/issues)
 
-Thanks,
+## 🙏 Support
 
-Craig
+Don't forget to leave a star ⭐️
