@@ -5,11 +5,11 @@
 
 Think [HandBrake](https://github.com/HandBrake/HandBrake) queue but bigger.  vfo helps you encode/remux your entire video portfolio using a single command and a config file.  
 
-### VFO runs on:
+### vfo runs on:
   
   macOS (Intel & Arm)
   
-### VFO will, very soon, be able to run on:
+### vfo will, very soon, be able to run on:
   
   Linux (Ubuntu and similar)
   
