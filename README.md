@@ -1,9 +1,9 @@
 ![GitHub Workflow Status (with branch)](https://img.shields.io/github/actions/workflow/status/CraigWatt/vfo/on-push-test.yml?branch=main)
 ![GitHub all releases](https://img.shields.io/github/downloads/CraigWatt/vfo/total)
 
-# VFO
+# What is vfo?
 
-vfo stands for "Video File Organiser"
+Think [HandBrake](https://github.com/HandBrake/HandBrake) queue but bigger.  vfo helps you encode/remux your entire video portfolio using a single command and a config file.  
 
 [Download latest release from GitHub](https://github.com/CraigWatt/vfo/releases/latest)
 
