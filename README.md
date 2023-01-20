@@ -1,4 +1,5 @@
 ![GitHub Workflow Status (with branch)](https://img.shields.io/github/actions/workflow/status/CraigWatt/vfo/on-push-test.yml?branch=main)
+![GitHub all releases](https://img.shields.io/github/downloads/CraigWatt/vfo/total)
 
 # VFO
 
