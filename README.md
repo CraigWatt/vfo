@@ -1,3 +1,5 @@
+https://img.shields.io/github/actions/workflow/status/CraigWatt/vfo/on-push-test.yml?branch=main
+
 # VFO
 
 vfo stands for "Video File Organiser"
