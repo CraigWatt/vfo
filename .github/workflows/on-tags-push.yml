@@ -8,7 +8,7 @@ on:
 jobs:
   linux-build:
     name: 👷 Build files for packaging
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: ⬇️ Checkout repo
