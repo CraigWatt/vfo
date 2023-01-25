@@ -5,32 +5,19 @@ on: [push]
 jobs:
   build:
 
-    runs-on: ubuntu-latest
-
+    runs-on: macos-latest
 
     steps:
-      - name: Installing Homebrew
-        run: |
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-          test -d ~/.linuxbrew && eval $(~/.linuxbrew/bin/brew shellenv)
-          test -d /home/linuxbrew/.linuxbrew && eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
-          echo "eval \$($(brew --prefix)/bin/brew shellenv)" >>~/.profile
-          echo "::add-path::/home/linuxbrew/.linuxbrew/bin"
-          brew --version
-      - name: Verify Homebrew's Installation
-        run: brew --version
+    - uses: actions/checkout@v3
 
+    - name: test brew is installed
+      run: brew -v
 
-      - uses: actions/checkout@v3
-
-      - name: test brew is installed
-        run: brew -v
-
-      - name: test cmocka library is installed
-        run: brew install cmocka
+    - name: test cmocka library is installed
+      run: brew install cmocka
     
-      - name: run make tests
-        run: make tests
+    - name: run make tests
+      run: make tests
 
-      - name: run make clean_tests
-        run: make clean_tests
+    - name: run make clean_tests
+      run: make clean_tests
