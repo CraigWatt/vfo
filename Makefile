@@ -22,27 +22,17 @@
 # THE SOFTWARE.
 #
 
-# Includes the project configurations
-include config.mk
 
 #
-# Validating project variables defined in project.conf
+# Put here the binary file name. The compilation will result in that binary
 #
-ifndef PROJECT_NAME
-$(error Missing PROJECT_NAME. Put variables at config.mk file)
-endif
-ifndef BINARY
-$(error Missing BINARY. Put variables at config.mk file)
-endif
-ifndef PROJECT_PATH
-$(error Missing PROJECT_PATH. Put variables at config.mk file)
-endif
+BINARY = vfo
 
 # Gets the Operating system name
 OS := $(shell uname -s)
 
 # Default shell
-SHELL := zsh
+SHELL := bash
 
 # Color prefix for Linux distributions
 COLOR_PREFIX := e
