@@ -7,6 +7,12 @@ A utility for batch-encoding your video portfolio.
 
 Think [HandBrake](https://github.com/HandBrake/HandBrake) queue but with decision making built in.  vfo will scan every video file individually and make encoding decisions based on the quality of that particular video.
 
+
+<img width="1162" alt="vfo_0 2 0_flow_diagram1" src="https://user-images.githubusercontent.com/87949406/215080053-d55828b9-372b-4286-baaf-d9eb1a076add.png">
+
+<img width="1199" alt="vfo_0 2 0_flow_diagram2" src="https://user-images.githubusercontent.com/87949406/215080081-b17e93ad-2921-4f44-ad13-73ca39c3fbf0.png">
+
+
 **A very quick how-to:**
 
 1. Install a recent version of [ffmpeg](https://ffmpeg.org/download.html)
