@@ -5,13 +5,16 @@ on: [push]
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
     - uses: actions/checkout@v3
 
-    - name: install cmocka
-      run: sudo apt-get install -y libcmocka-dev
+    - name: test brew is installed
+      run: brew -v
+
+    - name: test cmocka library is installed
+      run: brew install cmocka
     
     - name: run make tests
       run: make tests
