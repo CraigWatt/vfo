@@ -95,7 +95,7 @@ jobs:
     name: 📦 Release
     needs: [apple-pkg] 
     # linux-pkg, windows-pkg
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
     - name: ⬇️ Checkout repo
