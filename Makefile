@@ -32,7 +32,7 @@ BINARY = vfo
 OS := $(shell uname -s)
 
 # Default shell
-SHELL := bash
+SHELL := zsh
 
 # Color prefix for Linux distributions
 COLOR_PREFIX := e
