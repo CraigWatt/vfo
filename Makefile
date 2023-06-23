@@ -28,8 +28,41 @@
 #
 BINARY = vfo
 
+PREFIX = /usr/local
+
+GIT_VERSION := "$(shell git describe --abbrev=4 --dirty --always --tags)"
+
 # Gets the Operating system name
 OS := $(shell uname -s)
+
+OSFLAG 				:=
+ifeq ($(OS),Windows_NT)
+	OSFLAG += -D WIN32
+	ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
+		OSFLAG += -D AMD64
+	endif
+	ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+		OSFLAG += -D IA32
+	endif
+else
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Linux)
+		OSFLAG += -D LINUX
+	endif
+	ifeq ($(UNAME_S),Darwin)
+		OSFLAG += -D OSX
+	endif
+		UNAME_P := $(shell uname -p)
+	ifeq ($(UNAME_P),x86_64)
+		OSFLAG += -D AMD64
+	endif
+		ifneq ($(filter %86,$(UNAME_P)),)
+	OSFLAG += -D IA32
+		endif
+	ifneq ($(filter arm%,$(UNAME_P)),)
+		OSFLAG += -D ARM
+	endif
+endif
 
 # Default shell
 SHELL := zsh
@@ -70,7 +103,7 @@ STACK := -fstack-protector-all -Wstack-protector
 WARNS := -Wall -Wextra -pedantic # -pedantic warns on language standards
 
 # Flags for compiling
-CFLAGS := -O3 $(STD) $(STACK) $(WARNS)
+CFLAGS := -O3 $(STD) $(STACK) $(WARNS) -DVERSION=\"$(GIT_VERSION)\"
 
 # Debug options
 DEBUG := -g3 -DDEBUG=1
@@ -123,6 +156,9 @@ show_names:
 show_objects:
 	@echo $(OBJECTS);
 	@echo $(TEST_OBJECTS);
+
+show_os:
+	@echo $(OSFLAG);
 
 # Rule for run valgrind tool
 valgrind:

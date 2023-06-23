@@ -102,6 +102,7 @@ void ih_mes_author () {
 void ih_mes_version () {
     fprintf(stdout, __PROGRAM_NAME__ " version: " GRAY "%s\n" NO_COLOR,
             __PROGRAM_VERSION__);
+    printf("Real Version: %s\n", VERSION);
 }
 
 /*
