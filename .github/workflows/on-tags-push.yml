@@ -84,7 +84,7 @@ jobs:
       uses: actions/cache@v3.2.2
       id: macos-pkg
       with:
-        files: ${{ steps.munkipkg.outputs.filepath }}
+        path: ${{ steps.munkipkg.outputs.filepath }}
         key: ${{ github.workflow_sha }}
 
 
@@ -135,7 +135,7 @@ jobs:
       uses: actions/cache@v3.2.2
       id: macos-pkg
       with:
-        files: ${{ steps.munkipkg.outputs.filepath }}
+        path: ${{ steps.munkipkg.outputs.filepath }}
         key: ${{ github.workflow_sha }}
   
     - name: 👷📦 Release static builds & macOS pkg
@@ -144,7 +144,7 @@ jobs:
       with:
         generate_release_notes: true
         body_path: RELEASE.txt
-        files: ${{ steps.munkipkg.outputs.filepath }}
+        path: ${{ steps.munkipkg.outputs.filepath }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
