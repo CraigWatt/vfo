@@ -86,7 +86,7 @@ jobs:
       with:
         path: |
           ./munki-pkg-workspace/build/*
-        key: ${{ github.sha }}
+        key: ${{ github.workflow_sha }}
 
 
 
