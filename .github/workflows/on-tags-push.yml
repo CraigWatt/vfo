@@ -80,6 +80,12 @@ jobs:
     #   run: |
     #     python munki-pkg-workspace/munkipkg munki-pkg-workspace/vfo_macOS_installer
 
+    - name: 🫳 TEST TEST TEST
+      run: |
+        ls
+        ls munki-pkg-workspace
+        ls munki-pkg-workspace/build
+
     - name: 💭 Cache .pkg
       uses: actions/cache@v3.2.2
       id: macos-pkg
