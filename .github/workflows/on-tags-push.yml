@@ -29,6 +29,7 @@ jobs:
   apple-pkg:
     name: 👷 Setup macOS .pkg
     runs-on: macos-latest
+    timeout-minutes: 5 # Keeps your builds from running too long
     needs: [linux-build]
     
     steps:
@@ -58,6 +59,12 @@ jobs:
             ./bin/vfo
             ./src/vfo_config.conf
         key: ${{ github.sha }}
+
+    - name: Run munkipkg 🧙‍♂️📦
+      id: munkipkg
+      uses: joncrain/munkipkg-action@5a6c2008ded522b67396a78c06983e614cbe22ac
+      with:
+        pkg_subdir: "vfo_macOS_installer"
 
     - name: 🫳 Position application to payload
       run: |
@@ -137,8 +144,8 @@ jobs:
       with:
         generate_release_notes: true
         body_path: RELEASE.txt
-        files: |
-          munki-pkg-workspace/vfo_macOS_installer/build/*
-          static_build.zip
-
+        files: ${{ steps.munkipkg.outputs.filepath }}
+        tag_name: ${{ steps.munkipkg.outputs.tag }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
