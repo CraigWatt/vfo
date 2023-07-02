@@ -85,7 +85,7 @@ jobs:
       id: macos-pkg
       with:
         path: /munki-pkg-workspace/build/*
-        key: ${{ github.sha }}
+        # key: ${{ github.sha }}
 
 
 
