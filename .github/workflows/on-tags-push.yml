@@ -64,9 +64,9 @@ jobs:
       id: munkipkg
       uses: joncrain/munkipkg-action@5a6c2008ded522b67396a78c06983e614cbe22ac
       with:
-        pkg_subdir: |
-                  ./bin/vfo
-                  ./src/vfo_config.conf
+        path: |
+            ./bin/vfo
+            ./src/vfo_config.conf
 
     - name: 🫳 Position application to payload
       run: |
