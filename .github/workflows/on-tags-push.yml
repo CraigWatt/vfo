@@ -135,7 +135,7 @@ jobs:
       uses: actions/cache@v3.2.2
       id: macos-pkg
       with:
-        path: munki-pkg-workspace/build/*
+        path: /munki-pkg-workspace/build/*
         key: ${{ github.sha }}
   
     - name: 👷📦 Release static builds & macOS pkg
