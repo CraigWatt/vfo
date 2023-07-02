@@ -71,6 +71,7 @@ jobs:
         path: |
             ./bin/vfo
             ./src/vfo_config.conf
+            ./munki-pkg-workspace/build-info.plist
 
     # - name: 🫳 Position application to payload
     #   run: |
