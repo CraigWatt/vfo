@@ -84,7 +84,7 @@ jobs:
       uses: actions/cache@v3.2.2
       id: macos-pkg
       with:
-        files: /munki-pkg-workspace/build/*
+        path: /munki-pkg-workspace/build/*
         key: ${{ github.sha }}
 
 
