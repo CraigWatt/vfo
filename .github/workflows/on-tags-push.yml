@@ -84,8 +84,7 @@ jobs:
       uses: actions/cache@v3.2.2
       id: macos-pkg
       with:
-        files: ${{ steps.munkipkg.outputs.filepath }}
-        tag_name: ${{ steps.munkipkg.outputs.tag }}
+        files: /munki-pkg-workspace/build/*
         key: ${{ github.sha }}
 
 
