@@ -60,6 +60,10 @@ jobs:
             ./src/vfo_config.conf
         key: ${{ github.sha }}
 
+    - name: ✍️ ReWrite version string in build-info.plist from tag
+      run: |
+        xmlstarlet ed --inplace -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME munki-pkg-workspace/build-info.plist
+
     - name: Run munkipkg 🧙‍♂️📦
       id: munkipkg
       uses: joncrain/munkipkg-action@5a6c2008ded522b67396a78c06983e614cbe22ac
@@ -68,25 +72,22 @@ jobs:
             ./bin/vfo
             ./src/vfo_config.conf
 
-    - name: 🫳 Position application to payload
-      run: |
-        cp bin/vfo munki-pkg-workspace/vfo_macOS_installer/payload/bin
-        cp src/vfo_config.conf munki-pkg-workspace/vfo_macOS_installer/payload/bin
+    # - name: 🫳 Position application to payload
+    #   run: |
+    #     cp bin/vfo munki-pkg-workspace/vfo_macOS_installer/payload/bin
+    #     cp src/vfo_config.conf munki-pkg-workspace/vfo_macOS_installer/payload/bin
       
-      
-    - name: ✍️ ReWrite version string in build-info.plist from tag
-      run: |
-        xmlstarlet ed --inplace -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME munki-pkg-workspace/vfo_macOS_installer/build-info.plist
     
-    - name: 🏗️ Build Pkg file
-      run: |
-        python munki-pkg-workspace/munkipkg munki-pkg-workspace/vfo_macOS_installer
+    # - name: 🏗️ Build Pkg file
+    #   run: |
+    #     python munki-pkg-workspace/munkipkg munki-pkg-workspace/vfo_macOS_installer
 
     - name: 💭 Cache .pkg
       uses: actions/cache@v3.2.2
       id: macos-pkg
       with:
-        path: munki-pkg-workspace/vfo_macOS_installer/build/*
+        files: ${{ steps.munkipkg.outputs.filepath }}
+        tag_name: ${{ steps.munkipkg.outputs.tag }}
         key: ${{ github.sha }}
 
 
