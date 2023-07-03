@@ -146,8 +146,9 @@ jobs:
       with:
         generate_release_notes: true
         body_path: RELEASE.txt
-        path: |
+        files: |
           ./munki-pkg-workspace/build/*
+          static_build.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
