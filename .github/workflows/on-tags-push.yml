@@ -66,8 +66,8 @@ jobs:
 
     - name: 🫳 Position application to payload
       run: |
-        cp bin/vfo munki-pkg-workspace/payload
-        cp src/vfo_config.conf munki-pkg-workspace/scripts
+        cp bin/vfo munki-pkg-workspace/payload/bin
+        cp src/vfo_config.conf munki-pkg-workspace/payload/bin/vfo_conf_folder
 
 
     - name: Run munkipkg 🧙‍♂️📦
