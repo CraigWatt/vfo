@@ -42,9 +42,11 @@ struct original {
 
   char *mkv_extension;
   char *mp4_extension;
+  char *m2ts_extension;
 
   char *mkv_original;
   char *mp4_original;
+  char *m2ts_original;
 
   struct cf_node *cf_head;
 };
@@ -55,5 +57,6 @@ char* o_create_start(char *original_root);
 char* o_create_unable_to_process(char *original_root);
 char* o_get_mkv_original_if_it_exists(char *original_root);
 char* o_get_mp4_original_if_it_exists(char *original_root);
+char* o_get_m2ts_original_if_it_exists(char *original_root);
 
 #endif // O_ORIGINAL_STRUCT_H

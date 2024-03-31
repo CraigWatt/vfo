@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  */
 
+#include "Data_Structures/o_original_struct.h"
 #include "o_internal.h"
 
 void o_original(original_t *original) {
@@ -37,6 +38,8 @@ void o_original(original_t *original) {
   o_move_from_start_to_mkv_original(original);
   // move all mp4 content from start to mp4_original  
   o_move_from_start_to_mp4_original(original);
+  // move all m2ts content from start to m2ts_original
+  o_move_from_start_to_m2ts_original(original);
   
   /* post move checks */
   //might need to add to here in future
@@ -52,6 +55,8 @@ void o_revert_to_start(original_t *original) {
   o_move_from_mkv_original_to_start(original);
   // move all mp4 content from mp4_original to start
   o_move_from_mp4_original_to_start(original);
+  // move all m2ts content from m2ts_original to start
+  o_move_from_m2ts_original_to_start(original);
 
   /* post move checks */
   //might need to add to here in future
@@ -79,6 +84,9 @@ void o_pre_move_checks(original_t *original) {
   //is mp4_original missing any custom folders
   printf("ORIGINAL ALERT: 'pre-move check': scanning original/mp4_original to see if it is missing any custom folders.\n");
   utils_is_folder_missing_custom_folders(original->mp4_original, original->cf_head);
+  //is m2ts_original missing any custom folders
+  printf("ORIGINAL ALERT: 'pre-move check': scanning original/m2ts_original to see if it is missing any custom folders.\n");
+  utils_is_folder_missing_custom_folders(original->m2ts_original, original->cf_head);
   /*in future I would like to be able to SAY what folders are missing*/
   /*now we know all necessary folders contain necessary custom_folders*/
 
@@ -92,6 +100,9 @@ void o_pre_move_checks(original_t *original) {
   //are the mp4_original folder custom_folders adhering to their types?
   printf("ORIGINAL ALERT: 'pre-move check': scanning original/mp4_original to see if it is compliant with custom folder rules.\n");
   utils_are_custom_folders_type_compliant(original->mp4_original, "mp4_original", original->cf_head);
+  //are the m2ts_original folder folder custom_folders adhering to their types?
+  printf("ORIGINAL ALERT: 'pre-move check': scanning original/m2ts_original to see if it is compliant with custom folder rules.\n");
+  utils_are_custom_folders_type_compliant(original->m2ts_original, "m2ts_original", original->cf_head);
   /*now we know every file & folder location within all relevant original folders are adhering to their custom_folder type rules*/
 
   /*let's now check for duplicates*/
@@ -118,12 +129,20 @@ void o_move_from_start_to_mp4_original(original_t *original) {
   o_move(original->start, original->mp4_original, original->cf_head, original->mp4_extension);
 }
 
+void o_move_from_start_to_m2ts_original(original_t *original) {
+  o_move(original->start, original->m2ts_original, original->cf_head, original->m2ts_extension);
+}
+
 void o_move_from_mkv_original_to_start(original_t *original) {
   o_move(original->mkv_original, original->start, original->cf_head, original->mkv_extension);
 }
 
 void o_move_from_mp4_original_to_start(original_t *original) {
   o_move(original->mp4_original, original->start, original->cf_head, original->mp4_extension);
+}
+
+void o_move_from_m2ts_original_to_start(original_t *original) {
+  o_move(original->m2ts_original, original->start, original->cf_head, original->m2ts_extension);
 }
 /*
  * This function is responsible for moving anything within the original folder workspace
@@ -226,6 +245,10 @@ void o_detect_duplicates_start_versus_mkv_original(original_t *original) {
 
 void o_detect_duplicates_start_versus_mp4_original(original_t *original) {
   o_detect_duplicates(original->start, original->mp4_original, original->cf_head);
+}
+
+void o_detect_duplicates_start_versus_m2ts_original(original_t *original) {
+  o_detect_duplicates(original->start, original->m2ts_original, original->cf_head);
 }
 
 void o_detect_duplicates_mkv_original_versus_mp4_original(original_t *original) {
