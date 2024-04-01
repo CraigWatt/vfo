@@ -460,6 +460,9 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   con_get_sole_marker_count(conf_string, svm->original_location);
   con_get_sole_marker_count(conf_string, svm->source_location);
   con_get_sole_marker_count(conf_string, svm->keep_source);
+  con_get_sole_marker_count(conf_string, svm->source_test_active_marker);
+  con_get_sole_marker_count(conf_string, svm->source_test_trim_start_marker);
+  con_get_sole_marker_count(conf_string, svm->source_test_trim_duration_marker);
 
   /*fetch each sole_var_content from each sole_var_marker*/
   //fetch svc->original_location

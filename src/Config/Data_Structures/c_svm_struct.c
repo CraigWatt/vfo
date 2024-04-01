@@ -29,5 +29,8 @@ sole_var_markers_t* svm_create_new_struct() {
   result->original_location = "ORIGINAL_LOCATION=";
   result->source_location = "SOURCE_LOCATION=";
   result->keep_source = "KEEP_SOURCE=";
+  result->source_test_active_marker = "SOURCE_TEST_ACTIVE=";
+  result->source_test_trim_start_marker = "SOURCE_TEST_TRIM_START=";
+  result->source_test_trim_duration_marker = "SOURCE_TEST_TRIM_DURATION=";
   return result;
 }
