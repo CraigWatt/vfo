@@ -56,6 +56,7 @@ void s_encode_from_m2ts_original_to_source(source_t *source);
 void s_encode_shared_code(active_cf_node_t *active_cf, source_t *source);
 
 char* s_generate_ffmpeg_command(char *original_from, char *source_to);
+char* s_generate_ffmpeg_command_source_test_active(char *original_from, char *source_to);
 char* s_generate_source_file_name(char *original_from, char *source_to);
 bool s_execute_ffmpeg_command(char *original_from, char *source_to);
 
