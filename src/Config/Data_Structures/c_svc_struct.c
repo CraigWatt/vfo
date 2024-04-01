@@ -37,6 +37,10 @@ sole_var_content_t* svc_create_new_struct() {
   result->is_original_location_valid = false;
   result->is_source_location_valid = false;
   result->is_keep_source_valid = false;
+  
+  result->is_source_test_valid = false;
+  result->is_source_test_start_valid = false;
+  result->is_source_test_duration_valid = false;
   result->is_entire_svc_valid = false;
   return result;
 }

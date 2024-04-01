@@ -1323,3 +1323,11 @@ void utils_danger_delete_contents_of_folder(char *folder) {
     printf("MAJOR ERROR: Could not close this folder %s after deleting it's contents.\n", folder);
   }
 }
+
+bool utils_string_only_contains_number_characters(char *string) {
+  while (*string) {
+        if (!(isdigit(*string++) == 0))
+          return false;
+    }
+  return true;
+}

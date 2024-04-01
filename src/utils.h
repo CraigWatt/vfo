@@ -92,4 +92,6 @@ extern bool utils_is_substring(char *check, char *string);
 
 extern void utils_create_error_encoding_file(char *location, char *candidate_name);
 
+extern bool utils_string_only_contains_number_characters(char *string);
+
 #endif // UTILS_H

@@ -471,6 +471,12 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   svc->source_location = con_fetch_sole_var_content(conf_string, svm->source_location);
   //fetch char *tmp_bool_word
   char *tmp_bool_word = con_fetch_sole_var_content(conf_string, svm->keep_source);
+
+  char *tmp_bool_word_source_test = con_fetch_sole_var_content(conf_string, svm->source_test_active_marker);
+
+  char *tmp_source_test_trim_start = con_fetch_sole_var_content(conf_string, svm->source_test_trim_start_marker);
+
+  char *tmp_source_test_trim_duration = con_fetch_sole_var_content(conf_string, svm->source_test_trim_duration_marker);
   /* HOW TO VERIFY ABOVE NOTES:*/
   /*  svc->original_location AND 
       svc->source_location
@@ -503,6 +509,31 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
     svc->is_keep_source_valid = true;
   }
 
+  //verify tmp_bool_word_source_test / svc->source_test
+  tmp_bool_word_source_test = utils_lowercase_string(tmp_bool_word_source_test);
+  if(strcmp(tmp_bool_word_source_test,"true") == 0 || strcmp(tmp_bool_word_source_test,"false") == 0) {
+    if(strcmp(tmp_bool_word_source_test,"true") == 0)
+      svc->source_test = true;
+    if(strcmp(tmp_bool_word_source_test,"false") == 0)
+      svc->source_test = false;
+    svc->is_source_test_valid = true;
+  }
+
+  //only check trim start and duration if source_test is true
+  if(svc->source_test == true) {
+    //verify source_test_trim_start / svc->
+    if(!(utils_string_is_empty_or_spaces(tmp_source_test_trim_start)) == 0)
+      if(utils_string_only_contains_number_characters(tmp_source_test_trim_start) == true) {
+        svc->source_test_trim_start = utils_convert_string_to_integer(tmp_source_test_trim_start);
+         svc->is_source_test_start_valid = true;
+      }
+    if(!(utils_string_is_empty_or_spaces(tmp_source_test_trim_duration)) == 0)
+      if(utils_string_only_contains_number_characters(tmp_source_test_trim_duration) == true) {
+        svc->source_test_trim_duration = utils_convert_string_to_integer(tmp_source_test_trim_duration);
+         svc->is_source_test_duration_valid = true;
+      }
+  }
+
   //tell the user if something isn't valid
   if(svc->is_original_location_valid == false)
     printf("ERROR: the content of %s variable in config file is invalid\n", svm->original_location);
@@ -511,8 +542,13 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   if(svc->is_keep_source_valid == false) 
     printf("ERROR: the content of %s variable in config file is invalid\n", svm->keep_source);
   //is svc entirely valid?
-  if(svc->is_original_location_valid && svc->is_source_location_valid && svc->is_keep_source_valid)
-    svc->is_entire_svc_valid = true;
+  if(svc->is_original_location_valid && svc->is_source_location_valid && svc->is_keep_source_valid && svc->is_source_test_valid)
+    if(svc->source_test == false)
+      svc->is_entire_svc_valid = true;
+    else {
+     if(svc->is_source_test_start_valid && svc->is_source_test_duration_valid)
+      svc->is_entire_svc_valid = true;
+    }
   else {
     printf("vfo can not continue unless the errors mentioned above are addressed.\n");
     printf("MAJOR ERROR DETAILS: The program failed because an essential variable required from config file was found to be invalid by vfo.\n");

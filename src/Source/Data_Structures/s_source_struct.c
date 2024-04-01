@@ -39,7 +39,17 @@ source_t* source_create_new_struct(config_t *config) {
   result->original_mkv_original = s_get_mkv_original_if_it_exists(config->svc->original_location);
   //VERIFIED
   result->original_mp4_original = s_get_mp4_original_if_it_exists(config->svc->original_location);
+  //VERIFIED
+  result->original_m2ts_original = s_get_m2ts_original_if_it_exists(config->svc->original_location);
 
+  //VERIFIED
+  result->source_test = config->svc->source_test;
+  if(result->source_test == true) {
+    //VERIFIED
+    result->source_test_start = config->svc->source_test_trim_start;
+    //VERIFIED
+    result->source_test_duration = config->svc->source_test_trim_duration;
+  }
   //ALREADY VERIFIED (by config)
   result->cf_head = config->cf_head;
   return result;
@@ -110,6 +120,22 @@ char* s_get_mp4_original_if_it_exists(char *original_root) {
   else {
     printf("DEV: tmp_source_mp4_original: %s\n", tmp_source_mp4_original);
     printf("SOURCE ALERT: original's /mp4_original does not exist, mp4 to source encoding will not occur.\n");
+  }
+  return "";
+}
+char* s_get_m2ts_original_if_it_exists(char *original_root) {
+  //create
+  char *tmp_source_m2ts_original = malloc(BUFSIZ);
+  strcpy(tmp_source_m2ts_original, original_root);
+  strcat(tmp_source_m2ts_original, "/m2ts_original");
+  //verify
+  if(utils_does_folder_exist(tmp_source_m2ts_original)) {
+    printf("SOURCE ALERT: original's m2ts_original detected.\n");
+    return tmp_source_m2ts_original;
+  } 
+  else {
+    printf("DEV: tmp_source_m2ts_original: %s\n", tmp_source_m2ts_original);
+    printf("SOURCE ALERT: original's /m2ts_original does not exist, m2ts to source encoding will not occur.\n");
   }
   return "";
 }

@@ -41,6 +41,11 @@ struct sole_var_content {
   bool is_original_location_valid;
   bool is_source_location_valid;
   bool is_keep_source_valid;
+
+  bool is_source_test_valid;
+  bool is_source_test_start_valid;
+  bool is_source_test_duration_valid;
+
   bool is_entire_svc_valid;
 };
 typedef struct sole_var_content sole_var_content_t;

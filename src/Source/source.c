@@ -135,6 +135,8 @@ void s_encode_original_to_source(source_t *source) {
     s_encode_from_mkv_original_to_source(source);
   if(strcmp(source->original_mp4_original, "") != 0)
     s_encode_from_mp4_original_to_source(source);
+  if(strcmp(source->original_m2ts_original, "") != 0)
+    s_encode_from_m2ts_original_to_source(source);
 }
 
 void s_encode_from_mkv_original_to_source(source_t *source) {
@@ -144,6 +146,11 @@ void s_encode_from_mkv_original_to_source(source_t *source) {
 
 void s_encode_from_mp4_original_to_source(source_t *source) {
   active_cf_node_t *active_cf = utils_generate_from_to_ll(source->cf_head, source->original_mp4_original, source->content);
+  s_encode_shared_code(active_cf, source);
+}
+
+void s_encode_from_m2ts_original_to_source(source_t *source) {
+  active_cf_node_t *active_cf = utils_generate_from_to_ll(source->cf_head, source->original_m2ts_original, source->content);
   s_encode_shared_code(active_cf, source);
 }
 
@@ -157,8 +164,13 @@ void s_encode_shared_code(active_cf_node_t *active_cf, source_t *source) {
           if(!utils_does_folder_exist(tmp_f->to_films_f_folder)) {
             //create the folder
             utils_create_folder(tmp_f->to_films_f_folder);
-            //encode the video file
-            if(s_execute_ffmpeg_command(tmp_f->from_films_f_folder, tmp_f->to_films_f_folder) == true) {
+
+            //check if source_test is active
+            if(source->source_test){
+              //encode the video file with source_test times
+              
+              //ELSE IF encode the video file
+            }  else if(s_execute_ffmpeg_command(tmp_f->from_films_f_folder, tmp_f->to_films_f_folder) == true) {
               //command executed successfully
               printf("SOURCE ALERT: ffmpeg command executed successfully.\n");
             }
@@ -244,6 +256,14 @@ char* s_generate_ffmpeg_command(char *original_from, char *source_to) {
   char *vfo_output = s_generate_source_file_name(original_from, source_to);
   char *tmp_ffmpeg = "ffmpeg -nostdin -i \"";
   tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, vfo_input);
+
+  // --- is source test active
+  if(source->source_test)
+
+
+  // ---
+
+
   tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, "\" -c copy -sn -movflags faststart -strict -2 \"");
   tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, vfo_output);
   tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, "\"");
