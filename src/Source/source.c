@@ -278,6 +278,9 @@ char* s_generate_ffmpeg_command_source_test_active(char *original_from, char *so
   tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, "\" -c copy -sn -movflags faststart -strict -2 \"");
   tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, vfo_output);
   tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, "\"");
+  char *str = "FINAL OUTPUT:";
+  printf("%s\n", str);
+  printf("%s\n", tmp_ffmpeg);
   return tmp_ffmpeg;
 }
 
