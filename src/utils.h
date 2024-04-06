@@ -94,4 +94,6 @@ extern void utils_create_error_encoding_file(char *location, char *candidate_nam
 
 extern bool utils_string_only_contains_number_characters(char *string);
 
+extern bool utils_string_is_ffmpeg_timecode_compliant(char *string);
+
 #endif // UTILS_H

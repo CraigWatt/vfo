@@ -1331,3 +1331,30 @@ bool utils_string_only_contains_number_characters(char *string) {
     }
   return true;
 }
+
+bool utils_string_is_ffmpeg_timecode_compliant(char *string) {
+  //string must only be 8 characters long
+  int stringLength = 8;
+
+  if(strlen(string) != stringLength)
+    return false;
+
+  for (int i = 0; i <= stringLength && string[i] != '\0'; i++) {
+    //first 2 characters must be digits
+    if(i == 0 || i == 1 && isdigit(string[i]) != 0)
+      return false;
+    //third character must be :
+    if(i == 2 && string[i] != ':')
+      return false;
+    //fourth and fifth character must be digits
+    if(i == 3 || i == 4 && isdigit(string[i]) != 0)
+      return false;
+    //sixth character must be :
+    if(i == 5 && string[i] != ':')
+      return false;
+    //seventh and eights character must be digits
+    if(i == 6 || i == 7 && isdigit(string[i]) != 0)
+      return false;
+  }
+  return true;
+}

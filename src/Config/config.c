@@ -523,12 +523,12 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   if(svc->source_test == true) {
     //verify source_test_trim_start / svc->
     if(!(utils_string_is_empty_or_spaces(tmp_source_test_trim_start)) == 0)
-      if(utils_string_only_contains_number_characters(tmp_source_test_trim_start) == true) {
+      if(utils_string_is_ffmpeg_timecode_compliant(tmp_source_test_trim_start) == true) {
         svc->source_test_trim_start = utils_convert_string_to_integer(tmp_source_test_trim_start);
          svc->is_source_test_start_valid = true;
       }
     if(!(utils_string_is_empty_or_spaces(tmp_source_test_trim_duration)) == 0)
-      if(utils_string_only_contains_number_characters(tmp_source_test_trim_duration) == true) {
+      if(utils_string_is_ffmpeg_timecode_compliant(tmp_source_test_trim_duration) == true) {
         svc->source_test_trim_duration = utils_convert_string_to_integer(tmp_source_test_trim_duration);
          svc->is_source_test_duration_valid = true;
       }
