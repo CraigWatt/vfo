@@ -242,7 +242,7 @@ bool s_execute_ffmpeg_command(char *original_from, char *source_to, bool source_
   int ffmpeg_error_number;
 
   if(source_test)
-    ffmpeg_error_number = system(s_generate_ffmpeg_command_source_test_active(original_from, source_to));
+    ffmpeg_error_number = system(s_generate_ffmpeg_command_source_test_active(original_from, source_to, source_test_start, source_test_duration));
   else {
     ffmpeg_error_number = system(s_generate_ffmpeg_command(original_from, source_to));
   }
@@ -265,12 +265,16 @@ char* s_generate_ffmpeg_command(char *original_from, char *source_to) {
 }
 
 //I AM HERE - NEED TO CONISDER FFMPEG TIMESTAMP FORMAT INSTEAD OF INT, so 2 numbers : 2 numbers : 2 numbers is appropriate.  can remain characters as long as there are valid checked
-char* s_generate_ffmpeg_command_source_test_active(char *original_from, char *source_to) {
+char* s_generate_ffmpeg_command_source_test_active(char *original_from, char *source_to, char *source_test_start, char *source_test_duration) {
   /* construct ffmpeg command */
   char *vfo_input = utils_fetch_single_file(original_from);
   char *vfo_output = s_generate_source_file_name(original_from, source_to);
-  char *tmp_ffmpeg = "ffmpeg -nostdin -i \"";
+  char *tmp_ffmpeg = "ffmpeg -nostdin -ss \"";
+  tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, source_test_start);
+  tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, "\" -i \"");
   tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, vfo_input);
+  tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, "\" -t \"");
+  tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, source_test_duration);
   tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, "\" -c copy -sn -movflags faststart -strict -2 \"");
   tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, vfo_output);
   tmp_ffmpeg = utils_combine_strings(tmp_ffmpeg, "\"");
