@@ -475,8 +475,9 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   char *tmp_bool_word_source_test = con_fetch_sole_var_content(conf_string, svm->source_test_active_marker);
 
   char *tmp_source_test_trim_start = con_fetch_sole_var_content(conf_string, svm->source_test_trim_start_marker);
-
+  printf("tmp_source_test_trim_start is %s\n", tmp_source_test_trim_start);
   char *tmp_source_test_trim_duration = con_fetch_sole_var_content(conf_string, svm->source_test_trim_duration_marker);
+  printf("tmp_source_test_trim_duration is %s\n", tmp_source_test_trim_duration);
   /* HOW TO VERIFY ABOVE NOTES:*/
   /*  svc->original_location AND 
       svc->source_location
@@ -512,26 +513,39 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   //verify tmp_bool_word_source_test / svc->source_test
   tmp_bool_word_source_test = utils_lowercase_string(tmp_bool_word_source_test);
   if(strcmp(tmp_bool_word_source_test,"true") == 0 || strcmp(tmp_bool_word_source_test,"false") == 0) {
-    if(strcmp(tmp_bool_word_source_test,"true") == 0)
+    if(strcmp(tmp_bool_word_source_test,"true") == 0) {
       svc->source_test = true;
-    if(strcmp(tmp_bool_word_source_test,"false") == 0)
+      printf("source_test equals true!\n");
+    }
+    if(strcmp(tmp_bool_word_source_test,"false") == 0) {
       svc->source_test = false;
+      printf("source_test equals false!\n");
+    }
     svc->is_source_test_valid = true;
   }
 
   //only check trim start and duration if source_test is true
   if(svc->source_test == true) {
+    printf("do i RUN1?\n");
     //verify source_test_trim_start / svc->
-    if(!(utils_string_is_empty_or_spaces(tmp_source_test_trim_start)) == 0)
+    if(utils_string_is_empty_or_spaces(tmp_source_test_trim_start) == false) {
+      printf("do i RUN2?\n");
       if(utils_string_is_ffmpeg_timecode_compliant(tmp_source_test_trim_start) == true) {
+        printf("do i RUN3?\n");
         svc->source_test_trim_start = tmp_source_test_trim_start;
+        printf(svc->source_test_trim_start,"svc->source_test_trim_start is: %s");
          svc->is_source_test_start_valid = true;
       }
-    if(!(utils_string_is_empty_or_spaces(tmp_source_test_trim_duration)) == 0)
+    }
+    if(utils_string_is_empty_or_spaces(tmp_source_test_trim_duration) == false) {
+      printf("do i RUN4?\n");
       if(utils_string_is_ffmpeg_timecode_compliant(tmp_source_test_trim_duration) == true) {
+        printf("do i RUN5?\n");
         svc->source_test_trim_duration = tmp_source_test_trim_duration;
+        printf(svc->source_test_trim_duration,"svc->source_test_trim_duration is: %s");
          svc->is_source_test_duration_valid = true;
       }
+    }
   }
 
   //tell the user if something isn't valid

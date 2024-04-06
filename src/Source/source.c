@@ -310,6 +310,10 @@ void s_highlight_encode_candidates_to_user(source_t *source) {
     printf("SOURCE ALERT: found mp4_original\n");
     s_highlight_encode_candidates_from_mp4_original(source);
   }
+  if(strcmp(source->original_m2ts_original, "") != 0) {
+    printf("SOURCE ALERT: found m2ts_original\n");
+    s_highlight_encode_candidates_from_m2ts_original(source);
+  }
 }
 
 void s_highlight_encode_candidates_from_mkv_original(source_t *source) {
@@ -405,6 +409,55 @@ void s_highlight_encode_candidates_from_mp4_original(source_t *source) {
     }
   }
   printf("SOURCE ALERT: %i mp4_original -> source/content candidates found.\n", mp4_encode_candidates_counter);
+  printf("SOURCE ALERT: %i will be ignored as they appear to already exist in source/content.\n", already_present_in_source_counter);
+  free(active_cf);
+  active_cf = NULL;
+}
+
+void s_highlight_encode_candidates_from_m2ts_original(source_t *source) {
+  active_cf_node_t *active_cf = utils_generate_from_to_ll(source->cf_head, source->original_m2ts_original, source->content);
+  int m2ts_encode_candidates_counter = 0;
+  int already_present_in_source_counter = 0;
+  if(active_cf != NULL) {
+    while(active_cf != NULL) {
+      active_films_f_node_t *tmp_f = active_cf->active_films_f_head;
+      if(tmp_f != NULL) {
+        while(tmp_f != NULL) {
+          //if to_folder does exist AND if from_folder does exist
+          if(utils_does_folder_exist(tmp_f->from_films_f_folder) && utils_does_folder_exist(tmp_f->to_films_f_folder))
+            already_present_in_source_counter++;
+          else if(utils_does_folder_exist(tmp_f->from_films_f_folder) && !(utils_does_folder_exist(tmp_f->to_films_f_folder)))
+            m2ts_encode_candidates_counter++;
+          tmp_f = tmp_f->next;
+        }
+      }
+      active_tv_f_node_t *tmp_tv1 = active_cf->active_tv_f_head;
+      if(tmp_tv1!= NULL) {
+        while(tmp_tv1 != NULL) {
+          active_tv_f_node_t *tmp_tv2 = tmp_tv1->active_tv_f_head;
+          if(tmp_tv2 != NULL) {
+            while(tmp_tv2 != NULL) {
+              active_tv_f_node_t *tmp_tv3 = tmp_tv2->active_tv_f_head;
+              if(tmp_tv3 != NULL) {
+                while(tmp_tv3 != NULL) {
+                  //if to_folder doesn't exist AND from_folder contains valid file
+                  if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) && utils_does_folder_exist(tmp_tv3->to_tv_f_folder))
+                    already_present_in_source_counter++;
+                  else if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) && !(utils_does_folder_exist(tmp_tv3->to_tv_f_folder)))
+                    m2ts_encode_candidates_counter++;
+                  tmp_tv3 = tmp_tv3->next;
+                }
+              }
+              tmp_tv2 = tmp_tv2->next;
+            }
+          }
+          tmp_tv1 = tmp_tv1->next;
+        }
+      }
+      active_cf = active_cf->next;
+    }
+  }
+  printf("SOURCE ALERT: %i m2ts_original -> source/content candidates found.\n", m2ts_encode_candidates_counter);
   printf("SOURCE ALERT: %i will be ignored as they appear to already exist in source/content.\n", already_present_in_source_counter);
   free(active_cf);
   active_cf = NULL;

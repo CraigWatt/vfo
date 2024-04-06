@@ -44,12 +44,10 @@ source_t* source_create_new_struct(config_t *config) {
 
   //VERIFIED
   result->source_test = config->svc->source_test;
-  if(result->source_test == true) {
-    //VERIFIED
-    result->source_test_start = config->svc->source_test_trim_start;
-    //VERIFIED
-    result->source_test_duration = config->svc->source_test_trim_duration;
-  }
+  //VERIFIED
+  result->source_test_start = config->svc->source_test_trim_start;
+  //VERIFIED
+  result->source_test_duration = config->svc->source_test_trim_duration;
   //ALREADY VERIFIED (by config)
   result->cf_head = config->cf_head;
   return result;
