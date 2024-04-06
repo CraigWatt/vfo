@@ -165,12 +165,7 @@ void s_encode_shared_code(active_cf_node_t *active_cf, source_t *source) {
             //create the folder
             utils_create_folder(tmp_f->to_films_f_folder);
 
-            //check if source_test is active
-            if(source->source_test){
-              //encode the video file with source_test times
-              
-              //ELSE IF encode the video file
-            }  else if(s_execute_ffmpeg_command(tmp_f->from_films_f_folder, tmp_f->to_films_f_folder) == true) {
+            if(s_execute_ffmpeg_command(tmp_f->from_films_f_folder, tmp_f->to_films_f_folder, source->source_test) == true) {
               //command executed successfully
               printf("SOURCE ALERT: ffmpeg command executed successfully.\n");
             }
@@ -209,7 +204,7 @@ void s_encode_shared_code(active_cf_node_t *active_cf, source_t *source) {
                       utils_create_folder(tmp_tv2->to_tv_f_folder);
                     utils_create_folder(tmp_tv3->to_tv_f_folder);
                     //encode the video file
-                    if(s_execute_ffmpeg_command(tmp_tv3->from_tv_f_folder, tmp_tv3->to_tv_f_folder) == true) {
+                    if(s_execute_ffmpeg_command(tmp_tv3->from_tv_f_folder, tmp_tv3->to_tv_f_folder, source->source_test) == true) {
                       //command executed successfully
                       printf("SOURCE ALERT: ffmpeg command executed successfully.\n");
                     }
@@ -243,12 +238,19 @@ void s_encode_shared_code(active_cf_node_t *active_cf, source_t *source) {
   active_cf = NULL;
 }
 
-bool s_execute_ffmpeg_command(char *original_from, char *source_to) {
-  int ffmpeg_error_number = system(s_generate_ffmpeg_command(original_from, source_to));
+bool s_execute_ffmpeg_command(char *original_from, char *source_to, bool source_test) {
+  int ffmpeg_error_number;
+
+  if(source_test)
+    ffmpeg_error_number = system(s_generate_ffmpeg_command_source_test_active(original_from, source_to));
+  else {
+    ffmpeg_error_number = system(s_generate_ffmpeg_command(original_from, source_to));
+  }
   if(ffmpeg_error_number == 0)
     return true;
   return false;
 }
+
 
 char* s_generate_ffmpeg_command(char *original_from, char *source_to) {
   /* construct ffmpeg command */
