@@ -30,14 +30,14 @@ sole_var_content_t* svc_create_new_struct() {
   result->source_location = "";
   result->keep_source = false;
   result->source_test = false;
-  result->source_test_trim_start = 0;
-  result->source_test_trim_duration = 0;
+  result->source_test_trim_start = "";
+  result->source_test_trim_duration = "";
 
   //validator bool's
   result->is_original_location_valid = false;
   result->is_source_location_valid = false;
   result->is_keep_source_valid = false;
-  
+
   result->is_source_test_valid = false;
   result->is_source_test_start_valid = false;
   result->is_source_test_duration_valid = false;

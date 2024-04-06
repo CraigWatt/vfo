@@ -35,8 +35,8 @@ struct sole_var_content {
   bool keep_source;
 
   bool source_test;
-  int source_test_trim_start;
-  int source_test_trim_duration;
+  char *source_test_trim_start;
+  char *source_test_trim_duration;
 
   bool is_original_location_valid;
   bool is_source_location_valid;

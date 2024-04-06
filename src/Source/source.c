@@ -165,7 +165,7 @@ void s_encode_shared_code(active_cf_node_t *active_cf, source_t *source) {
             //create the folder
             utils_create_folder(tmp_f->to_films_f_folder);
 
-            if(s_execute_ffmpeg_command(tmp_f->from_films_f_folder, tmp_f->to_films_f_folder, source->source_test) == true) {
+            if(s_execute_ffmpeg_command(tmp_f->from_films_f_folder, tmp_f->to_films_f_folder, source->source_test, source->source_test_start, source->source_test_duration) == true) {
               //command executed successfully
               printf("SOURCE ALERT: ffmpeg command executed successfully.\n");
             }
@@ -204,7 +204,7 @@ void s_encode_shared_code(active_cf_node_t *active_cf, source_t *source) {
                       utils_create_folder(tmp_tv2->to_tv_f_folder);
                     utils_create_folder(tmp_tv3->to_tv_f_folder);
                     //encode the video file
-                    if(s_execute_ffmpeg_command(tmp_tv3->from_tv_f_folder, tmp_tv3->to_tv_f_folder, source->source_test) == true) {
+                    if(s_execute_ffmpeg_command(tmp_tv3->from_tv_f_folder, tmp_tv3->to_tv_f_folder, source->source_test, source->source_test_start, source->source_test_duration) == true) {
                       //command executed successfully
                       printf("SOURCE ALERT: ffmpeg command executed successfully.\n");
                     }
@@ -238,7 +238,7 @@ void s_encode_shared_code(active_cf_node_t *active_cf, source_t *source) {
   active_cf = NULL;
 }
 
-bool s_execute_ffmpeg_command(char *original_from, char *source_to, bool source_test) {
+bool s_execute_ffmpeg_command(char *original_from, char *source_to, bool source_test, char *source_test_start, char *source_test_duration) {
   int ffmpeg_error_number;
 
   if(source_test)

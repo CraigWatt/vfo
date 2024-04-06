@@ -47,8 +47,8 @@ struct source {
   char *original_m2ts_original;
 
   bool source_test;
-  char source_test_start;
-  char source_test_duration;
+  char *source_test_start;
+  char *source_test_duration;
 
   struct cf_node *cf_head;
 };
