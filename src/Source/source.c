@@ -294,6 +294,8 @@ char* s_generate_source_file_name(char *original_from, char *source_to) {
     tmp_name = utils_replace_characters(tmp_name, ".mkv", "");
   if(utils_is_file_extension_mp4(tmp_name))
     tmp_name = utils_replace_characters(tmp_name, ".mp4", "");
+  if(utils_is_file_extension_m2ts(tmp_name))
+    tmp_name = utils_replace_characters(tmp_name, ".m2ts", "");
   /* append _source to end of filename */
   tmp_name = utils_combine_strings(tmp_name, "_source");
   /* add back .mp4 extension */

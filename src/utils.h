@@ -53,6 +53,7 @@ extern void utils_found_a_rogue_file(char *file_name, char *folder);
 extern void utils_wish_to_continue(char *previous_process, char *next_action);
 extern bool utils_is_file_extension_mkv(char *file_name);
 extern bool utils_is_file_extension_mp4(char *file_name);
+extern bool utils_is_file_extension_m2ts(char *file_name);
 extern bool utils_does_folder_contain_file_with_extension(char *folder, char *extension);
 extern char* utils_fetch_single_file(char *folder);
 extern char* utils_fetch_single_file_name(char *folder);

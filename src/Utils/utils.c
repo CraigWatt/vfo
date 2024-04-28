@@ -316,6 +316,9 @@ bool utils_does_folder_contain_file_with_extension(char *folder, char *extension
       else if(strcmp(extension, ".mp4") == 0) {
         extension_found = utils_is_file_extension_mp4(entry->d_name);     
       }
+      else if(strcmp(extension, ".m2ts") == 0) {
+        extension_found = utils_is_file_extension_m2ts(entry->d_name);
+      }
       if(extension_found == true) break;
     } 
   }
@@ -341,7 +344,8 @@ bool utils_does_folder_contain_file_with_valid_video_extension(char *folder) {
   while((entry = readdir(directory)) != NULL) {
     if(entry->d_type == DT_REG && !(utils_file_is_macos_hidden_files(entry->d_name))) {
       bool is_file_mkv = utils_is_file_extension_mkv(entry->d_name);
-      bool is_file_mp4 = utils_is_file_extension_mp4(entry->d_name);     
+      bool is_file_mp4 = utils_is_file_extension_mp4(entry->d_name);
+      bool is_file_m2ts = utils_is_file_extension_m2ts(entry->d_name);    
       if(is_file_mkv || is_file_mp4) {
         valid_extension_detected = true;
         break;
@@ -400,6 +404,31 @@ bool utils_does_folder_contain_file_with_mp4_extension(char *folder) {
   }
   if(closedir(directory) == -1) {
     printf("MAJOR ERROR: Could not close %s after checking for a file within that contains .mp4 file extension\n", folder);
+    exit(EXIT_FAILURE);
+  }
+  return valid_extension_detected;
+}
+
+bool utils_does_folder_contain_file_with_m2ts_extension(char *folder) {
+  bool valid_extension_detected = false;
+  DIR *directory;
+  struct dirent *entry;
+  directory = opendir(folder);
+  if(directory == NULL) {
+    printf("MAJOR ERROR: Could not open %s to check if it contains a file with .m2ts extension\n", folder);
+    exit(EXIT_FAILURE);
+  }
+  while((entry = readdir(directory)) != NULL) {
+    if(entry->d_type == DT_REG && !(utils_file_is_macos_hidden_files(entry->d_name))) {
+      bool is_file_m2ts = utils_is_file_extension_m2ts(entry->d_name);     
+      if(is_file_m2ts) {
+        valid_extension_detected = true;
+        break;
+      }
+    }
+  }
+  if(closedir(directory) == -1) {
+    printf("MAJOR ERROR: Could not close %s after checking for a file within that contains .m2ts file extension\n", folder);
     exit(EXIT_FAILURE);
   }
   return valid_extension_detected;
@@ -501,6 +530,20 @@ bool utils_is_file_extension_mp4(char *file_name) {
   char *point = file_name + strlen(file_name);
   if((point = strrchr(file_name,'.')) != NULL) {
     if (strcmp(point, ".mp4") == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+ * This function takes param string file_name
+ * returns true if end of file_name string is ".m2ts"
+ */
+bool utils_is_file_extension_m2ts(char *file_name) {
+  char *point = file_name + strlen(file_name);
+  if((point = strrchr(file_name,'.')) != NULL) {
+    if (strcmp(point, ".m2ts") == 0) {
       return true;
     }
   }

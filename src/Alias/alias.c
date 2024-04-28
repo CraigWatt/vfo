@@ -841,6 +841,8 @@ char* a_generate_alias_file_name(char *from, char *to, char *alias_name) {
     tmp_name = utils_replace_characters(tmp_name, ".mkv", "");
   if(utils_is_file_extension_mp4(tmp_name))
     tmp_name = utils_replace_characters(tmp_name, ".mp4", "");
+  if(utils_is_file_extension_m2ts(tmp_name))
+    tmp_name = utils_replace_characters(tmp_name, ".m2ts", "");
   /* append _alias_name to end of filename */
   tmp_name = utils_combine_strings(tmp_name, "_");
   tmp_name = utils_combine_strings(tmp_name, alias_name);
