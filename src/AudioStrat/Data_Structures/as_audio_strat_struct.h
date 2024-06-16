@@ -38,16 +38,20 @@ struct audio_strat {
   char *content;
   char *unable_to_process;
 
+  char *source;
+  char *source_after_as;
+
   char *current_codec_name;
   char *current_codec_long_name;
-
 
   struct cf_node *cf_head;
 };
 typedef struct audio_strat audio_strat_t;
 
 audio_strat* audio_strat_create_new_struct(config_t *config);
-char* s_create_content(char *source_root);
-char* s_create_unable_to_process(char *source_root);
+char* as_create_content(char *audio_strat_root);
+char* as_create_unable_to_process(char *audio_strat_root);
+
+char* as_get_source_root();
 
 #endif // AS_AUDIO_STRAT_STRUCT_H
