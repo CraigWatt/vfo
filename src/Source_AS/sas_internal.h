@@ -22,8 +22,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef AS_INTERNAL_H
-#define AS_INTERNAL_H
+#ifndef SAS_INTERNAL_H
+#define SAS_INTERNAL_H
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -51,4 +51,4 @@ bool as_execute_ffmpeg_command(char *source_from, char *source_to);
 
 
 
-#endif // AS_INTERNAL_H
+#endif // SAS_INTERNAL_H
