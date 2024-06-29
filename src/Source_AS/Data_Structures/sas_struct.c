@@ -7,7 +7,7 @@ source_as_t* sas_create_new_struct(config_t *config) {
   //point to relevant param config variables
 
   //ALREADY VERIFIED (by config)
-  result->root = config->svc->source_location;
+  result->root = config->svc->source_as_location;
   //VERIFIED
   result->content = sas_create_content(result->root);
   //VERIFIED
@@ -34,7 +34,7 @@ char* sas_create_content(char *source_as_root) {
   }
 }
 
-char* as_create_unable_to_process(char *source_as_root) {
+char* sas_create_unable_to_process(char *source_as_root) {
   //create
   char *tmp_audio_strat_unable_to_process = malloc(BUFSIZ);
   strcpy(tmp_audio_strat_unable_to_process, audio_strat_root);

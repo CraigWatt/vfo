@@ -32,7 +32,9 @@
 struct sole_var_content {
   char* original_location;
   char* source_location;
+  char* source_as_location;
   bool keep_source;
+  bool keep_source_as;
 
   bool source_test;
   char *source_test_trim_start;
@@ -40,6 +42,7 @@ struct sole_var_content {
 
   bool is_original_location_valid;
   bool is_source_location_valid;
+  bool is_source_as_location_valid;
   bool is_keep_source_valid;
 
   bool is_source_test_valid;
