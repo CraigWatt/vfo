@@ -22,8 +22,8 @@ jobs:
         id: vfo-build
         with:
           path: |
-            ./bin/vfo
-            ./src/vfo_config.conf
+            ./services/vfo/bin/vfo
+            ./services/vfo/src/vfo_config.conf
           key: ${{ github.sha }}
 
   apple-pkg:
@@ -56,36 +56,36 @@ jobs:
       id: vfo-build
       with:
         path: |
-            ./bin/vfo
-            ./src/vfo_config.conf
+          ./services/vfo/bin/vfo
+          ./services/vfo/src/vfo_config.conf
         key: ${{ github.sha }}
 
     - name: ✍️ ReWrite version string in build-info.plist from tag
       run: |
-        xmlstarlet ed --inplace -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME munki-pkg-workspace/build-info.plist
+        xmlstarlet ed --inplace -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME infra/packaging/macos/build-info.plist
 
     - name: 🫳 Position application to payload
       run: |
-        cp bin/vfo munki-pkg-workspace/payload/bin
-        cp src/vfo_config.conf munki-pkg-workspace/payload/bin/vfo_conf_folder
+        cp services/vfo/bin/vfo infra/packaging/macos/payload/bin
+        cp services/vfo/src/vfo_config.conf infra/packaging/macos/payload/bin/vfo_conf_folder
 
 
     - name: Run munkipkg 🧙‍♂️📦
       id: munkipkg
       uses: joncrain/munkipkg-action@5a6c2008ded522b67396a78c06983e614cbe22ac
       with:
-        pkg_subdir: "munki-pkg-workspace"
+        pkg_subdir: "infra/packaging/macos"
     
     # - name: 🏗️ Build Pkg file
     #   run: |
-    #     python munki-pkg-workspace/munkipkg munki-pkg-workspace/vfo_macOS_installer
+    #     python infra/packaging/macos/munkipkg infra/packaging/macos/vfo_macOS_installer
 
     - name: 💭 Cache .pkg
       uses: actions/cache@v3.2.2
       id: macos-pkg
       with:
         path: |
-          ./munki-pkg-workspace/build/*
+          ./infra/packaging/macos/build/*
         key: ${{ github.sha }}
 
 
@@ -112,15 +112,15 @@ jobs:
       id: vfo-build
       with:
         path: |
-            ./bin/vfo
-            ./src/vfo_config.conf
+            ./services/vfo/bin/vfo
+            ./services/vfo/src/vfo_config.conf
         key: ${{ github.sha }}
 
     - name: 🫳 Position application to static build folder
       run: |
         mkdir static_build
-        cp bin/vfo static_build
-        cp src/vfo_config.conf static_build
+        cp services/vfo/bin/vfo static_build
+        cp services/vfo/src/vfo_config.conf static_build
 
     - name: 💁‍♂️ Generate static_build/README.txt
       run: |
@@ -135,7 +135,7 @@ jobs:
       id: macos-pkg
       with:
         path: |
-          ./munki-pkg-workspace/build/*
+          ./infra/packaging/macos/build/*
         key: ${{ github.sha }}
   
     - name: 👷📦 Release static builds & macOS pkg
@@ -145,7 +145,7 @@ jobs:
         generate_release_notes: true
         body_path: RELEASE.txt
         files: |
-          ./munki-pkg-workspace/build/*
+          ./infra/packaging/macos/build/*
           static_build.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
