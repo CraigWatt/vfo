@@ -1,97 +1,292 @@
 ![GitHub Workflow Status (with branch)](https://img.shields.io/github/actions/workflow/status/CraigWatt/vfo/on-push-test.yml?branch=main)
 ![GitHub all releases](https://img.shields.io/github/downloads/CraigWatt/vfo/total)
 
-# What is vfo?
+# vfo
 
-A utility for batch-encoding your video portfolio.  
+`vfo` is a command-line utility for batch-processing a video library with FFmpeg.
 
-Think [HandBrake](https://github.com/HandBrake/HandBrake) queue but with decision making built in.  vfo will scan every video file individually and make encoding decisions based on the quality of that particular video.
+Instead of applying one preset to every file, `vfo` reads a configuration file, inspects each input video, and chooses an FFmpeg command based on the matching alias and scenario rules. The project is aimed at media-library and streaming workflows where source files vary widely in codec, color space, bit depth, and resolution.
 
+## Why use vfo?
 
-v0.2.0 spec:
+- Batch-process a whole library instead of encoding files one by one.
+- Keep different output targets separated with aliases.
+- Attach multiple scenario rules to each alias so different source files can be handled differently.
+- Preserve folder structure while generating output variants.
+- Keep the full flexibility of raw FFmpeg commands by defining them directly in the config file.
 
-<img width="1162" alt="vfo_0 2 0_flow_diagram1" src="https://user-images.githubusercontent.com/87949406/215080053-d55828b9-372b-4286-baaf-d9eb1a076add.png">
+## Current project status
 
-<img width="1199" alt="vfo_0 2 0_flow_diagram2" src="https://user-images.githubusercontent.com/87949406/215080081-b17e93ad-2921-4f44-ad13-73ca39c3fbf0.png">
+- **Actively implemented today:** macOS support is the clearest documented path in the repository.
+- **Planned / incomplete:** Linux and Windows support are referenced in project docs, but are still marked as work in progress.
+- **Configuration-first workflow:** `vfo` does not do much without a `vfo_config.conf` file.
 
+The repository also includes an in-progress sample config at `src/vfo_config.conf`, which is the best reference for how aliases and scenarios are currently expressed.
 
-**A very quick how-to:**
+## How vfo works
 
-1. Install a recent version of [ffmpeg](https://ffmpeg.org/download.html)
-2. [Download](https://github.com/CraigWatt/vfo/releases/latest) and install vfo
-3. Open /usr/local/bin/vfo_config.conf file to tweak settings to suite your encoding strategy.  
-4. Run `vfo all_aliases`
+At a high level, `vfo` works like this:
 
-Read on for more info.
+1. Read `vfo_config.conf`.
+2. Discover your source/original locations and alias definitions.
+3. For each candidate input file, inspect its media properties.
+4. Match the file against alias criteria and scenario conditions.
+5. Run the FFmpeg command attached to the first matching scenario.
+6. Write output into the alias destination while keeping the source folder layout.
 
-**Contents:**
+### Core concepts
 
-- [Requirements](#requirements) TBA
-- [Installation](#installation) TBA
-- [Usage](#usage) TBA
-- [Description](#description) TBA
-- [Examples](#examples) TBA
-- [Detailed Options](#detailed-options) TBA
+#### Original and source folders
 
--------------
+The sample configuration distinguishes between an `ORIGINAL_LOCATION` and a `SOURCE_LOCATION`. The code also supports a `KEEP_SOURCE` switch, which changes whether alias generation runs from the original set or from the source set.
 
-## Requirements
+#### Aliases
 
-### vfo runs on:
-  
-  macOS (Intel & Arm)
-  
-### vfo will, very soon, be able to run on:
-  
-  Linux (Ubuntu and similar)
-  
-  Windows (10 & 11 and similar)
-  
-[Download latest release from GitHub](https://github.com/CraigWatt/vfo/releases/latest)
+An alias represents a target output collection, such as a compatibility tier for a specific playback device or streaming profile.
 
+Each alias can define criteria such as:
 
+- codec
+- bit depth
+- color space
+- minimum resolution
+- maximum resolution
+- destination folder
 
-## Project Description (soon to be archived)
+#### Scenarios
 
-This is a great project to dive into using and/or contributing to if you have any interest in C programming and/or video/audio encoding!  
+Each alias can contain one or more scenarios. A scenario is effectively a condition-expression plus an FFmpeg command.
 
-VFO is like an evolution of HandBrake's queue feature.  Instead of having to 'apply preset to all' candidate videos or 'tweak each and every video 1 by 1', VFO makes it easier to encode/remux an entire portfolio of source video files WHILE STILL having the option to encode individual video files in particular ways, DEPENDING on what that source video candidate consists of.
+Examples of scenario conditions visible in the sample config include:
 
-For example, let's say you are a streaming service, or you just happen to have a catalog of videos of which you can't say with certainty how consistent they are.  Maybe you have a bunch of h264 encoded videos, some below 720p, some around 720p, some around 1080p?  But a few of them are HDR while most aren't?  In fact you know a good portion might be hevc encoded too, but some are actually only of 8 bit color depth and some are 10 bit.  Perhaps none of their extensions are all the same?  Some use mp4 video container, some use .mkv, maybe some use webm?  Darn you also have those super old videos encoded in MPEG-2!  
+- `CODEC_JUST_RIGHT`
+- `RES_TOO_HIGH`
+- `FULL_HD_OR_HIGHER`
+- `NO_VALID_COLOR_SPACE_DETECTED`
+- `ELSE`
 
-I could go on, but hopefully this conveys something like the considerations YOU have as an enthusiast video/audio encoder.
+When a scenario matches, `vfo` runs the FFmpeg command tied to that scenario.
 
-The goal of VFO is to save this kind of user time WHILE STILL allowing them to keep full control of their output quality.
+## Installation
 
-VFO can do this by allowing the user to DEFINE ALIAS'S and SCENARIOS.  An ALIAS represents a group of video files that HAVE BEEN encoded by vfo FROM your group of SOURCE video files. You can set CRITIERIA for ALIAS'S.  A simple example could be, say you are trying generate encoded video files of the highest possible quality for an end user that is using a low-end streaming device.  We know that device can only decode something like h264 and can't touch hevc (certainly not av1).
-We also set the criteria of SDR (bt709), becuase we know the device cannot support HDR OR it is highly unlikely the end user is connected to an HDR capable TV.  We also would then know the TV only supports a maximum of 1080p resolution.
+### Option 1: install from a release
 
-We have just defined some CRITIERA that we can tie to our alias.  Let's call the alias TIGER so we can refer to it.
+The repository's release notes describe two macOS-oriented installation paths:
 
-Now that we have set the ALIAS_NAME and have set TIGER_CRITERIA, we can now set some TIGER_SCENARIO's.  
+1. Install the `.pkg` release asset.
+2. Download the static build zip and copy the binary plus config file into your PATH.
 
-Scenario's are used when we want to determine whether or not a candidate video MATCHES our defined scenarios.  Almost like a single if statement...if candidate file resoltion is greater than 1080p...do something!
+Release notes: [RELEASE.txt](./RELEASE.txt)
 
-You can then tie a specific FFMPEG_COMMAND to that SCENARIO.  The FFMPEG is the 'do something' part, it is run IF the particular candidate video file that is being looked at (at that given moment) to see if it MATCHES the SCENARIO.
+### Option 2: build from source
 
-Like you can define any number of ALIAS's, you can define any number of SCENARIO's within those ALIAS'S.
+Prerequisites:
 
-Just like using ffmpeg standalone, you can define each SCENARIO's FFMPEG COMMAND however you want.  Simply supstitute $vfo_input for where you would typically type your input video file, and $vfo_output for your output.
+- `gcc`
+- `make`
+- a reasonably recent `ffmpeg`
+- `zsh` available as `/bin/zsh` or `zsh` in your shell environment, since the `Makefile` sets `SHELL := zsh`
 
-When executed, VFO will handle ALL source candidate video files, check ALL Alias's to scan for a matching scenario while retaining the same folder structure of your entire source candidate files for the Alias's folder.
+Build the binary:
 
-This should save you time, especially when you are juggling with a large amount of 'different' video files because VFO can process everything but also make key decisions on HOW to encode based on your configuration!
+```bash
+make all
+```
 
-### In future I'll be providing:
+The compiled executable is written to:
 
-1. Real vfo_config.conf examples within this README to make it easier to follow along, along with REAL vfo CLI commands.
+```text
+bin/vfo
+```
 
-2. two companion vidoes in future that 1: explains the basics on how to use this program 2: how the program works (i.e. the programming involved to make vfo).
+#### Install target
 
-Ask more general questions here: [General Discussion](https://github.com/CraigWatt/vfo/discussions/27)
+The repository includes an install target:
 
-Raise specific issues (bugs,enhancements etc.) here: [Issues](https://github.com/CraigWatt/vfo/issues)
+```bash
+make install
+```
 
-## 🙏 Support
+By default this copies the binary under `/usr/local/bin` and copies `src/vfo_config.conf` into `/usr/local/bin/vfo_conf_folder`.
 
-Don't forget to leave a star ⭐️
+> **Important:** the current config-loading messages in the source code still tell users that `vfo_config.conf` must live directly in `/usr/local/bin`. If you use `make install`, verify where your config file ends up and move or link it as needed for your environment.
+
+## Quick start
+
+1. Install FFmpeg.
+2. Build or download `vfo`.
+3. Copy `src/vfo_config.conf` to the location your installation expects.
+4. Edit the config file so the folder paths match your machine.
+5. Define at least one alias and one scenario.
+6. Run `vfo` with either a built-in command or an alias name.
+
+Example starter flow:
+
+```bash
+cp src/vfo_config.conf /usr/local/bin/vfo_config.conf
+$EDITOR /usr/local/bin/vfo_config.conf
+vfo --help
+vfo all_aliases
+```
+
+## Command-line usage
+
+The help text in the repository currently documents this shape:
+
+```text
+vfo [argument] || [options]
+```
+
+### Options
+
+- `-h`, `--help` — print help text
+- `-v`, `--version` — print version information
+- `--no-color` — disable colored output
+
+### Common arguments
+
+- `original`
+- `source`
+- `all_aliases`
+- `do_it_all`
+- `wipe`
+- any alias name defined in `vfo_config.conf`
+
+A useful mental model is:
+
+- use `all_aliases` to run every configured alias
+- use a specific alias name to run only that alias
+- use `wipe` together with alias-oriented commands when you want alias outputs removed
+
+## Configuration guide
+
+The sample `src/vfo_config.conf` is long, but the structure is consistent.
+
+### 1. Set required paths
+
+Start by updating the top-level locations:
+
+- `ORIGINAL_LOCATION`
+- `SOURCE_LOCATION`
+- `SOURCE_AS_LOCATION`
+
+### 2. Decide global behavior
+
+Examples from the sample file include:
+
+- `KEEP_SOURCE`
+- `SOURCE_TEST_ACTIVE`
+- `SOURCE_TEST_TRIM_START`
+- `SOURCE_TEST_TRIM_DURATION`
+- `SOURCE_AS_ACTIVATE`
+- `ALIASES_ON`
+
+### 3. Define custom folders
+
+The sample uses repeated `CUSTOM_FOLDER="name,type"` entries, where the type is one of the approved values used in code today:
+
+- `films`
+- `tv`
+
+### 4. Define an alias
+
+A minimal alias pattern looks like this:
+
+```text
+ALIAS="queen"
+QUEEN_LOCATION="/path/to/output"
+QUEEN_CRITERIA_CODEC_NAME="h264"
+QUEEN_CRITERIA_COLOR_SPACE="bt709"
+QUEEN_CRITERIA_RESOLUTION_MIN_WIDTH="352"
+QUEEN_CRITERIA_RESOLUTION_MIN_HEIGHT="240"
+QUEEN_CRITERIA_RESOLUTION_MAX_WIDTH="1920"
+QUEEN_CRITERIA_RESOLUTION_MAX_HEIGHT="1080"
+```
+
+### 5. Add scenarios and FFmpeg commands
+
+Each scenario is paired with one FFmpeg command:
+
+```text
+QUEEN_SCENARIO="RES_TOO_HIGH"
+QUEEN_FFMPEG_COMMAND="ffmpeg ... $vfo_input ... $vfo_output"
+```
+
+Use these placeholders in your command strings:
+
+- `$vfo_input`
+- `$vfo_output`
+
+That lets `vfo` substitute the actual source and destination file paths at runtime.
+
+## Example use cases
+
+### Build a 1080p H.264 compatibility tier
+
+Create an alias for older TVs, low-end streamers, or browser playback. Set the max resolution to 1920x1080, prefer `h264`, and add scenarios that:
+
+- remux compliant files
+- downscale larger files
+- reject files that are too small
+
+### Build multiple output targets from one library
+
+Define separate aliases for:
+
+- a high-quality archive copy
+- a 1080p SDR streaming tier
+- a smaller mobile-friendly tier
+
+Then run:
+
+```bash
+vfo all_aliases
+```
+
+### Test your workflow on short clips first
+
+The sample config includes source test settings so you can generate trimmed outputs while checking that your alias and FFmpeg logic behaves as expected.
+
+## Development
+
+### Repository layout
+
+```text
+src/
+  Alias/
+  Config/
+  InputHandler/
+  Original/
+  Source/
+  Source_AS/
+  Utils/
+test/
+```
+
+### Build commands
+
+```bash
+make all
+make tests
+make clean
+make clean_tests
+```
+
+Note that `make tests` links against `cmocka`, so you may need to install that dependency first.
+
+## Known rough edges
+
+- Some documentation in the repository is still marked as work in progress.
+- The install path for `vfo_config.conf` appears inconsistent between the `Makefile` and the runtime error/help text.
+- The sample configuration contains roadmap comments and experimental notes alongside active settings.
+
+## Contributing
+
+Contributions that improve documentation, example configs, portability, and installation behavior would all make the project easier to adopt.
+
+- Ask broader questions in [GitHub Discussions](https://github.com/CraigWatt/vfo/discussions/27)
+- Report bugs or feature ideas in [GitHub Issues](https://github.com/CraigWatt/vfo/issues)
+
+## Support
+
+If the project is useful to you, consider starring the repository.
