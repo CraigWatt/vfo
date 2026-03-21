@@ -139,7 +139,9 @@ By default this copies the binary under `/usr/local/bin` and copies `services/vf
 3. Copy `services/vfo/src/vfo_config.conf` to the location your installation expects.
 4. Edit the config file so the folder paths match your machine.
 5. Define at least one profile (`ALIAS=` today) and one scenario.
-6. Run `vfo` with either a built-in command or a profile name.
+6. Run `vfo doctor` to validate environment + config.
+7. Run `vfo run` for the default end-to-end pipeline.
+8. Run `vfo` with individual stage commands or a specific profile name when needed.
 
 Example starter flow:
 
@@ -147,6 +149,8 @@ Example starter flow:
 cp services/vfo/src/vfo_config.conf /usr/local/bin/vfo_config.conf
 $EDITOR /usr/local/bin/vfo_config.conf
 vfo --help
+vfo doctor
+vfo run
 vfo all_aliases
 ```
 
@@ -168,6 +172,8 @@ vfo [argument] || [options]
 
 - `original`
 - `source`
+- `doctor`
+- `run`
 - `all_aliases`
 - `do_it_all`
 - `wipe`
@@ -178,6 +184,8 @@ A useful mental model is:
 - use `all_aliases` to run every configured profile
 - use a specific profile name to run only that profile
 - use `wipe` together with profile-oriented commands when you want profile outputs removed
+- use `doctor` before first run (or after machine/config changes)
+- use `run` for the default pipeline (mezzanine -> source if enabled -> profiles)
 
 ## Configuration guide
 
@@ -188,6 +196,10 @@ For hardware-aware profile actions (for example Apple Silicon encode with CPU fa
 - `services/vfo/actions/`
 - `services/vfo/docs/profile-action-schema.md`
 - `services/vfo/examples/vfo_config.profile_actions.conf`
+
+For stock shipping profile packs, see:
+
+- `services/vfo/presets/`
 
 ### 1. Set required paths
 

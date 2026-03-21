@@ -30,6 +30,8 @@ arguments_t* arguments_create_new_struct() {
   result->original_detected = false;
   result->revert_detected = false;
   result->source_detected = false;
+  result->run_detected = false;
+  result->doctor_detected = false;
   result->all_aliases_detected = false;
   result->do_it_all_detected = false;
   result->wipe_detected = false;
@@ -46,6 +48,10 @@ void ih_arguments_parser(int argc, char **argv, arguments_t* arguments) {
     arguments->revert_detected = true;
   if(utils_string_array_contains_string(argv, argc, "source"))
     arguments->source_detected = true;
+  if(utils_string_array_contains_string(argv, argc, "run"))
+    arguments->run_detected = true;
+  if(utils_string_array_contains_string(argv, argc, "doctor"))
+    arguments->doctor_detected = true;
   if(utils_string_array_contains_string(argv, argc, "all_aliases"))
     arguments->all_aliases_detected = true;
   if(utils_string_array_contains_string(argv, argc, "do_it_all"))
