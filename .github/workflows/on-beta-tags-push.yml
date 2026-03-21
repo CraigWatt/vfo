@@ -18,7 +18,7 @@ jobs:
         run: make
 
       - name: 💭 Cache application
-        uses: actions/cache@v3.2.2
+        uses: actions/cache@v4
         id: vfo-build
         with:
           path: |
@@ -52,7 +52,7 @@ jobs:
         run: python -v
 
       - name: 🤌💭 Fetch application cache
-        uses: actions/cache@v3.2.2
+        uses: actions/cache@v4
         id: vfo-build
         with:
           path: |
@@ -76,7 +76,7 @@ jobs:
           pkg_subdir: "infra/packaging/macos"
 
       - name: 💭 Cache .pkg
-        uses: actions/cache@v3.2.2
+        uses: actions/cache@v4
         id: macos-pkg
         with:
           path: |
@@ -93,7 +93,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🤌💭 fetch Application Cache
-        uses: actions/cache@v3.2.2
+        uses: actions/cache@v4
         id: vfo-build
         with:
           path: |
@@ -116,7 +116,7 @@ jobs:
         run: zip -r static_build.zip static_build
 
       - name: 🤌💭 fetch macOS .pkg Cache
-        uses: actions/cache@v3.2.2
+        uses: actions/cache@v4
         id: macos-pkg
         with:
           path: |
