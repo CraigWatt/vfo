@@ -15,6 +15,11 @@ source_as_t* sas_create_new_struct(config_t *config) {
 
   //VERIFIED
   result->source = config->svc->source_location;
+  result->source_content = sas_create_source_content(result->source);
+  result->source_as_content = result->content;
+
+  result->current_codec_name = "";
+  result->current_codec_long_name = "";
 
   result->cf_head = config->cf_head;
   return result;
@@ -27,21 +32,25 @@ char* sas_create_content(char *source_as_root) {
   strcat(tmp_source_content, "/content");
   //verify
   if(!utils_does_folder_exist(tmp_source_content)) {
-    printf("AUDIO_STRAT WARNING: vfo could not find an essential /content folder in %s\n",audio_strat_root);
+    printf("AUDIO_STRAT WARNING: vfo could not find an essential /content folder in %s\n", source_as_root);
     utils_ask_user_for_permission_to_create_a_folder(tmp_source_content);
     utils_create_folder(tmp_source_content);
-    if(!utils_does_folder_exist(char *location))
+    if(!utils_does_folder_exist(tmp_source_content)) {
+      printf("AUDIO_STRAT MAJOR ERROR: vfo could not create %s & it does not exist AUDIO_STRAT MAJOR ERROR\n", tmp_source_content);
+      exit(EXIT_FAILURE);
+    }
   }
+  return tmp_source_content;
 }
 
 char* sas_create_unable_to_process(char *source_as_root) {
   //create
   char *tmp_audio_strat_unable_to_process = malloc(BUFSIZ);
-  strcpy(tmp_audio_strat_unable_to_process, audio_strat_root);
+  strcpy(tmp_audio_strat_unable_to_process, source_as_root);
   strcat(tmp_audio_strat_unable_to_process, "/unable_to_process");
   //verify
   if(!utils_does_folder_exist(tmp_audio_strat_unable_to_process)) {
-    printf("AUDIO_STRAT WARNING: vfo could not find an essential /unable_to_process folder in %s\n", audio_strat_root);
+    printf("AUDIO_STRAT WARNING: vfo could not find an essential /unable_to_process folder in %s\n", source_as_root);
     utils_ask_user_for_permission_to_create_a_folder(tmp_audio_strat_unable_to_process);
     utils_create_folder(tmp_audio_strat_unable_to_process);
     if(!utils_does_folder_exist(tmp_audio_strat_unable_to_process)) {
@@ -52,4 +61,21 @@ char* sas_create_unable_to_process(char *source_as_root) {
   return tmp_audio_strat_unable_to_process;
 }
 
+char* sas_create_source_content(char *source_root) {
+  char *tmp_source_content = malloc(BUFSIZ);
+  strcpy(tmp_source_content, source_root);
+  strcat(tmp_source_content, "/content");
+
+  if(!utils_does_folder_exist(tmp_source_content)) {
+    printf("AUDIO_STRAT WARNING: vfo could not find an essential source/content folder in %s\n", source_root);
+    utils_ask_user_for_permission_to_create_a_folder(tmp_source_content);
+    utils_create_folder(tmp_source_content);
+    if(!utils_does_folder_exist(tmp_source_content)) {
+      printf("AUDIO_STRAT MAJOR ERROR: vfo could not create SOURCE %s & it does not exist AUDIO_STRAT MAJOR ERROR\n", tmp_source_content);
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  return tmp_source_content;
+}
 

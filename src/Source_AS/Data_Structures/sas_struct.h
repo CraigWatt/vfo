@@ -35,6 +35,7 @@
 
 struct source_as {
   char *root;
+  char *source;
   char *content;
   char *unable_to_process;
 
@@ -48,9 +49,10 @@ struct source_as {
 };
 typedef struct source_as source_as_t;
 
-source_as* sas_create_new_struct(config_t *config);
+source_as_t* sas_create_new_struct(config_t *config);
 char* sas_create_content(char *source_as_root);
 char* sas_create_unable_to_process(char *source_as_root);
+char* sas_create_source_content(char *source_root);
 
 
 #endif // AS_AUDIO_STRAT_STRUCT_H

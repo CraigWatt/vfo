@@ -39,7 +39,9 @@ void as_highlight_encode_candidates_to_user(audio_strat_t *audio_strat) {
 }
 
 void as_highlight_encode_candidates_from_source_content(audio_strat_t *audio_strat) {
-active_cf_node_t *active_cf = utils_generate_from_to_ll(audio_strat->cf_head, audio_strat->original_mkv_original, source->content);
+  active_cf_node_t *active_cf = utils_generate_from_to_ll(audio_strat->cf_head,
+                                                          audio_strat->source_content,
+                                                          audio_strat->source_as_content);
   int mkv_encode_candidates_counter = 0;
   int already_present_in_source_counter = 0;
   if(active_cf != NULL) {
@@ -86,7 +88,6 @@ active_cf_node_t *active_cf = utils_generate_from_to_ll(audio_strat->cf_head, au
   free(active_cf);
   active_cf = NULL;
 }
-
 
 
 
