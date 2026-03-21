@@ -6,6 +6,9 @@ This is the primary application service in this repository.
 
 - `src/` application source code and default `vfo_config.conf`
 - `test/` unit and integration-style test code
+- `actions/` reusable profile action scripts
+- `docs/` service-specific design and configuration docs
+- `examples/` sample config snippets and usage templates
 - `bin/` compiled binaries
 - `lib/` build artifacts (`.o` files)
 - `log/` runtime and tooling logs

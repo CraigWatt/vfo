@@ -183,6 +183,12 @@ A useful mental model is:
 
 The sample `services/vfo/src/vfo_config.conf` is long, but the structure is consistent.
 
+For hardware-aware profile actions (for example Apple Silicon encode with CPU fallback), see:
+
+- `services/vfo/actions/`
+- `services/vfo/docs/profile-action-schema.md`
+- `services/vfo/examples/vfo_config.profile_actions.conf`
+
 ### 1. Set required paths
 
 Start by updating the top-level locations:
