@@ -9,7 +9,7 @@ on:
       - "main"
 
 jobs:
-  validate:
+  build:
     runs-on: macos-latest
 
     steps:
