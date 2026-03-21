@@ -18,14 +18,26 @@ jobs:
       - name: verify brew is installed
         run: brew -v
 
-      - name: install cmocka
-        run: brew install cmocka
+      - name: install CI dependencies
+        run: |
+          if ! brew list cmocka >/dev/null 2>&1; then
+            brew install cmocka
+          fi
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            brew install ffmpeg
+          fi
 
-      - name: build application
-        run: make all
+      - name: build + unit + e2e smoke
+        run: make ci
 
-      - name: run tests
-        run: make tests
+      - name: upload e2e debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-debug-${{ github.sha }}
+          path: tests/e2e/.tmp/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: clean test artifacts
         if: always()

@@ -1,6 +1,6 @@
 SERVICE_DIR := services/vfo
 
-.PHONY: default all tests clean clean_tests install uninstall valgrind show_names show_objects show_os
+.PHONY: default all tests e2e ci clean clean_tests install uninstall valgrind show_names show_objects show_os
 
 default: all
 
@@ -9,6 +9,11 @@ all:
 
 tests:
 	$(MAKE) -C $(SERVICE_DIR) tests
+
+e2e:
+	bash tests/e2e/run_profile_actions_e2e.sh
+
+ci: all tests e2e
 
 clean:
 	$(MAKE) -C $(SERVICE_DIR) clean

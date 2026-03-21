@@ -21,6 +21,8 @@ From the repository root:
 ```bash
 make all
 make tests
+make e2e
+make ci
 ```
 
 Or directly from this service:
@@ -29,6 +31,8 @@ Or directly from this service:
 make -C services/vfo all
 make -C services/vfo tests
 ```
+
+Cross-cutting E2E tests live under `tests/e2e/` and are run from repository root.
 
 ## Runtime helpers
 
