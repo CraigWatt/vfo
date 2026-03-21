@@ -65,6 +65,7 @@ void ih_mes_help();
 void ih_mes_usage();
 void ih_mes_description();
 void ih_mes_options();
+void ih_mes_arguments();
 void ih_mes_author();
 void ih_mes_version();
 void ih_mes_user_provided_no_args_and_no_options();
