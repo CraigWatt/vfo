@@ -5,13 +5,13 @@
 
 `vfo` is a command-line utility for batch-processing a video library with FFmpeg.
 
-Instead of applying one preset to every file, `vfo` reads a configuration file, inspects each input video, and chooses an FFmpeg command based on the matching alias and scenario rules. The project is aimed at media-library and streaming workflows where source files vary widely in codec, color space, bit depth, and resolution.
+Instead of applying one preset to every file, `vfo` reads a configuration file, inspects each input video, and chooses an FFmpeg command based on matching profile rules (currently configured with `ALIAS=` entries). The project is aimed at media-library and streaming workflows where source files vary widely in codec, color space, bit depth, and resolution.
 
 ## Why use vfo?
 
 - Batch-process a whole library instead of encoding files one by one.
-- Keep different output targets separated with aliases.
-- Attach multiple scenario rules to each alias so different source files can be handled differently.
+- Keep different output targets separated with profiles (legacy term in config: aliases).
+- Attach multiple scenario rules to each profile so different source files can be handled differently.
 - Preserve folder structure while generating output variants.
 - Keep the full flexibility of raw FFmpeg commands by defining them directly in the config file.
 
@@ -21,30 +21,43 @@ Instead of applying one preset to every file, `vfo` reads a configuration file, 
 - **Planned / incomplete:** Linux and Windows support are referenced in project docs, but are still marked as work in progress.
 - **Configuration-first workflow:** `vfo` does not do much without a `vfo_config.conf` file.
 
-The repository also includes an in-progress sample config at `services/vfo/src/vfo_config.conf`, which is the best reference for how aliases and scenarios are currently expressed.
+The repository also includes an in-progress sample config at `services/vfo/src/vfo_config.conf`, which is the best reference for how profiles (aliases) and scenarios are currently expressed.
+
+## Terminology transition
+
+vfo is moving toward this wording:
+
+- `Mezzanine` = high-quality working library input (legacy command term: `original`)
+- `Source` = normalized intermediate layer
+- `Profile` = delivery target definition (legacy config/runtime term: `alias`)
+
+Recommended pipeline modes:
+
+1. Default: `mezzanine -> source -> profile`
+2. Optional: `mezzanine -> profile` (skip source if your library is already normalized)
 
 ## How vfo works
 
 At a high level, `vfo` works like this:
 
 1. Read `vfo_config.conf`.
-2. Discover your source/original locations and alias definitions.
+2. Discover your mezzanine/source locations and profile definitions.
 3. For each candidate input file, inspect its media properties.
-4. Match the file against alias criteria and scenario conditions.
+4. Match the file against profile criteria and scenario conditions.
 5. Run the FFmpeg command attached to the first matching scenario.
-6. Write output into the alias destination while keeping the source folder layout.
+6. Write output into the profile destination while keeping the source folder layout.
 
 ### Core concepts
 
-#### Original and source folders
+#### Mezzanine and source folders
 
-The sample configuration distinguishes between an `ORIGINAL_LOCATION` and a `SOURCE_LOCATION`. The code also supports a `KEEP_SOURCE` switch, which changes whether alias generation runs from the original set or from the source set.
+The sample configuration distinguishes between an `ORIGINAL_LOCATION` and a `SOURCE_LOCATION`. The code also supports a `KEEP_SOURCE` switch, which changes whether profile generation runs from the original set or from the source set.
 
-#### Aliases
+#### Profiles (legacy: aliases)
 
-An alias represents a target output collection, such as a compatibility tier for a specific playback device or streaming profile.
+A profile represents a target output collection, such as a compatibility tier for a specific playback device or streaming profile.
 
-Each alias can define criteria such as:
+Each profile can define criteria such as:
 
 - codec
 - bit depth
@@ -55,7 +68,7 @@ Each alias can define criteria such as:
 
 #### Scenarios
 
-Each alias can contain one or more scenarios. A scenario is effectively a condition-expression plus an FFmpeg command.
+Each profile can contain one or more scenarios. A scenario is effectively a condition-expression plus an FFmpeg command.
 
 Examples of scenario conditions visible in the sample config include:
 
@@ -117,8 +130,8 @@ By default this copies the binary under `/usr/local/bin` and copies `services/vf
 2. Build or download `vfo`.
 3. Copy `services/vfo/src/vfo_config.conf` to the location your installation expects.
 4. Edit the config file so the folder paths match your machine.
-5. Define at least one alias and one scenario.
-6. Run `vfo` with either a built-in command or an alias name.
+5. Define at least one profile (`ALIAS=` today) and one scenario.
+6. Run `vfo` with either a built-in command or a profile name.
 
 Example starter flow:
 
@@ -150,13 +163,13 @@ vfo [argument] || [options]
 - `all_aliases`
 - `do_it_all`
 - `wipe`
-- any alias name defined in `vfo_config.conf`
+- any profile name defined in `vfo_config.conf` (currently via `ALIAS=`)
 
 A useful mental model is:
 
-- use `all_aliases` to run every configured alias
-- use a specific alias name to run only that alias
-- use `wipe` together with alias-oriented commands when you want alias outputs removed
+- use `all_aliases` to run every configured profile
+- use a specific profile name to run only that profile
+- use `wipe` together with profile-oriented commands when you want profile outputs removed
 
 ## Configuration guide
 
@@ -188,9 +201,9 @@ The sample uses repeated `CUSTOM_FOLDER="name,type"` entries, where the type is 
 - `films`
 - `tv`
 
-### 4. Define an alias
+### 4. Define a profile (legacy config keyword: `ALIAS=`)
 
-A minimal alias pattern looks like this:
+A minimal profile pattern looks like this:
 
 ```text
 ALIAS="queen"
@@ -223,7 +236,7 @@ That lets `vfo` substitute the actual source and destination file paths at runti
 
 ### Build a 1080p H.264 compatibility tier
 
-Create an alias for older TVs, low-end streamers, or browser playback. Set the max resolution to 1920x1080, prefer `h264`, and add scenarios that:
+Create a profile for older TVs, low-end streamers, or browser playback. Set the max resolution to 1920x1080, prefer `h264`, and add scenarios that:
 
 - remux compliant files
 - downscale larger files
@@ -231,7 +244,7 @@ Create an alias for older TVs, low-end streamers, or browser playback. Set the m
 
 ### Build multiple output targets from one library
 
-Define separate aliases for:
+Define separate profiles for:
 
 - a high-quality archive copy
 - a 1080p SDR streaming tier
@@ -245,7 +258,7 @@ vfo all_aliases
 
 ### Test your workflow on short clips first
 
-The sample config includes source test settings so you can generate trimmed outputs while checking that your alias and FFmpeg logic behaves as expected.
+The sample config includes source test settings so you can generate trimmed outputs while checking that your profile and FFmpeg logic behaves as expected.
 
 ## Development
 

@@ -32,6 +32,7 @@ void ih_mes_help () {
   ih_mes_usage();
   ih_mes_description();
   ih_mes_options();
+  ih_mes_arguments();
   ih_mes_author();
   ih_mes_version();
 }
@@ -43,7 +44,9 @@ void ih_mes_usage () {
   fprintf(stdout, BROWN "Usage: " NO_COLOR);
   fprintf(stdout, "%s [argument] || [options]\n\n", __PROGRAM_NAME__);
   fprintf(stdout, BROWN "Usage examples: " NO_COLOR);
-  fprintf(stdout, "%s original\n\n", __PROGRAM_NAME__);
+  fprintf(stdout, "%s original    # mezzanine preparation stage\n\n", __PROGRAM_NAME__);
+  fprintf(stdout, "%s source      # normalized source stage\n\n", __PROGRAM_NAME__);
+  fprintf(stdout, "%s all_aliases # run all delivery profiles (legacy term: aliases)\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s --version\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s --help\n\n", __PROGRAM_NAME__);
 }
@@ -55,7 +58,9 @@ void ih_mes_description () {
     fprintf(stdout, BROWN "Description: " NO_COLOR);
     fprintf(stdout, "vfo is a CLU that sits on top of FFmpeg.  The program\n"
             "gives you the power of automation when it comes to encoding\n"
-            "your video files in bulk in preparation for video streaming.\n");
+            "your video files in bulk in preparation for video streaming.\n"
+            "Pipeline terminology: mezzanine -> source -> profile\n"
+            "(legacy runtime/config term: alias).\n");
 }
 
 /*
@@ -77,15 +82,15 @@ void ih_mes_options () {
 void ih_mes_arguments() {
       fprintf(stdout, BROWN "Arguments:\n\n" NO_COLOR);
     fprintf(stdout, GRAY "\toriginal\n" NO_COLOR
-                    "\t\texecutes original program only\n\n");
+                    "\t\texecutes mezzanine preparation stage only\n\n");
     fprintf(stdout, GRAY "\tsource\n" NO_COLOR
-                    "\t\texecutes source program only\n\n");
+                    "\t\texecutes normalized source stage only\n\n");
     fprintf(stdout, GRAY "\tjoker\n" NO_COLOR
                     "\t\texecutes joker program only\n\n");
     fprintf(stdout, GRAY "\tcustom_alias\n" NO_COLOR
-                    "\t\texecutes custom_alias program only\n\n");
+                    "\t\texecutes a specific delivery profile (legacy: alias)\n\n");
     fprintf(stdout, GRAY "\tdo_it_all\n" NO_COLOR
-                    "\t\texecutes all programs from original to aliases\n\n");
+                    "\t\texecutes full default pipeline: mezzanine -> source -> profiles\n\n");
 }
 
 /*
