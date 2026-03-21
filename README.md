@@ -99,6 +99,13 @@ vfo uses three delivery lanes:
 - Beta prereleases from tags like `v1.2.3-beta.1`.
 - Stable releases from tags like `v1.2.3`.
 
+CI/CD test integration:
+
+- Validation workflow (`PR + main`) runs `make ci` (`build + unit tests + e2e smoke`).
+- Tag release workflows also run `make ci` before packaging/release.
+- Hosted runners use synthetic e2e fixtures by default.
+- For full real-media e2e, run locally (or on self-hosted runners) with your local open-source asset path.
+
 ### Option 2: build from source
 
 Prerequisites:
@@ -322,11 +329,19 @@ Testing convention:
 ```bash
 make all
 make tests
+make e2e
+make ci
 make clean
 make clean_tests
 ```
 
 Note that `make tests` links against `cmocka`, so you may need to install that dependency first.
+
+For full local-media e2e:
+
+```bash
+VFO_E2E_ASSET_MODE=local VFO_E2E_ASSETS_DIR="/absolute/path/to/open-source-media" make e2e
+```
 
 ## Known rough edges
 

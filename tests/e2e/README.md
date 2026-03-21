@@ -1,0 +1,45 @@
+# E2E Profile Action Tests
+
+This directory contains end-to-end tests for profile action scripts under:
+
+- `services/vfo/actions/`
+
+## What Is Covered
+
+- 1080 profile action output (`transcode_hevc_1080_profile.sh`)
+- 4K profile action output (`transcode_hevc_4k_profile.sh`)
+- Assertions for:
+  - output is readable by `ffprobe`
+  - video codec is HEVC
+  - resolution stays within profile ceiling
+  - audio stream count is preserved
+
+## Running Locally
+
+From repository root:
+
+```bash
+make e2e
+```
+
+This uses asset mode `auto` by default:
+
+- if `tests/e2e/assets/open-source/` contains media files, those are used as the seed input
+- otherwise synthetic fixtures are generated (CI-safe fallback)
+
+## Force Real Open-Source Local Assets
+
+If you already keep your open-source sample pack locally:
+
+```bash
+VFO_E2E_ASSET_MODE=local \
+VFO_E2E_ASSETS_DIR="/absolute/path/to/open-source-media" \
+make e2e
+```
+
+## Useful Environment Variables
+
+- `VFO_E2E_ASSET_MODE`: `auto` (default), `local`, `synthetic`
+- `VFO_E2E_ASSETS_DIR`: media directory used by `auto/local` modes
+- `VFO_E2E_CLIP_DURATION`: fixture clip duration in seconds (default: `2`)
+- `VFO_E2E_KEEP_TMP=1`: keep `tests/e2e/.tmp/` for debugging

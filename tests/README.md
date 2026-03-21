@@ -11,3 +11,18 @@ This directory contains tests that span more than one service or layer.
 ## Suggested layout
 
 - `tests/e2e/` for end-to-end test suites
+
+## Current E2E entrypoint
+
+- `tests/e2e/run_profile_actions_e2e.sh`
+
+From repository root:
+
+```bash
+make e2e
+```
+
+This supports both:
+
+- local real-media mode (`VFO_E2E_ASSET_MODE=local`, `VFO_E2E_ASSETS_DIR=/path/to/media`)
+- hosted CI smoke mode (`auto` fallback to generated fixtures)

@@ -14,8 +14,20 @@ jobs:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@v4
 
-      - name: 🏗️ Build application
-        run: make
+      - name: ❓Is brew installed
+        run: brew -v
+
+      - name: 🔨 Install CI dependencies
+        run: |
+          if ! brew list cmocka >/dev/null 2>&1; then
+            brew install cmocka
+          fi
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            brew install ffmpeg
+          fi
+
+      - name: 🏗️ Build + test application
+        run: make ci
 
       - name: 💭 Cache application
         uses: actions/cache@v4
