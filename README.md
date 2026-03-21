@@ -21,7 +21,7 @@ Instead of applying one preset to every file, `vfo` reads a configuration file, 
 - **Planned / incomplete:** Linux and Windows support are referenced in project docs, but are still marked as work in progress.
 - **Configuration-first workflow:** `vfo` does not do much without a `vfo_config.conf` file.
 
-The repository also includes an in-progress sample config at `src/vfo_config.conf`, which is the best reference for how aliases and scenarios are currently expressed.
+The repository also includes an in-progress sample config at `services/vfo/src/vfo_config.conf`, which is the best reference for how aliases and scenarios are currently expressed.
 
 ## How vfo works
 
@@ -96,7 +96,7 @@ make all
 The compiled executable is written to:
 
 ```text
-bin/vfo
+services/vfo/bin/vfo
 ```
 
 #### Install target
@@ -107,7 +107,7 @@ The repository includes an install target:
 make install
 ```
 
-By default this copies the binary under `/usr/local/bin` and copies `src/vfo_config.conf` into `/usr/local/bin/vfo_conf_folder`.
+By default this copies the binary under `/usr/local/bin` and copies `services/vfo/src/vfo_config.conf` into `/usr/local/bin/vfo_conf_folder`.
 
 > **Important:** the current config-loading messages in the source code still tell users that `vfo_config.conf` must live directly in `/usr/local/bin`. If you use `make install`, verify where your config file ends up and move or link it as needed for your environment.
 
@@ -115,7 +115,7 @@ By default this copies the binary under `/usr/local/bin` and copies `src/vfo_con
 
 1. Install FFmpeg.
 2. Build or download `vfo`.
-3. Copy `src/vfo_config.conf` to the location your installation expects.
+3. Copy `services/vfo/src/vfo_config.conf` to the location your installation expects.
 4. Edit the config file so the folder paths match your machine.
 5. Define at least one alias and one scenario.
 6. Run `vfo` with either a built-in command or an alias name.
@@ -123,7 +123,7 @@ By default this copies the binary under `/usr/local/bin` and copies `src/vfo_con
 Example starter flow:
 
 ```bash
-cp src/vfo_config.conf /usr/local/bin/vfo_config.conf
+cp services/vfo/src/vfo_config.conf /usr/local/bin/vfo_config.conf
 $EDITOR /usr/local/bin/vfo_config.conf
 vfo --help
 vfo all_aliases
@@ -160,7 +160,7 @@ A useful mental model is:
 
 ## Configuration guide
 
-The sample `src/vfo_config.conf` is long, but the structure is consistent.
+The sample `services/vfo/src/vfo_config.conf` is long, but the structure is consistent.
 
 ### 1. Set required paths
 
@@ -252,16 +252,31 @@ The sample config includes source test settings so you can generate trimmed outp
 ### Repository layout
 
 ```text
-src/
-  Alias/
-  Config/
-  InputHandler/
-  Original/
-  Source/
-  Source_AS/
-  Utils/
-test/
+infra/
+  packaging/
+    macos/
+platform/
+services/
+  vfo/
+    src/
+      Alias/
+      Config/
+      InputHandler/
+      Original/
+      Source/
+      Source_AS/
+      Utils/
+    test/
+tests/
+  e2e/
 ```
+
+Testing convention:
+
+- Service tests live beside each service in `services/<service-name>/test/`.
+- Platform component tests live beside each component in `platform/<component>/test/`.
+- Infra validation tests live in `infra/test/`.
+- Cross-service end-to-end tests live in `tests/e2e/`.
 
 ### Build commands
 
