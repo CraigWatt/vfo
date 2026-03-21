@@ -43,3 +43,20 @@ make e2e
 - `VFO_E2E_ASSETS_DIR`: media directory used by `auto/local` modes
 - `VFO_E2E_CLIP_DURATION`: fixture clip duration in seconds (default: `2`)
 - `VFO_E2E_KEEP_TMP=1`: keep `tests/e2e/.tmp/` for debugging
+
+## GitHub Actions (Self-Hosted Media Runner)
+
+Use workflow:
+
+- `.github/workflows/on-self-hosted-e2e.yml`
+
+It targets runner labels:
+
+- `self-hosted`
+- `macOS`
+- `vfo-media`
+
+Trigger manually in Actions and provide:
+
+- `assets_dir`: absolute path on the runner machine where your open-source media is mounted
+- `clip_duration`: optional fixture duration override

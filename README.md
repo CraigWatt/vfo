@@ -105,6 +105,7 @@ CI/CD test integration:
 - Tag release workflows also run `make ci` before packaging/release.
 - Hosted runners use synthetic e2e fixtures by default.
 - For full real-media e2e, run locally (or on self-hosted runners) with your local open-source asset path.
+- Manual full-media runner lane is available via `.github/workflows/on-self-hosted-e2e.yml`.
 
 ### Option 2: build from source
 
