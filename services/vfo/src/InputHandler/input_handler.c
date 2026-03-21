@@ -24,6 +24,108 @@
 
 #include "ih_internal.h"
 
+static bool ih_command_exists(const char *command_name) {
+  char shell_command[256];
+  snprintf(shell_command, sizeof(shell_command), "command -v %s >/dev/null 2>&1", command_name);
+  return system(shell_command) == 0;
+}
+
+static bool ih_doctor_check_command(const char *command_name, bool required) {
+  bool exists = ih_command_exists(command_name);
+  if(exists) {
+    printf("DOCTOR OK: command available: %s\n", command_name);
+    return true;
+  }
+  if(required) {
+    printf("DOCTOR ERROR: required command missing: %s\n", command_name);
+    return false;
+  }
+  printf("DOCTOR WARN: optional command missing: %s\n", command_name);
+  return true;
+}
+
+static bool ih_doctor_check_path(const char *label, const char *path, bool required) {
+  bool exists = utils_does_folder_exist(path);
+  if(exists) {
+    printf("DOCTOR OK: %s exists: %s\n", label, path);
+    return true;
+  }
+  if(required) {
+    printf("DOCTOR ERROR: %s missing: %s\n", label, path);
+    return false;
+  }
+  printf("DOCTOR WARN: %s missing: %s\n", label, path);
+  return true;
+}
+
+static bool ih_run_doctor(config_t *config, const char *config_dir) {
+  bool healthy = true;
+
+  printf("DOCTOR ALERT: running environment and configuration checks\n");
+  healthy = ih_doctor_check_command("ffmpeg", true) && healthy;
+  healthy = ih_doctor_check_command("ffprobe", true) && healthy;
+  healthy = ih_doctor_check_command("mkvmerge", true) && healthy;
+  healthy = ih_doctor_check_command("dovi_tool", false) && healthy;
+
+  healthy = ih_doctor_check_path("config directory", config_dir, true) && healthy;
+  healthy = ih_doctor_check_path("ORIGINAL_LOCATION", config->svc->original_location, true) && healthy;
+  healthy = ih_doctor_check_path("SOURCE_LOCATION", config->svc->source_location, true) && healthy;
+
+  if(!(utils_string_is_empty_or_spaces(config->svc->source_as_location)))
+    healthy = ih_doctor_check_path("SOURCE_AS_LOCATION", config->svc->source_as_location, false) && healthy;
+
+  if(ca_get_count(config->ca_head) > 0)
+    printf("DOCTOR OK: detected %i profile(s) in config\n", ca_get_count(config->ca_head));
+  else {
+    printf("DOCTOR ERROR: no profiles (aliases) detected in config\n");
+    healthy = false;
+  }
+
+  printf("DOCTOR INFO: KEEP_SOURCE=%s\n", config->svc->keep_source ? "true" : "false");
+
+  if(healthy) {
+    printf("DOCTOR ALERT: checks completed successfully\n");
+    return true;
+  }
+  printf("DOCTOR ALERT: checks completed with errors\n");
+  return false;
+}
+
+static void ih_execute_all_profiles(config_t *config) {
+  aliases_t *aliases = NULL;
+  for(int i = 0; i < ca_get_count(config->ca_head); i++) {
+    aliases_t *alias = alias_create_new_struct(config, ca_get_a_node_from_count(config->ca_head, i));
+    alias_insert_at_head(&aliases, alias);
+  }
+
+  if(config->svc->keep_source == true)
+    a_source_to_aliases(aliases);
+  else
+    a_original_to_aliases(aliases);
+
+  free(aliases);
+  aliases = NULL;
+}
+
+static void ih_execute_default_run(config_t *config) {
+  printf("RUN ALERT: initiating default pipeline\n");
+
+  original_t *original = original_create_new_struct(config);
+  o_original(original);
+  free(original);
+  original = NULL;
+
+  if(config->svc->keep_source == true) {
+    source_t *source = source_create_new_struct(config);
+    s_original_to_source(source);
+    free(source);
+    source = NULL;
+  }
+
+  ih_execute_all_profiles(config);
+  printf("RUN ALERT: default pipeline completed successfully\n");
+}
+
 #ifndef TESTING
 int main (int argc, char **argv) {  
   /*immediately revise argc & argv if duplicate words are found in command ---------------*/
@@ -85,6 +187,20 @@ int main (int argc, char **argv) {
     printf("ERROR: You cannot execute source command because config variable KEEP_SOURCE= is set to false\n");
     exit(EXIT_FAILURE);
   }
+
+  if(ih->arguments->doctor_detected == true) {
+    bool doctor_success = ih_run_doctor(config, config_dir);
+    free(config);
+    config = NULL;
+    return doctor_success ? EXIT_SUCCESS : EXIT_FAILURE;
+  }
+
+  if(ih->arguments->run_detected == true) {
+    ih_execute_default_run(config);
+    free(config);
+    config = NULL;
+    return EXIT_SUCCESS;
+  }
   //can i validate any more errors at this point?
 
   //can I now execute things>>
@@ -92,6 +208,8 @@ int main (int argc, char **argv) {
   printf("ih->arguments->original_detected: %i\n", ih->arguments->original_detected);
   printf("ih->arguments->revert_detected: %i\n", ih->arguments->revert_detected);
   printf("ih->arguments->source_detected: %i\n", ih->arguments->source_detected);
+  printf("ih->arguments->run_detected: %i\n", ih->arguments->run_detected);
+  printf("ih->arguments->doctor_detected: %i\n", ih->arguments->doctor_detected);
   printf("ih->arguments->wipe_detected: %i\n", ih->arguments->wipe_detected);
   printf("ih->arguments->alias_queue_detected: %i\n", ih->arguments->alias_queue_detected);
   printf("ih->arguments->all_aliases_detected: %i\n", ih->arguments->all_aliases_detected);

@@ -65,7 +65,7 @@ config_t* con_init(const char *config_dir, char **revised_argv, int revised_argc
   /* assess uw words.  this is being done here BECAUSE ca nodes have to 
   be populated first before determining if a word*/
   bool activate_uw_work = false;
-  char *pre_alias_approved_words[] = {"vfo", "original", "source", "revert", "wipe", "all_aliases", "do_it_all"};
+  char *pre_alias_approved_words[] = {"vfo", "original", "source", "revert", "wipe", "all_aliases", "do_it_all", "run", "doctor"};
   int pre_array_length = (sizeof pre_alias_approved_words / sizeof(char*));
   for(int i = 0; i < revised_argc; i++) {
     bool pre_approved_word_found = false;
