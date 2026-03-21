@@ -1,0 +1,136 @@
+name: 👷🧪📦 Generate beta prerelease
+
+on:
+  push:
+    tags:
+      - "v*.*.*-beta.*"
+
+jobs:
+  linux-build:
+    name: 👷 Build files for packaging
+    runs-on: macos-latest
+
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Build application
+        run: make
+
+      - name: 💭 Cache application
+        uses: actions/cache@v3.2.2
+        id: vfo-build
+        with:
+          path: |
+            ./services/vfo/bin/vfo
+            ./services/vfo/src/vfo_config.conf
+          key: ${{ github.sha }}
+
+  apple-pkg:
+    name: 👷 Setup macOS .pkg
+    runs-on: macos-latest
+    timeout-minutes: 5
+    needs: [linux-build]
+
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v4
+
+      - name: ❓Is brew installed
+        run: brew -v
+
+      - name: 🔨 Install xmlstarlet
+        run: brew install xmlstarlet
+
+      - name: ❓Is xmlstarlet installed
+        run: xmlstarlet --version
+
+      - name: 🔨 Install python
+        run: brew install python
+
+      - name: ❓ Is python installed
+        run: python -v
+
+      - name: 🤌💭 Fetch application cache
+        uses: actions/cache@v3.2.2
+        id: vfo-build
+        with:
+          path: |
+            ./services/vfo/bin/vfo
+            ./services/vfo/src/vfo_config.conf
+          key: ${{ github.sha }}
+
+      - name: ✍️ ReWrite version string in build-info.plist from tag
+        run: |
+          xmlstarlet ed --inplace -u "/plist/dict/string[@id=9]" -v $GITHUB_REF_NAME infra/packaging/macos/build-info.plist
+
+      - name: 🫳 Position application to payload
+        run: |
+          cp services/vfo/bin/vfo infra/packaging/macos/payload/bin
+          cp services/vfo/src/vfo_config.conf infra/packaging/macos/payload/bin/vfo_conf_folder
+
+      - name: Run munkipkg 🧙‍♂️📦
+        id: munkipkg
+        uses: joncrain/munkipkg-action@5a6c2008ded522b67396a78c06983e614cbe22ac
+        with:
+          pkg_subdir: "infra/packaging/macos"
+
+      - name: 💭 Cache .pkg
+        uses: actions/cache@v3.2.2
+        id: macos-pkg
+        with:
+          path: |
+            ./infra/packaging/macos/build/*
+          key: ${{ github.sha }}
+
+  release:
+    name: 🧪📦 Beta prerelease
+    needs: [apple-pkg]
+    runs-on: macos-latest
+
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🤌💭 fetch Application Cache
+        uses: actions/cache@v3.2.2
+        id: vfo-build
+        with:
+          path: |
+            ./services/vfo/bin/vfo
+            ./services/vfo/src/vfo_config.conf
+          key: ${{ github.sha }}
+
+      - name: 🫳 Position application to static build folder
+        run: |
+          mkdir static_build
+          cp services/vfo/bin/vfo static_build
+          cp services/vfo/src/vfo_config.conf static_build
+
+      - name: 💁‍♂️ Generate static_build/README.txt
+        run: |
+          touch static_build/README.txt
+          echo -e "Place vfo & vfo_config.conf into your PATH" > static_build/README.txt
+
+      - name: 🤐 Zip static_build folder
+        run: zip -r static_build.zip static_build
+
+      - name: 🤌💭 fetch macOS .pkg Cache
+        uses: actions/cache@v3.2.2
+        id: macos-pkg
+        with:
+          path: |
+            ./infra/packaging/macos/build/*
+          key: ${{ github.sha }}
+
+      - name: 👷🧪📦 Release beta static builds & macOS pkg
+        uses: softprops/action-gh-release@v0.1.15
+        with:
+          generate_release_notes: true
+          body_path: RELEASE.txt
+          prerelease: true
+          files: |
+            ./infra/packaging/macos/build/*
+            static_build.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

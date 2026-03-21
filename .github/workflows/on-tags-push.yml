@@ -1,4 +1,4 @@
-name: 👷📦 Generate release
+name: 👷📦 Generate stable release
 
 on:
   push:
@@ -8,11 +8,12 @@ on:
 jobs:
   linux-build:
     name: 👷 Build files for packaging
+    if: ${{ !contains(github.ref_name, '-') }}
     runs-on: macos-latest
 
     steps:
       - name: ⬇️ Checkout repo
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v4
 
       - name: 🏗️ Build application
         run: make
@@ -28,13 +29,14 @@ jobs:
 
   apple-pkg:
     name: 👷 Setup macOS .pkg
+    if: ${{ !contains(github.ref_name, '-') }}
     runs-on: macos-latest
     timeout-minutes: 5 # Keeps your builds from running too long
     needs: [linux-build]
     
     steps:
     - name: ⬇️ Checkout repo
-      uses: actions/checkout@v3.3.0
+      uses: actions/checkout@v4
 
     - name: ❓Is brew installed
       run: brew -v
@@ -99,13 +101,14 @@ jobs:
 
   release:
     name: 📦 Release
+    if: ${{ !contains(github.ref_name, '-') }}
     needs: [apple-pkg] 
     # linux-pkg, windows-pkg
     runs-on: macos-latest
 
     steps:
     - name: ⬇️ Checkout repo
-      uses: actions/checkout@v3.3.0
+      uses: actions/checkout@v4
 
     - name: 🤌💭 fetch Application Cache
       uses: actions/cache@v3.2.2
