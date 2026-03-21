@@ -1,0 +1,36 @@
+name: 📦 Main snapshot artifact
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  snapshot:
+    name: Build snapshot artifact
+    runs-on: macos-latest
+
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Build application
+        run: make all
+
+      - name: 🫳 Prepare snapshot payload
+        run: |
+          mkdir -p snapshot_build
+          cp services/vfo/bin/vfo snapshot_build
+          cp services/vfo/src/vfo_config.conf snapshot_build
+          echo "Snapshot build from main: $GITHUB_SHA" > snapshot_build/README.txt
+
+      - name: ⬆️ Upload snapshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vfo-main-snapshot-${{ github.sha }}
+          path: snapshot_build/
+          retention-days: 14
+
+      - name: 🧹 Clean build artifacts
+        if: always()
+        run: make clean

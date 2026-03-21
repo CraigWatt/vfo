@@ -91,6 +91,14 @@ The repository's release notes describe two macOS-oriented installation paths:
 
 Release notes: [RELEASE.txt](./RELEASE.txt)
 
+## Release channels
+
+vfo uses three delivery lanes:
+
+- Main snapshot artifacts (on `main` pushes) for internal/beta testing.
+- Beta prereleases from tags like `v1.2.3-beta.1`.
+- Stable releases from tags like `v1.2.3`.
+
 ### Option 2: build from source
 
 Prerequisites:
