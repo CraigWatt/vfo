@@ -19,6 +19,7 @@ vfo provides these through scenario command placeholders:
 - `transcode_hevc_4k_profile.sh`
 - `transcode_hevc_1080_profile.sh`
 - `transcode_h264_1080_profile.sh`
+- `transcode_h264_1080_hdr_to_sdr_profile.sh`
 - `transcode_hevc_4k_dv_profile.sh`
 
 Core templates:
@@ -31,6 +32,11 @@ Device-target templates:
 
 - `transcode_h264_1080_profile.sh`
   - targets conservative 1080p H.264 compatibility lanes
+  - preserves transfer characteristics from source (no explicit HDR->SDR conversion)
+  - uses `h264_videotoolbox` when available, `libx264` fallback
+- `transcode_h264_1080_hdr_to_sdr_profile.sh`
+  - explicit HDR->SDR conversion intent for SDR-only compatibility lanes
+  - normalizes output signaling to BT.709
   - uses `h264_videotoolbox` when available, `libx264` fallback
 - `transcode_hevc_4k_dv_profile.sh`
   - best-effort Dolby Vision retention path with `dovi_tool`

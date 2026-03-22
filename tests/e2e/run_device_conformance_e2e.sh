@@ -14,7 +14,8 @@ KEEP_TMP="${VFO_E2E_KEEP_TMP:-0}"
 
 ACTION_HEVC_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_profile.sh"
 ACTION_HEVC_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_profile.sh"
-ACTION_H264_1080="${ROOT_DIR}/services/vfo/actions/transcode_h264_1080_profile.sh"
+# Explicit conversion lane for SDR-target checks.
+ACTION_H264_1080_HDR_TO_SDR="${ROOT_DIR}/services/vfo/actions/transcode_h264_1080_hdr_to_sdr_profile.sh"
 VALIDATOR="${ROOT_DIR}/tests/e2e/validate_device_conformance.sh"
 
 log() {
@@ -144,7 +145,7 @@ run_seed_suite() {
   local in_2160="${FIXTURES_DIR}/seed_${seed_index}_input_2160.mkv"
   local out_hevc_4k="${OUTPUTS_DIR}/seed_${seed_index}_hevc_4k.mkv"
   local out_hevc_1080="${OUTPUTS_DIR}/seed_${seed_index}_hevc_1080.mkv"
-  local out_h264_1080="${OUTPUTS_DIR}/seed_${seed_index}_h264_1080.mkv"
+  local out_h264_1080_sdr="${OUTPUTS_DIR}/seed_${seed_index}_h264_1080_sdr.mkv"
 
   log "Building fixture for seed #${seed_index}: ${seed_input}"
   create_fixture_from_input "$seed_input" 3840 2160 "$in_2160"
@@ -152,13 +153,13 @@ run_seed_suite() {
   log "Running profile actions for seed #${seed_index}"
   run_action "$ACTION_HEVC_4K" "$in_2160" "$out_hevc_4k"
   run_action "$ACTION_HEVC_1080" "$in_2160" "$out_hevc_1080"
-  run_action "$ACTION_H264_1080" "$in_2160" "$out_h264_1080"
+  run_action "$ACTION_H264_1080_HDR_TO_SDR" "$in_2160" "$out_h264_1080_sdr"
 
   log "Validating device conformance for seed #${seed_index}"
-  bash "$VALIDATOR" roku_express_1080 "$out_h264_1080"
-  bash "$VALIDATOR" fire_tv_stick_lite_1080 "$out_h264_1080"
-  bash "$VALIDATOR" chromecast_google_tv_hd "$out_h264_1080"
-  bash "$VALIDATOR" apple_tv_hd "$out_h264_1080"
+  bash "$VALIDATOR" roku_express_1080 "$out_h264_1080_sdr"
+  bash "$VALIDATOR" fire_tv_stick_lite_1080 "$out_h264_1080_sdr"
+  bash "$VALIDATOR" chromecast_google_tv_hd "$out_h264_1080_sdr"
+  bash "$VALIDATOR" apple_tv_hd "$out_h264_1080_sdr"
 
   bash "$VALIDATOR" roku_4k "$out_hevc_4k"
   bash "$VALIDATOR" fire_tv_stick_4k "$out_hevc_4k"
@@ -210,7 +211,7 @@ main() {
   need ffprobe
   [ -x "$ACTION_HEVC_4K" ] || fail "Missing action script: $ACTION_HEVC_4K"
   [ -x "$ACTION_HEVC_1080" ] || fail "Missing action script: $ACTION_HEVC_1080"
-  [ -x "$ACTION_H264_1080" ] || fail "Missing action script: $ACTION_H264_1080"
+  [ -x "$ACTION_H264_1080_HDR_TO_SDR" ] || fail "Missing action script: $ACTION_H264_1080_HDR_TO_SDR"
   [ -x "$VALIDATOR" ] || fail "Missing conformance validator: $VALIDATOR"
 
   assert_positive_int "$MAX_SEEDS" "VFO_E2E_MAX_SEEDS"
