@@ -20,9 +20,10 @@ For each configured mezzanine root, vfo inspects the mezzanine workspace:
 
 ## Normalization rules
 
-- Movie target: `Movies/<Movie Title>/<Movie Title [tags]>.ext`
-- TV target: `TV Shows/<Show Name>/Season NN/<Show Name - SxxEyy [tags]>.ext`
+- Movie target: `Movies/<Movie_Title_[tags]>/<Movie_Title_[tags]>.ext`
+- TV target: `TV_Shows/<Show_Name>/Season_NN/<Show_Name_SxxEyy_[tags]>.ext`
 - TV detection uses `SxxEyy` in the filename.
+- Generated mezzanine-clean names use `_` (underscore) separators; spaces are not emitted.
 
 When media tags are enabled, tags are appended from ffprobe hints:
 

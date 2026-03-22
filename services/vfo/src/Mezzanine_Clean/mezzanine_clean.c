@@ -410,7 +410,7 @@ static void mc_strip_suffix_tags(char *value) {
 
 static void mc_sanitize_title(const char *input, char *output, size_t output_size) {
   size_t write_index = 0;
-  bool previous_space = false;
+  bool previous_separator = false;
 
   if(input == NULL) {
     snprintf(output, output_size, "Unknown");
@@ -422,24 +422,20 @@ static void mc_sanitize_title(const char *input, char *output, size_t output_siz
 
     if(isalnum(current)) {
       output[write_index++] = (char)current;
-      previous_space = false;
+      previous_separator = false;
       continue;
     }
 
-    if(current == '\'' || current == '-' || current == '&') {
-      output[write_index++] = (char)current;
-      previous_space = false;
-      continue;
-    }
-
-    if(previous_space == false && write_index > 0) {
-      output[write_index++] = ' ';
-      previous_space = true;
+    if(previous_separator == false && write_index > 0) {
+      output[write_index++] = '_';
+      previous_separator = true;
     }
   }
 
+  while(write_index > 0 && output[write_index - 1] == '_') {
+    write_index--;
+  }
   output[write_index] = '\0';
-  mc_trim_in_place(output);
   if(output[0] == '\0')
     snprintf(output, output_size, "Unknown");
 }
@@ -547,7 +543,7 @@ static void mc_prepare_filename_with_tags(char *output,
   if(append_tags) {
     snprintf(output,
              output_size,
-             "%s [%s %s %s %s].%s",
+             "%s_[%s_%s_%s_%s].%s",
              title,
              resolution_tag,
              dynamic_tag,
@@ -556,6 +552,28 @@ static void mc_prepare_filename_with_tags(char *output,
              extension);
   } else {
     snprintf(output, output_size, "%s.%s", title, extension);
+  }
+}
+
+static void mc_prepare_movie_folder_name(char *output,
+                                         size_t output_size,
+                                         const char *title,
+                                         const char *resolution_tag,
+                                         const char *dynamic_tag,
+                                         const char *video_tag,
+                                         const char *audio_tag,
+                                         bool append_tags) {
+  if(append_tags) {
+    snprintf(output,
+             output_size,
+             "%s_[%s_%s_%s_%s]",
+             title,
+             resolution_tag,
+             dynamic_tag,
+             video_tag,
+             audio_tag);
+  } else {
+    snprintf(output, output_size, "%s", title);
   }
 }
 
@@ -577,6 +595,9 @@ static bool mc_process_single_file(const char *file_path,
   char grandparent_name[MC_TITLE_MAX];
   char canonical_title[MC_TITLE_MAX];
   char show_name[MC_TITLE_MAX];
+  char movies_root_folder[MC_TITLE_MAX];
+  char tv_root_folder[MC_TITLE_MAX];
+  char movie_folder_name[MC_TITLE_MAX];
   char season_folder[32];
   char canonical_filename[MC_TITLE_MAX];
   char target_dir[PATH_MAX];
@@ -596,6 +617,9 @@ static bool mc_process_single_file(const char *file_path,
   memset(grandparent_name, 0, sizeof(grandparent_name));
   memset(canonical_title, 0, sizeof(canonical_title));
   memset(show_name, 0, sizeof(show_name));
+  memset(movies_root_folder, 0, sizeof(movies_root_folder));
+  memset(tv_root_folder, 0, sizeof(tv_root_folder));
+  memset(movie_folder_name, 0, sizeof(movie_folder_name));
   memset(season_folder, 0, sizeof(season_folder));
   memset(canonical_filename, 0, sizeof(canonical_filename));
   memset(target_dir, 0, sizeof(target_dir));
@@ -646,6 +670,8 @@ static bool mc_process_single_file(const char *file_path,
                 sizeof(video_tag),
                 audio_tag,
                 sizeof(audio_tag));
+  mc_sanitize_title(options->movies_folder_name, movies_root_folder, sizeof(movies_root_folder));
+  mc_sanitize_title(options->tv_folder_name, tv_root_folder, sizeof(tv_root_folder));
 
   if(mc_parent_path(file_path, parent_path, sizeof(parent_path))) {
     snprintf(parent_name, sizeof(parent_name), "%s", mc_basename_const(parent_path));
@@ -675,8 +701,8 @@ static bool mc_process_single_file(const char *file_path,
     if(season <= 0)
       season = 1;
 
-    snprintf(season_folder, sizeof(season_folder), "Season %02d", season);
-    snprintf(canonical_title, sizeof(canonical_title), "%s - S%02dE%02d", show_name, season, episode);
+    snprintf(season_folder, sizeof(season_folder), "Season_%02d", season);
+    snprintf(canonical_title, sizeof(canonical_title), "%s_S%02dE%02d", show_name, season, episode);
 
     mc_prepare_filename_with_tags(canonical_filename,
                                   sizeof(canonical_filename),
@@ -688,7 +714,7 @@ static bool mc_process_single_file(const char *file_path,
                                   audio_tag,
                                   options->append_media_tags);
 
-    snprintf(target_dir, sizeof(target_dir), "%s/%s/%s/%s", root, options->tv_folder_name, show_name, season_folder);
+    snprintf(target_dir, sizeof(target_dir), "%s/%s/%s/%s", root, tv_root_folder, show_name, season_folder);
   } else {
     mc_sanitize_title(base_name, canonical_title, sizeof(canonical_title));
     mc_prepare_filename_with_tags(canonical_filename,
@@ -700,7 +726,15 @@ static bool mc_process_single_file(const char *file_path,
                                   video_tag,
                                   audio_tag,
                                   options->append_media_tags);
-    snprintf(target_dir, sizeof(target_dir), "%s/%s/%s", root, options->movies_folder_name, canonical_title);
+    mc_prepare_movie_folder_name(movie_folder_name,
+                                 sizeof(movie_folder_name),
+                                 canonical_title,
+                                 resolution_tag,
+                                 dynamic_tag,
+                                 video_tag,
+                                 audio_tag,
+                                 options->append_media_tags);
+    snprintf(target_dir, sizeof(target_dir), "%s/%s/%s", root, movies_root_folder, movie_folder_name);
   }
 
   snprintf(target_path, sizeof(target_path), "%s/%s", target_dir, canonical_filename);
@@ -738,6 +772,50 @@ static bool mc_process_single_file(const char *file_path,
   mc_cleanup_empty_parent_dirs(file_path, root);
   return true;
 }
+
+#ifdef TESTING
+void mc_sanitize_title_for_test(const char *input, char *output, size_t output_size) {
+  mc_sanitize_title(input, output, output_size);
+}
+
+void mc_prepare_filename_with_tags_for_test(char *output,
+                                            size_t output_size,
+                                            const char *title,
+                                            const char *extension,
+                                            const char *resolution_tag,
+                                            const char *dynamic_tag,
+                                            const char *video_tag,
+                                            const char *audio_tag,
+                                            bool append_tags) {
+  mc_prepare_filename_with_tags(output,
+                                output_size,
+                                title,
+                                extension,
+                                resolution_tag,
+                                dynamic_tag,
+                                video_tag,
+                                audio_tag,
+                                append_tags);
+}
+
+void mc_prepare_movie_folder_name_for_test(char *output,
+                                           size_t output_size,
+                                           const char *title,
+                                           const char *resolution_tag,
+                                           const char *dynamic_tag,
+                                           const char *video_tag,
+                                           const char *audio_tag,
+                                           bool append_tags) {
+  mc_prepare_movie_folder_name(output,
+                               output_size,
+                               title,
+                               resolution_tag,
+                               dynamic_tag,
+                               video_tag,
+                               audio_tag,
+                               append_tags);
+}
+#endif
 
 void mc_options_init(mezzanine_clean_options_t *options) {
   if(options == NULL)

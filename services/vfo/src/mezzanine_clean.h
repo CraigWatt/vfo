@@ -26,6 +26,7 @@
 #define MEZZANINE_CLEAN_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 struct mezzanine_clean_options {
   bool apply_changes;
@@ -52,5 +53,26 @@ void mc_report_add(mezzanine_clean_report_t *target, const mezzanine_clean_repor
 bool mc_run_for_root(const char *mezzanine_root,
                      const mezzanine_clean_options_t *options,
                      mezzanine_clean_report_t *report);
+
+#ifdef TESTING
+void mc_sanitize_title_for_test(const char *input, char *output, size_t output_size);
+void mc_prepare_filename_with_tags_for_test(char *output,
+                                            size_t output_size,
+                                            const char *title,
+                                            const char *extension,
+                                            const char *resolution_tag,
+                                            const char *dynamic_tag,
+                                            const char *video_tag,
+                                            const char *audio_tag,
+                                            bool append_tags);
+void mc_prepare_movie_folder_name_for_test(char *output,
+                                           size_t output_size,
+                                           const char *title,
+                                           const char *resolution_tag,
+                                           const char *dynamic_tag,
+                                           const char *video_tag,
+                                           const char *audio_tag,
+                                           bool append_tags);
+#endif
 
 #endif // MEZZANINE_CLEAN_H

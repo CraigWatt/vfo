@@ -68,6 +68,9 @@ int main(void) {
         cmocka_unit_test(test_con_fetch_profile_marker_ignores_quality_suffix_marker),
         /* Mezzanine */
         cmocka_unit_test(test_o_original_null_ptr),
+        cmocka_unit_test(test_mc_sanitize_title_uses_underscores),
+        cmocka_unit_test(test_mc_prepare_filename_with_tags_uses_underscores),
+        cmocka_unit_test(test_mc_prepare_movie_folder_name_appends_tags),
         /* Source */
         cmocka_unit_test(test_s_original_to_source_null_ptr),
         /* Profile */
