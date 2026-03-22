@@ -58,11 +58,11 @@ char* o_create_start(char *original_root) {
   strcat(tmp_original_start, "/start");
   //verify
   if(!utils_does_folder_exist(tmp_original_start)) {
-    printf("ORIGINAL WARNING: vfo could not find an essential /start folder in %s\n",original_root);
+    printf("MEZZANINE WARNING: vfo could not find an essential /start folder in %s\n",original_root);
     utils_ask_user_for_permission_to_create_a_folder(tmp_original_start);
     utils_create_folder(tmp_original_start);
     if(!utils_does_folder_exist(tmp_original_start)) {
-      printf("ORIGINAL MAJOR ERROR: vfo could not create %s & it does not exist ORIGINAL MAJOR ERROR\n", tmp_original_start);
+      printf("MEZZANINE MAJOR ERROR: vfo could not create %s & it does not exist MEZZANINE MAJOR ERROR\n", tmp_original_start);
       exit(EXIT_FAILURE);
     }
   }
@@ -76,11 +76,11 @@ char* o_create_unable_to_process(char *original_root) {
   strcat(tmp_original_unable_to_process, "/unable_to_process");
   //verify
   if(!utils_does_folder_exist(tmp_original_unable_to_process)) {
-    printf("ORIGINAL WARNING: vfo could not find an essential /unable_to_process folder in %s\n",original_root);
+    printf("MEZZANINE WARNING: vfo could not find an essential /unable_to_process folder in %s\n",original_root);
     utils_ask_user_for_permission_to_create_a_folder(tmp_original_unable_to_process);
     utils_create_folder(tmp_original_unable_to_process);
     if(!utils_does_folder_exist(tmp_original_unable_to_process)) {
-      printf("ORIGINAL MAJOR ERROR: vfo could not create %s & it does not exist ORIGINAL MAJOR ERROR\n", tmp_original_unable_to_process);
+      printf("MEZZANINE MAJOR ERROR: vfo could not create %s & it does not exist MEZZANINE MAJOR ERROR\n", tmp_original_unable_to_process);
       exit(EXIT_FAILURE);
     }
   }
@@ -94,11 +94,11 @@ char* o_get_mkv_original_if_it_exists(char *original_root) {
   strcat(tmp_original_mkv_original, "/mkv_original");
   //verify
   if(utils_does_folder_exist(tmp_original_mkv_original)) {
-    printf("ORIGINAL ALERT: /mkv_original detected.\n");
+    printf("MEZZANINE ALERT: /mkv_original detected.\n");
     return tmp_original_mkv_original;
   }
   else
-    printf("ORIGINAL ALERT: if /mkv_original is required, vfo will create it later.\n");
+    printf("MEZZANINE ALERT: if /mkv_original is required, vfo will create it later.\n");
   return "";
 }
 
@@ -109,11 +109,11 @@ char* o_get_mp4_original_if_it_exists(char *original_root) {
   strcat(tmp_original_mp4_original, "/mp4_original");
   //verify
   if(utils_does_folder_exist(tmp_original_mp4_original)) {
-    printf("ORIGINAL ALERT: /mp4_original detected.\n");
+    printf("MEZZANINE ALERT: /mp4_original detected.\n");
     return tmp_original_mp4_original;
   }
   else
-    printf("ORIGINAL ALERT: if /mp4_original is required, vfo will create it later.\n");
+    printf("MEZZANINE ALERT: if /mp4_original is required, vfo will create it later.\n");
   return "";
 }
 
@@ -124,11 +124,11 @@ char* o_get_m2ts_original_if_it_exists(char *original_root) {
   strcat(tmp_original_m2ts_original, "/m2ts_original");
   //verify
   if(utils_does_folder_exist(tmp_original_m2ts_original)) {
-    printf("ORIGINAL ALERT: /m2ts_original detected.\n");
+    printf("MEZZANINE ALERT: /m2ts_original detected.\n");
     return tmp_original_m2ts_original;
   }
   else
-    printf("ORIGINAL ALERT: if /m2ts_original is required, vfo will create it later.\n");
+    printf("MEZZANINE ALERT: if /m2ts_original is required, vfo will create it later.\n");
   return "";
 }
 

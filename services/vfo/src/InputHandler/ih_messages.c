@@ -49,12 +49,11 @@ void ih_mes_usage () {
   fprintf(stdout, "%s show        # print active config summary\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s status      # high-level engine observability snapshot\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s status-json # machine-readable observability snapshot\n\n", __PROGRAM_NAME__);
-  fprintf(stdout, "%s status_json # legacy alias for status-json\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s run         # run default pipeline end-to-end\n\n", __PROGRAM_NAME__);
-  fprintf(stdout, "%s original    # mezzanine preparation stage\n\n", __PROGRAM_NAME__);
+  fprintf(stdout, "%s mezzanine   # mezzanine preparation stage\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s source      # normalized source stage\n\n", __PROGRAM_NAME__);
-  fprintf(stdout, "%s all_aliases # run all delivery profiles (legacy term: aliases)\n\n", __PROGRAM_NAME__);
-  fprintf(stdout, "%s <profile_name> # run one delivery profile by name (legacy runtime term: alias)\n\n", __PROGRAM_NAME__);
+  fprintf(stdout, "%s profiles    # run all delivery profiles\n\n", __PROGRAM_NAME__);
+  fprintf(stdout, "%s <profile_name> # run one delivery profile by name\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s --version\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s --help\n\n", __PROGRAM_NAME__);
 }
@@ -68,8 +67,7 @@ void ih_mes_description () {
             "gives you the power of automation when it comes to encoding\n"
             "your video files in bulk in preparation for video streaming.\n"
             "Use `status`/`status-json` for component-level visibility.\n"
-            "Pipeline terminology: mezzanine -> source -> profile\n"
-            "(legacy runtime/config term: alias).\n");
+            "Pipeline terminology: mezzanine -> source -> profile.\n");
 }
 
 /*
@@ -100,18 +98,16 @@ void ih_mes_arguments() {
                     "\t\tprint high-level component readiness and stage status\n\n");
     fprintf(stdout, GRAY "\tstatus-json\n" NO_COLOR
                     "\t\tprint machine-readable status report for automation/tests\n\n");
-    fprintf(stdout, GRAY "\tstatus_json (legacy)\n" NO_COLOR
-                    "\t\tcompatibility alias for status-json\n\n");
     fprintf(stdout, GRAY "\trun\n" NO_COLOR
                     "\t\texecutes default pipeline: mezzanine -> source (if enabled) -> profiles\n\n");
-    fprintf(stdout, GRAY "\toriginal\n" NO_COLOR
+    fprintf(stdout, GRAY "\tmezzanine\n" NO_COLOR
                     "\t\texecutes mezzanine preparation stage only\n\n");
     fprintf(stdout, GRAY "\tsource\n" NO_COLOR
                     "\t\texecutes normalized source stage only\n\n");
     fprintf(stdout, GRAY "\t<profile_name>\n" NO_COLOR
-                    "\t\texecutes a specific delivery profile by name (legacy: alias)\n\n");
-    fprintf(stdout, GRAY "\tdo_it_all\n" NO_COLOR
-                    "\t\texecutes full default pipeline: mezzanine -> source -> profiles (legacy command)\n\n");
+                    "\t\texecutes a specific delivery profile by name\n\n");
+    fprintf(stdout, GRAY "\tprofiles\n" NO_COLOR
+                    "\t\texecutes all configured delivery profiles\n\n");
 }
 
 /*

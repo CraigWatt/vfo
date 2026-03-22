@@ -25,8 +25,8 @@
 #include "o_internal.h"
 
 /*
- * Original message
+ * Mezzanine message
  */
 void o_mes_init_original () {
-    fprintf(stdout, "original initiating...\n");
+    fprintf(stdout, "mezzanine initiating...\n");
 }

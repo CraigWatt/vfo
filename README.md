@@ -5,12 +5,12 @@
 
 `vfo` is a command-line utility for batch-processing a video library with FFmpeg.
 
-Instead of applying one preset to every file, `vfo` reads a configuration file, inspects each input video, and chooses an FFmpeg command based on matching profile rules (currently configured with `ALIAS=` entries). The project is aimed at media-library and streaming workflows where source files vary widely in codec, color space, bit depth, and resolution.
+Instead of applying one preset to every file, `vfo` reads a configuration file, inspects each input video, and chooses an FFmpeg command based on matching profile rules (configured with `PROFILE=` entries). The project is aimed at media-library and streaming workflows where source files vary widely in codec, color space, bit depth, and resolution.
 
 ## Why use vfo?
 
 - Batch-process a whole library instead of encoding files one by one.
-- Keep different output targets separated with profiles (legacy term in config: aliases).
+- Keep different output targets separated with profiles.
 - Attach multiple scenario rules to each profile so different source files can be handled differently.
 - Preserve folder structure while generating output variants.
 - Keep the full flexibility of raw FFmpeg commands by defining them directly in the config file.
@@ -21,15 +21,13 @@ Instead of applying one preset to every file, `vfo` reads a configuration file, 
 - **Planned / incomplete:** Linux and Windows support are referenced in project docs, but are still marked as work in progress.
 - **Configuration-first workflow:** `vfo` does not do much without a `vfo_config.conf` file.
 
-The repository also includes an in-progress sample config at `services/vfo/src/vfo_config.conf`, which is the best reference for how profiles (aliases) and scenarios are currently expressed.
+The repository also includes an in-progress sample config at `services/vfo/src/vfo_config.conf`, which is the best reference for how profiles and scenarios are currently expressed.
 
-## Terminology transition
+## Terminology
 
-vfo is moving toward this wording:
-
-- `Mezzanine` = high-quality working library input (legacy command term: `original`)
+- `Mezzanine` = high-quality working library input
 - `Source` = normalized intermediate layer
-- `Profile` = delivery target definition (legacy config/runtime term: `alias`)
+- `Profile` = delivery target definition
 
 Recommended pipeline modes:
 
@@ -51,9 +49,9 @@ At a high level, `vfo` works like this:
 
 #### Mezzanine and source folders
 
-The sample configuration distinguishes between an `ORIGINAL_LOCATION` and a `SOURCE_LOCATION`. The code also supports a `KEEP_SOURCE` switch, which changes whether profile generation runs from the original set or from the source set.
+The sample configuration distinguishes between a `MEZZANINE_LOCATION` and a `SOURCE_LOCATION`. The code also supports a `KEEP_SOURCE` switch, which changes whether profile generation runs from the mezzanine set or from the source set.
 
-#### Profiles (legacy: aliases)
+#### Profiles
 
 A profile represents a target output collection, such as a compatibility tier for a specific playback device or streaming profile.
 
@@ -145,7 +143,7 @@ It also copies stock profile-action scripts (`transcode_*_profile.sh`) into `/us
 2. Build or download `vfo`.
 3. Ensure `vfo_config.conf` exists at `/usr/local/bin/vfo_conf_folder/vfo_config.conf`.
 4. Edit the config file so the folder paths match your machine.
-5. Define at least one profile (`ALIAS=` today) and one scenario.
+5. Define at least one profile (`PROFILE=`) and one scenario.
 6. Run `vfo doctor` to validate environment + config.
 7. Run `vfo status` for a high-level readiness snapshot.
 8. Run `vfo run` for the default end-to-end pipeline.
@@ -162,7 +160,7 @@ vfo doctor
 vfo status
 vfo status-json
 vfo run
-vfo all_aliases
+vfo profiles
 ```
 
 ## Command-line usage
@@ -181,22 +179,21 @@ vfo [argument] || [options]
 
 ### Common arguments
 
-- `original`
+- `mezzanine`
 - `source`
 - `show`
 - `wizard`
 - `doctor`
 - `status`
-- `status-json` (legacy alias: `status_json`)
+- `status-json`
 - `run`
-- `all_aliases`
-- `do_it_all`
+- `profiles`
 - `wipe`
-- any profile name defined in `vfo_config.conf` (currently via `ALIAS=`)
+- any profile name defined in `vfo_config.conf` (via `PROFILE=`)
 
 A useful mental model is:
 
-- use `all_aliases` to run every configured profile
+- use `profiles` to run every configured profile
 - use a specific profile name to run only that profile
 - use `wipe` together with profile-oriented commands when you want profile outputs removed
 - use `doctor` before first run (or after machine/config changes)
@@ -231,9 +228,9 @@ For engine readiness and observability status output, see:
 
 Start by updating the top-level locations:
 
-- `ORIGINAL_LOCATION`
-- `ORIGINAL_LOCATIONS` (semicolon-separated, optional but recommended for multi-drive)
-- `ORIGINAL_LOCATION_MAX_USAGE_PCT` (semicolon-separated caps aligned to `ORIGINAL_LOCATIONS`)
+- `MEZZANINE_LOCATION`
+- `MEZZANINE_LOCATIONS` (semicolon-separated, optional but recommended for multi-drive)
+- `MEZZANINE_LOCATION_MAX_USAGE_PCT` (semicolon-separated caps aligned to `MEZZANINE_LOCATIONS`)
 - `SOURCE_LOCATION`
 - `SOURCE_LOCATIONS` (semicolon-separated, optional but recommended for multi-drive)
 - `SOURCE_LOCATION_MAX_USAGE_PCT` (semicolon-separated caps aligned to `SOURCE_LOCATIONS`)
@@ -256,7 +253,6 @@ Examples from the sample file include:
 - `SOURCE_TEST_TRIM_START`
 - `SOURCE_TEST_TRIM_DURATION`
 - `SOURCE_AS_ACTIVATE`
-- `ALIASES_ON`
 
 ### 3. Define custom folders
 
@@ -265,12 +261,12 @@ The sample uses repeated `CUSTOM_FOLDER="name,type"` entries, where the type is 
 - `films`
 - `tv`
 
-### 4. Define a profile (legacy config keyword: `ALIAS=`)
+### 4. Define a profile
 
 A minimal profile pattern looks like this:
 
 ```text
-ALIAS="queen"
+PROFILE="queen"
 QUEEN_LOCATION="/path/to/output"
 QUEEN_LOCATIONS="/path/to/output;/Volumes/Media-2/path/to/output"
 QUEEN_LOCATION_MAX_USAGE_PCT="90;95"
@@ -319,7 +315,7 @@ Define separate profiles for:
 Then run:
 
 ```bash
-vfo all_aliases
+vfo profiles
 ```
 
 ### Test your workflow on short clips first
@@ -338,13 +334,7 @@ platform/
 services/
   vfo/
     src/
-      Alias/
-      Config/
-      InputHandler/
-      Original/
-      Source/
-      Source_AS/
-      Utils/
+      ...
     test/
 tests/
   e2e/

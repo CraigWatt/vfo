@@ -6,7 +6,6 @@
 
 - `vfo status`: human-readable status table.
 - `vfo status-json`: machine-readable JSON payload.
-- `vfo status_json`: legacy alias for compatibility.
 
 Diagnostic commands (`status`, `status-json`, `doctor`, `show`) use lenient location validation, so missing paths are reported in status output instead of failing early during config load.
 
@@ -35,7 +34,7 @@ Snapshot command (`vfo status` / `vfo status-json`) includes:
 - `dependency.ffprobe`
 - `dependency.mkvmerge`
 - `dependency.dovi_tool` (optional dependency, usually `skipped` when missing)
-- `storage.original[<n>]`
+- `storage.mezzanine[<n>]`
 - `storage.source[<n>]`
 - `profiles.detected`
 - `profile.<profile_name>.locations[<n>]`
