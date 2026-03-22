@@ -54,7 +54,7 @@ ROKU4K_ACTION="hevc_4k_stream"
 Runtime behavior:
 
 1. if `*_ACTION` is present, resolve action command and run it
-2. else use `*_FFMPEG_COMMAND` (legacy path)
+2. else use `*_FFMPEG_COMMAND` (direct command path)
 
 Backward compatibility:
 
@@ -68,7 +68,7 @@ Every action script should:
 1. accept `<input> <output>` args
 2. return non-zero exit status on failure
 3. write deterministic output path to `<output>`
-4. avoid deleting original input content
+4. avoid deleting input content
 
 ## Why this helps end users
 

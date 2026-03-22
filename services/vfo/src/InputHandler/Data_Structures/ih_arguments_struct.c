@@ -46,7 +46,8 @@ arguments_t* arguments_create_new_struct() {
 }
 
 void ih_arguments_parser(int argc, char **argv, arguments_t* arguments) {  
-  if(utils_string_array_contains_string(argv, argc, "original"))
+  if(utils_string_array_contains_string(argv, argc, "mezzanine")
+     || utils_string_array_contains_string(argv, argc, "original"))
     arguments->original_detected = true;
   if(utils_string_array_contains_string(argv, argc, "revert"))
     arguments->revert_detected = true;
@@ -65,7 +66,8 @@ void ih_arguments_parser(int argc, char **argv, arguments_t* arguments) {
     arguments->wizard_detected = true;
   if(utils_string_array_contains_string(argv, argc, "show"))
     arguments->show_detected = true;
-  if(utils_string_array_contains_string(argv, argc, "all_aliases"))
+  if(utils_string_array_contains_string(argv, argc, "profiles")
+     || utils_string_array_contains_string(argv, argc, "all_aliases"))
     arguments->all_aliases_detected = true;
   if(utils_string_array_contains_string(argv, argc, "do_it_all"))
     arguments->do_it_all_detected = true;

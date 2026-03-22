@@ -25,8 +25,8 @@
 #include "a_internal.h"
 
 /*
- * Alias initiating message
+ * Profile initiating message
  */
  void a_mes_init_alias() {
-    fprintf(stdout, "alias initiating...\n");
+    fprintf(stdout, "profile initiating...\n");
 }

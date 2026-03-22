@@ -48,31 +48,27 @@ Canonical user-facing pipeline terms are:
 - `source`
 - `profile`
 
-Legacy terms still supported for compatibility:
-
-- `original` (legacy for mezzanine)
-- `alias` (legacy for profile)
+Deprecated vocabulary may still exist in internal compatibility paths.
 
 Rules:
 
 - New user-facing help/docs must prefer canonical terms.
-- If a legacy command/key is referenced, annotate it as legacy.
+- Do not surface deprecated vocabulary in help output, status output, docs, or examples.
 - Do not introduce additional new user-facing terms that conflict with this vocabulary.
 
 ### 4) CLI Command Naming
 
 - New commands should be canonical and human-readable.
 - Preferred pattern for new commands: `kebab-case`.
-- If a legacy snake_case command exists, keep it as a compatibility alias when feasible.
-- Help output should show canonical command first, then legacy alias where relevant.
+- Backward-compat command shims may exist, but canonical commands are the only forms shown in help/docs/examples.
 
 ### 5) Config Key Naming
 
 - Config keys remain `UPPER_SNAKE_CASE`.
 - Existing keys are stable and must remain supported unless a formal deprecation is approved.
 - For new keys, prefer canonical terminology in names:
-  - prefer `MEZZANINE_*` over introducing more `ORIGINAL_*` keys
-  - prefer `PROFILE_*` over introducing more `ALIAS_*` keys
+  - prefer `MEZZANINE_*`
+  - prefer `PROFILE=*`
 - Profile-specific keys follow:
   - `<PROFILE_NAME>_<SETTING>`
   - where `<PROFILE_NAME>` is uppercase-snake derived from a lowercase-snake profile id.
@@ -105,7 +101,7 @@ Rules:
 ## Compatibility and Deprecation Rules
 
 - Never break existing CLI/config names in one step.
-- If introducing a canonical replacement, keep legacy names available for at least two minor releases.
+- If introducing a canonical replacement, keep compatibility shims available for at least two minor releases.
 - Every naming deprecation must include:
   - release-note entry in `RELEASE.txt`
   - help text annotation
@@ -129,8 +125,6 @@ These exist today and are allowed until explicitly migrated:
 - `services/vfo/test/SourceTests/`
 - `services/vfo/test/UtilsTests/`
 - existing workflow filenames `on-*.yml` under `.github/workflows/`
-- legacy command names such as `all_aliases` and `do_it_all`
-- legacy config keys such as `ORIGINAL_*` and `ALIAS=...`
 
 No additional CamelCase directories should be introduced in these areas.
 
@@ -140,5 +134,5 @@ Before merge, verify:
 
 1. new paths/files follow this naming policy
 2. new user-facing text uses canonical terms (`mezzanine`, `source`, `profile`)
-3. legacy term usage is explicitly marked as legacy when user-facing
+3. deprecated terminology is not surfaced in user-facing text
 4. docs and help text remain consistent with implemented command/config names

@@ -123,11 +123,11 @@ char* a_create_content(char *alias_root) {
   strcat(tmp_alias_content, "/content");
   //verify
   if(!utils_does_folder_exist(tmp_alias_content)) {
-    printf("ALIAS WARNING: vfo could not find an essential /content folder in %s\n", alias_root);
+    printf("PROFILE WARNING: vfo could not find an essential /content folder in %s\n", alias_root);
     utils_ask_user_for_permission_to_create_a_folder(tmp_alias_content);
     utils_create_folder(tmp_alias_content);
     if(!utils_does_folder_exist(tmp_alias_content)) {
-      printf("ALIAS MAJOR ERROR: vfo could not create %s & it does not exist ALIAS MAJOR ERROR\n", tmp_alias_content);
+      printf("PROFILE MAJOR ERROR: vfo could not create %s & it does not exist PROFILE MAJOR ERROR\n", tmp_alias_content);
       exit(EXIT_FAILURE);
     }
   }
@@ -141,11 +141,11 @@ char* a_create_unable_to_process(char *alias_root) {
   strcat(tmp_alias_unable_to_process, "/unable_to_process");
   //verify
   if(!utils_does_folder_exist(tmp_alias_unable_to_process)) {
-    printf("ALIAS WARNING: vfo could not find an essential /unable_to_process folder in %s\n", alias_root);
+    printf("PROFILE WARNING: vfo could not find an essential /unable_to_process folder in %s\n", alias_root);
     utils_ask_user_for_permission_to_create_a_folder(tmp_alias_unable_to_process);
     utils_create_folder(tmp_alias_unable_to_process);
     if(!utils_does_folder_exist(tmp_alias_unable_to_process)) {
-      printf("ALIAS MAJOR ERROR: vfo could not create %s & it does not exist ALIAS MAJOR ERROR\n", tmp_alias_unable_to_process);
+      printf("PROFILE MAJOR ERROR: vfo could not create %s & it does not exist PROFILE MAJOR ERROR\n", tmp_alias_unable_to_process);
       exit(EXIT_FAILURE);
     }
   }
@@ -159,11 +159,11 @@ char* a_get_mkv_original_if_it_exists(char *original_root) {
   strcpy(tmp_alias_mkv_original, "/mkv_original");
   //verify
   if(utils_does_folder_exist(tmp_alias_mkv_original)) {
-    printf("ALIAS ALERT: original's /mkv_original detected. if KEEP_SOURCE=FALSE, encoding CAN occur from mkv_original to this alias.\n");
+    printf("PROFILE ALERT: mezzanine /mkv_original detected. if KEEP_SOURCE=FALSE, encoding CAN occur from mkv_original to this profile.\n");
     return tmp_alias_mkv_original;
   }
   else
-    printf("ALIAS ALERT: original's /mkv_original does not exist, if KEEP_SOURCE=FALSE, no encoding will occur from mkv_original to this alias.\n");
+    printf("PROFILE ALERT: mezzanine /mkv_original does not exist, if KEEP_SOURCE=FALSE, no encoding will occur from mkv_original to this profile.\n");
   return "";
 }
 
@@ -174,10 +174,10 @@ char* a_get_mp4_original_if_it_exists(char *original_root) {
   strcpy(tmp_alias_mp4_original, "/mp4_original");
   //verify
   if(utils_does_folder_exist(tmp_alias_mp4_original)) {
-    printf("ALIAS ALERT: original's /mp4_original detected.if KEEP_SOURCE=FALSE, encoding CAN occur from mp4_original to this alias.\n");
+    printf("PROFILE ALERT: mezzanine /mp4_original detected. if KEEP_SOURCE=FALSE, encoding CAN occur from mp4_original to this profile.\n");
     return tmp_alias_mp4_original;
   } else
-    printf("ALIAS ALERT: original's /mp4_original does not exist, if KEEP_SOURCE=FALSE, no encoding will occur from mp4_original to this alias.\n");
+    printf("PROFILE ALERT: mezzanine /mp4_original does not exist, if KEEP_SOURCE=FALSE, no encoding will occur from mp4_original to this profile.\n");
   return "";
 }
 
@@ -188,11 +188,11 @@ char* a_create_source_content(char *source_root) {
   strcat(tmp_alias_source_content, "/content");
   //verify
   if(!utils_does_folder_exist(tmp_alias_source_content)) {
-    printf("ALIAS WARNING: vfo could not find an essential SOURCE /content folder in %s\n", source_root);
+    printf("PROFILE WARNING: vfo could not find an essential SOURCE /content folder in %s\n", source_root);
     utils_ask_user_for_permission_to_create_a_folder(tmp_alias_source_content);
     utils_create_folder(tmp_alias_source_content);
     if(!utils_does_folder_exist(tmp_alias_source_content)) {
-      printf("ALIAS MAJOR ERROR: vfo could not create SOURCE %s & it does not exist ALIAS MAJOR ERROR\n", tmp_alias_source_content);
+      printf("PROFILE MAJOR ERROR: vfo could not create SOURCE %s & it does not exist PROFILE MAJOR ERROR\n", tmp_alias_source_content);
       exit(EXIT_FAILURE);
     }
   }
@@ -201,11 +201,10 @@ char* a_create_source_content(char *source_root) {
 
 char* a_verify_alias_location(char *alias_location) {
   //verify
-  printf("THIS RUNS\n");
   if(utils_string_is_empty_or_spaces(alias_location))
-    printf("ALIAS ERROR: an alias location specified in config file appears to be empty\n");
+    printf("PROFILE ERROR: a profile location specified in config file appears to be empty\n");
   if(!utils_does_folder_exist(alias_location)) {
-    printf("ALIAS ERROR: vfo could not find an alias location specified in your config file: %s\n", alias_location);
+    printf("PROFILE ERROR: vfo could not find a profile location specified in your config file: %s\n", alias_location);
     exit(EXIT_FAILURE);
   }
   return alias_location;
@@ -214,14 +213,14 @@ char* a_verify_alias_location(char *alias_location) {
 char* a_verify_alias_name(char *alias_name) {
   //verify
   if(utils_string_is_empty_or_spaces(alias_name))
-    printf("ALIAS WARNING: an alias name specified in config file appears to be empty\n");
+    printf("PROFILE WARNING: a profile name specified in config file appears to be empty\n");
   return alias_name;
 }
 
 char* a_verify_alias_crit_codec(char *alias_crit_codec, char *alias_name) {
   //verify
   if(utils_string_is_empty_or_spaces(alias_crit_codec)) {
-    printf("ALIAS %s ERROR: alias criteria codec appears to be empty %s\n", alias_name, alias_crit_codec);
+    printf("PROFILE %s ERROR: profile criteria codec appears to be empty %s\n", alias_name, alias_crit_codec);
     exit(EXIT_FAILURE);
   }
   return alias_crit_codec;
@@ -230,26 +229,26 @@ char* a_verify_alias_crit_codec(char *alias_crit_codec, char *alias_name) {
 int a_verify_alias_crit_bits(char *alias_crit_bits, char *alias_name) {
   //verify
   if(utils_string_is_empty_or_spaces(alias_crit_bits)) {
-    printf("ALIAS %s ERROR: alias criteria bits appears to be empty %s\n", alias_name, alias_crit_bits);
+    printf("PROFILE %s ERROR: profile criteria bits appears to be empty %s\n", alias_name, alias_crit_bits);
     exit(EXIT_FAILURE);
   }
 
-  printf("ALIAS %s DEV: reading alias_crit_bits as %s\n", alias_name, alias_crit_bits);
+  printf("PROFILE %s DEV: reading criteria bits as %s\n", alias_name, alias_crit_bits);
   //convert char to int
   int tmp_int = utils_convert_string_to_integer(alias_crit_bits);
   //verify int
   if(tmp_int != 8 && tmp_int != 10) {
-    printf("ALIAS %s ERROR: vfo is reading %s criteria bits from config file NOT equal to 8 or 10. config file variable: %s int conversion: %i\n", alias_name, alias_name, alias_crit_bits, tmp_int);
+    printf("PROFILE %s ERROR: vfo is reading %s criteria bits from config file NOT equal to 8 or 10. config file variable: %s int conversion: %i\n", alias_name, alias_name, alias_crit_bits, tmp_int);
     exit(EXIT_FAILURE);
   }
-  printf("ALIAS %s ALERT: reading criteria bits as: %i\n", alias_name, tmp_int);
+  printf("PROFILE %s ALERT: reading criteria bits as: %i\n", alias_name, tmp_int);
   return tmp_int;
 }
 
 char* a_verify_alias_crit_color_space(char *alias_crit_color_space, char *alias_name) {
   //verify
   if(utils_string_is_empty_or_spaces(alias_crit_color_space)) {
-    printf("ALIAS %s ERROR: alias criteria color space appears to be empty %s\n", alias_name, alias_crit_color_space);
+    printf("PROFILE %s ERROR: profile criteria color space appears to be empty %s\n", alias_name, alias_crit_color_space);
     exit(EXIT_FAILURE);
   }
 
@@ -259,85 +258,85 @@ char* a_verify_alias_crit_color_space(char *alias_crit_color_space, char *alias_
 int a_verify_alias_crit_min_width(char *alias_crit_min_width, char *alias_name) {
   //verify
   if(utils_string_is_empty_or_spaces(alias_crit_min_width)) {
-    printf("ALIAS %s ERROR: alias criteria min width appears to be empty %s\n", alias_name, alias_crit_min_width);
+    printf("PROFILE %s ERROR: profile criteria min width appears to be empty %s\n", alias_name, alias_crit_min_width);
     exit(EXIT_FAILURE);
   }
 
-  printf("ALIAS %s DEV: reading alias_crit_min_width as %s\n", alias_name, alias_crit_min_width);
+  printf("PROFILE %s DEV: reading criteria min width as %s\n", alias_name, alias_crit_min_width);
   //convert char to int
   int tmp_int = utils_convert_string_to_integer(alias_crit_min_width);
   //verify int
   if(tmp_int < 0) {
-    printf("ALIAS %s ERROR: vfo is reading %s criteria min width from config file as less than 0. config file variable: %s int conversion: %i\n", alias_name, alias_name, alias_crit_min_width, tmp_int);
+    printf("PROFILE %s ERROR: vfo is reading %s criteria min width from config file as less than 0. config file variable: %s int conversion: %i\n", alias_name, alias_name, alias_crit_min_width, tmp_int);
     exit(EXIT_FAILURE);
   }
   if(tmp_int > 12288)
-    printf("ALIAS %s WARNING: vfo is reading %s criteria min width from config file as greater than 12288 (greater than 12k).  config file variable: %s int conversion %i.  You must be an absolute mad lad.\n", alias_name, alias_name, alias_crit_min_width, tmp_int);
-  printf("ALIAS %s ALERT: reading criteria min width as: %i\n", alias_name, tmp_int);
+    printf("PROFILE %s WARNING: vfo is reading %s criteria min width from config file as greater than 12288 (greater than 12k).  config file variable: %s int conversion %i.  You must be an absolute mad lad.\n", alias_name, alias_name, alias_crit_min_width, tmp_int);
+  printf("PROFILE %s ALERT: reading criteria min width as: %i\n", alias_name, tmp_int);
   return tmp_int;
 }
 
 int a_verify_alias_crit_min_height(char *alias_crit_min_height, char *alias_name) {
   //verify
   if(utils_string_is_empty_or_spaces(alias_crit_min_height)) {
-    printf("ALIAS %s ERROR: alias criteria min height appears to be empty %s\n", alias_name, alias_crit_min_height);
+    printf("PROFILE %s ERROR: profile criteria min height appears to be empty %s\n", alias_name, alias_crit_min_height);
     exit(EXIT_FAILURE);
   }
   //convert char to int
   int tmp_int = utils_convert_string_to_integer(alias_crit_min_height);
   //verify int
   if(tmp_int < 0) {
-    printf("ALIAS %s ERROR: vfo is reading %s criteria min height from config file as less than 0. config file variable: %s int conversion: %i\n", alias_name, alias_name, alias_crit_min_height, tmp_int);
+    printf("PROFILE %s ERROR: vfo is reading %s criteria min height from config file as less than 0. config file variable: %s int conversion: %i\n", alias_name, alias_name, alias_crit_min_height, tmp_int);
     exit(EXIT_FAILURE);
   }
   if(tmp_int > 6480)
-    printf("ALIAS %s WARNING: vfo is reading %s criteria min height from config file as greater than 6480 (greater than 12k).  config file variable: %s int conversion %i.  You must be an absolute mad lad.\n", alias_name, alias_name, alias_crit_min_height, tmp_int);
-  printf("ALIAS %s ALERT: reading criteria min height as: %i\n", alias_name, tmp_int);
+    printf("PROFILE %s WARNING: vfo is reading %s criteria min height from config file as greater than 6480 (greater than 12k).  config file variable: %s int conversion %i.  You must be an absolute mad lad.\n", alias_name, alias_name, alias_crit_min_height, tmp_int);
+  printf("PROFILE %s ALERT: reading criteria min height as: %i\n", alias_name, tmp_int);
   return tmp_int;
 }
 
 int a_verify_alias_crit_max_width(char *alias_crit_max_width, char *alias_name) {
   //verify
   if(utils_string_is_empty_or_spaces(alias_crit_max_width)) {
-    printf("ALIAS %s ERROR: alias criteria max width appears to be empty %s\n", alias_name, alias_crit_max_width);
+    printf("PROFILE %s ERROR: profile criteria max width appears to be empty %s\n", alias_name, alias_crit_max_width);
     exit(EXIT_FAILURE);
   }
   //convert char to int
   int tmp_int = utils_convert_string_to_integer(alias_crit_max_width);
   //verify int
   if(tmp_int < 0) {
-    printf("ALIAS %s ERROR: vfo is reading %s criteria max width from config file as less than 0.  config file variable: %s int conversion %i\n", alias_name, alias_name, alias_crit_max_width, tmp_int);
+    printf("PROFILE %s ERROR: vfo is reading %s criteria max width from config file as less than 0.  config file variable: %s int conversion %i\n", alias_name, alias_name, alias_crit_max_width, tmp_int);
     exit(EXIT_FAILURE);
   }
   if(tmp_int > 12288)
-    printf("ALIAS %s WARNING: vfo is reading %s criteria max width from config file as greater than 12288 (greater than 12k).  config file variable %s int conversion %i.  You must be an absolute mad lad.\n", alias_name, alias_name, alias_crit_max_width, tmp_int);
-  printf("ALIAS %s ALERT: reading criteria max width as %i\n", alias_name, tmp_int);
+    printf("PROFILE %s WARNING: vfo is reading %s criteria max width from config file as greater than 12288 (greater than 12k).  config file variable %s int conversion %i.  You must be an absolute mad lad.\n", alias_name, alias_name, alias_crit_max_width, tmp_int);
+  printf("PROFILE %s ALERT: reading criteria max width as %i\n", alias_name, tmp_int);
   return tmp_int;
 }
 
 int a_verify_alias_crit_max_height(char *alias_crit_max_height, char *alias_name) {
   //verify
   if(utils_string_is_empty_or_spaces(alias_crit_max_height)) {
-    printf("ALIAS %s ERROR: alias criteria max height appears to be empty %s\n", alias_name, alias_crit_max_height);
+    printf("PROFILE %s ERROR: profile criteria max height appears to be empty %s\n", alias_name, alias_crit_max_height);
     exit(EXIT_FAILURE);
   }
   //convert char to int
   int tmp_int = utils_convert_string_to_integer(alias_crit_max_height);
   //verify int
   if(tmp_int < 0) {
-    printf("ALIAS %s ERROR: vfo is reading %s criteria max height from config file as less than 0.  config file variable: %s int conversion %i\n", alias_name, alias_name, alias_crit_max_height, tmp_int);
+    printf("PROFILE %s ERROR: vfo is reading %s criteria max height from config file as less than 0.  config file variable: %s int conversion %i\n", alias_name, alias_name, alias_crit_max_height, tmp_int);
     exit(EXIT_FAILURE);
   }
   if(tmp_int > 6480)
-    printf("ALIAS %s WARNING: vfo is reading %s criteria max height from config file as greater than 6480 (greater than 12k).  config file variable %s int conversion %i.  You must be an absolute mad lad.\n", alias_name, alias_name, alias_crit_max_height, tmp_int);
-  printf("ALIAS %s ALERT: reading criteria max height as %i\n", alias_name, tmp_int);
+    printf("PROFILE %s WARNING: vfo is reading %s criteria max height from config file as greater than 6480 (greater than 12k).  config file variable %s int conversion %i.  You must be an absolute mad lad.\n", alias_name, alias_name, alias_crit_max_height, tmp_int);
+  printf("PROFILE %s ALERT: reading criteria max height as %i\n", alias_name, tmp_int);
   return tmp_int;
 }
 
 cs_node_t* a_verifiy_alias_cs_head(cs_node_t *cs_head, char *alias_name) {
   //verify every node in cs_head
   if(cs_head == NULL) {
-    printf("ALIAS %s MAJOR ERROR: vfo could not find any SCENARIO configuration relevant to %s.  Please check you config file.\n", alias_name, alias_name);
+    printf("PROFILE %s MAJOR ERROR: vfo could not find any SCENARIO configuration relevant to %s.  Please check you config file.\n", alias_name, alias_name);
     exit(EXIT_FAILURE);
   }
   bool cs_head_error_detected = false;
@@ -351,7 +350,7 @@ cs_node_t* a_verifiy_alias_cs_head(cs_node_t *cs_head, char *alias_name) {
       cs_verified_node->ffmpeg_command = cs_tmp->ffmpeg_command;
 
       if(utils_string_is_empty_or_spaces(cs_tmp->scenario_string)) {
-        printf("ALIAS %s MAJOR ERROR: we found a %s_SCENARIO to be empty: %s\n", alias_name, alias_name, cs_tmp->scenario_string);
+        printf("PROFILE %s MAJOR ERROR: we found a %s_SCENARIO to be empty: %s\n", alias_name, alias_name, cs_tmp->scenario_string);
         cs_head_error_detected = true;
       }
       //set relevant bools & ints from scenario_string
@@ -453,16 +452,16 @@ cs_node_t* a_verifiy_alias_cs_head(cs_node_t *cs_head, char *alias_name) {
 
       //verify ffmpeg command
       if(utils_string_is_empty_or_spaces(cs_tmp->ffmpeg_command)) {
-        printf("ALIAS %s MAJOR ERROR: we found a %s_FFMPEG_COMMAND to be empty: %s\n", alias_name, alias_name, cs_tmp->ffmpeg_command);
+        printf("PROFILE %s MAJOR ERROR: we found a %s_FFMPEG_COMMAND to be empty: %s\n", alias_name, alias_name, cs_tmp->ffmpeg_command);
         cs_head_error_detected = true;
       }
       if(utils_is_substring("$vfo_input", cs_tmp->ffmpeg_command) == false || utils_is_substring("$vfo_output", cs_tmp->ffmpeg_command) == false) {
         if(utils_is_substring("$vfo_input", cs_tmp->ffmpeg_command) == false) {
-          printf("ALIAS %s MAJOR ERROR: we found a %s_FFMPEG_COMMAND does not contain $vfo_input\n", alias_name, alias_name);
+          printf("PROFILE %s MAJOR ERROR: we found a %s_FFMPEG_COMMAND does not contain $vfo_input\n", alias_name, alias_name);
           printf("DEV: relevant command: %s\n", cs_tmp->ffmpeg_command);
         }
         if(utils_is_substring("$vfo_output", cs_tmp->ffmpeg_command) == false) {
-          printf("ALIAS %s MAJOR ERROR: we found a %s_FFMPEG_COMMAND does not contain $vfo_output\n", alias_name, alias_name);
+          printf("PROFILE %s MAJOR ERROR: we found a %s_FFMPEG_COMMAND does not contain $vfo_output\n", alias_name, alias_name);
           printf("DEV: relevant command: %s\n", cs_tmp->ffmpeg_command);
         }
         cs_head_error_detected = true;
@@ -473,7 +472,7 @@ cs_node_t* a_verifiy_alias_cs_head(cs_node_t *cs_head, char *alias_name) {
   }
 
   if(cs_head_error_detected == true) {
-    printf("ALIASES MAJOR ERROR: vfo has stopped because we detected an issue with config file alias/scenario variables\n");
+    printf("PROFILES MAJOR ERROR: vfo has stopped because we detected an issue with config file profile/scenario variables\n");
     exit(EXIT_FAILURE);
   }
   return verified_cs_head;

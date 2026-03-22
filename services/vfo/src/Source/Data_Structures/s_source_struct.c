@@ -108,12 +108,12 @@ char* s_get_mkv_original_if_it_exists(char *original_root) {
   strcat(tmp_source_mkv_original, "/mkv_original");
   //verify
   if(utils_does_folder_exist(tmp_source_mkv_original)) {
-    printf("SOURCE ALERT: original's mkv_original detected.\n");
+    printf("SOURCE ALERT: mezzanine /mkv_original detected.\n");
     return tmp_source_mkv_original;
   }
   else {
     printf("DEV: tmp_source_mkv_original: %s\n", tmp_source_mkv_original);
-    printf("SOURCE ALERT: original's /mkv_original does not exist, mkv to source encoding will not occur.\n");
+    printf("SOURCE ALERT: mezzanine /mkv_original does not exist, mkv to source encoding will not occur.\n");
   }
     
   return "";
@@ -125,12 +125,12 @@ char* s_get_mp4_original_if_it_exists(char *original_root) {
   strcat(tmp_source_mp4_original, "/mp4_original");
   //verify
   if(utils_does_folder_exist(tmp_source_mp4_original)) {
-    printf("SOURCE ALERT: original's mp4_original detected.\n");
+    printf("SOURCE ALERT: mezzanine /mp4_original detected.\n");
     return tmp_source_mp4_original;
   } 
   else {
     printf("DEV: tmp_source_mp4_original: %s\n", tmp_source_mp4_original);
-    printf("SOURCE ALERT: original's /mp4_original does not exist, mp4 to source encoding will not occur.\n");
+    printf("SOURCE ALERT: mezzanine /mp4_original does not exist, mp4 to source encoding will not occur.\n");
   }
   return "";
 }
@@ -141,12 +141,12 @@ char* s_get_m2ts_original_if_it_exists(char *original_root) {
   strcat(tmp_source_m2ts_original, "/m2ts_original");
   //verify
   if(utils_does_folder_exist(tmp_source_m2ts_original)) {
-    printf("SOURCE ALERT: original's m2ts_original detected.\n");
+    printf("SOURCE ALERT: mezzanine /m2ts_original detected.\n");
     return tmp_source_m2ts_original;
   } 
   else {
     printf("DEV: tmp_source_m2ts_original: %s\n", tmp_source_m2ts_original);
-    printf("SOURCE ALERT: original's /m2ts_original does not exist, m2ts to source encoding will not occur.\n");
+    printf("SOURCE ALERT: mezzanine /m2ts_original does not exist, m2ts to source encoding will not occur.\n");
   }
   return "";
 }

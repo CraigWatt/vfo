@@ -357,15 +357,15 @@ char* s_generate_source_file_name(char *original_from, char *source_to) {
 
 void s_highlight_encode_candidates_to_user(source_t *source) {  
   if(strcmp(source->original_mkv_original, "") != 0) {
-    printf("SOURCE ALERT: found mkv_original\n");
+    printf("SOURCE ALERT: found mezzanine/mkv_original\n");
     s_highlight_encode_candidates_from_mkv_original(source);
   }
   if(strcmp(source->original_mp4_original, "") != 0) {
-    printf("SOURCE ALERT: found mp4_original\n");
+    printf("SOURCE ALERT: found mezzanine/mp4_original\n");
     s_highlight_encode_candidates_from_mp4_original(source);
   }
   if(strcmp(source->original_m2ts_original, "") != 0) {
-    printf("SOURCE ALERT: found m2ts_original\n");
+    printf("SOURCE ALERT: found mezzanine/m2ts_original\n");
     s_highlight_encode_candidates_from_m2ts_original(source);
   }
 }
@@ -417,7 +417,7 @@ void s_highlight_encode_candidates_from_mkv_original(source_t *source) {
       active_cf = active_cf->next;
     }
   }
-  printf("SOURCE ALERT: %i mkv_original -> source/content candidates found.\n", mkv_encode_candidates_counter);
+  printf("SOURCE ALERT: %i mezzanine/mkv_original -> source/content candidates found.\n", mkv_encode_candidates_counter);
   printf("SOURCE ALERT: %i will be ignored as they appear to already exist in source/content.\n", already_present_in_source_counter);
   free(active_cf);
   active_cf = NULL;
@@ -470,7 +470,7 @@ void s_highlight_encode_candidates_from_mp4_original(source_t *source) {
       active_cf = active_cf->next;
     }
   }
-  printf("SOURCE ALERT: %i mp4_original -> source/content candidates found.\n", mp4_encode_candidates_counter);
+  printf("SOURCE ALERT: %i mezzanine/mp4_original -> source/content candidates found.\n", mp4_encode_candidates_counter);
   printf("SOURCE ALERT: %i will be ignored as they appear to already exist in source/content.\n", already_present_in_source_counter);
   free(active_cf);
   active_cf = NULL;
@@ -523,7 +523,7 @@ void s_highlight_encode_candidates_from_m2ts_original(source_t *source) {
       active_cf = active_cf->next;
     }
   }
-  printf("SOURCE ALERT: %i m2ts_original -> source/content candidates found.\n", m2ts_encode_candidates_counter);
+  printf("SOURCE ALERT: %i mezzanine/m2ts_original -> source/content candidates found.\n", m2ts_encode_candidates_counter);
   printf("SOURCE ALERT: %i will be ignored as they appear to already exist in source/content.\n", already_present_in_source_counter);
   free(active_cf);
   active_cf = NULL;
