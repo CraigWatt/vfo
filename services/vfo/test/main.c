@@ -50,6 +50,8 @@ int main(void) {
         /* Utils */
         cmocka_unit_test(test_utils_does_folder_exist_null_ptr),
         cmocka_unit_test(test_utils_does_folder_exist_empty_str),
+        cmocka_unit_test(test_utils_split_semicolon_list_trims_and_counts),
+        cmocka_unit_test(test_utils_location_pool_create_and_map_path),
         /* Config */
         cmocka_unit_test(test_con_init_config_dir_null_ptr),
         cmocka_unit_test(test_con_init_config_dir_empty_str),

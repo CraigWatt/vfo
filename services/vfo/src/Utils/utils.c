@@ -66,18 +66,17 @@ bool utils_does_folder_exist(char *location) {
  * returns: bool
  */
 bool utils_string_is_empty_or_spaces(char *string) {
-  bool only_spaces_found = false;
-  if(string[0] == '\0') {
+  int i = 0;
+  if(string == NULL)
     return true;
-  } else {
-    int count = 0;
-    do {
-      if(string[count] == '\0')
-        only_spaces_found = true;
-      count++;
-    }while(isspace(string[count] == true));
+  if(string[0] == '\0')
+    return true;
+  while(string[i] != '\0') {
+    if(isspace((unsigned char)string[i]) == 0)
+      return false;
+    i++;
   }
-  if(only_spaces_found == true)
+  if(string[i] == '\0')
     return true;
   return false;
 }
@@ -1368,10 +1367,13 @@ void utils_danger_delete_contents_of_folder(char *folder) {
 }
 
 bool utils_string_only_contains_number_characters(char *string) {
-  while (*string) {
-        if (!(isdigit(*string++) == 0))
-          return false;
-    }
+  if(string == NULL || string[0] == '\0')
+    return false;
+  while(*string) {
+    if(isdigit((unsigned char)*string) == 0)
+      return false;
+    string++;
+  }
   return true;
 }
 
@@ -1400,4 +1402,320 @@ bool utils_string_is_ffmpeg_timecode_compliant(char *string) {
       return false;
   }
   return true;
+}
+
+static char* utils_trim_copy_internal(const char *value) {
+  size_t start = 0;
+  size_t end = 0;
+  size_t out_length = 0;
+  char *trimmed = NULL;
+
+  if(value == NULL) {
+    trimmed = malloc(1);
+    trimmed[0] = '\0';
+    return trimmed;
+  }
+
+  while(value[start] != '\0' && isspace((unsigned char)value[start])) {
+    start++;
+  }
+
+  end = strlen(value);
+  while(end > start && isspace((unsigned char)value[end - 1])) {
+    end--;
+  }
+
+  out_length = end - start;
+  trimmed = malloc(out_length + 1);
+  if(out_length > 0)
+    memcpy(trimmed, value + start, out_length);
+  trimmed[out_length] = '\0';
+  return trimmed;
+}
+
+char** utils_split_semicolon_list(char *value, int *count) {
+  char **items = NULL;
+  char *copied = NULL;
+  char *token = NULL;
+  char *save_ptr = NULL;
+  int item_count = 0;
+
+  *count = 0;
+  if(value == NULL)
+    return NULL;
+
+  copied = strdup(value);
+  token = strtok_r(copied, ";", &save_ptr);
+  while(token != NULL) {
+    char *trimmed = utils_trim_copy_internal(token);
+    if(trimmed[0] != '\0') {
+      items = realloc(items, sizeof(char*) * (size_t)(item_count + 1));
+      items[item_count] = trimmed;
+      item_count++;
+    } else {
+      free(trimmed);
+    }
+    token = strtok_r(NULL, ";", &save_ptr);
+  }
+  free(copied);
+
+  *count = item_count;
+  return items;
+}
+
+void utils_free_string_array(char **items, int count) {
+  if(items == NULL)
+    return;
+  for(int i = 0; i < count; i++) {
+    free(items[i]);
+  }
+  free(items);
+}
+
+bool utils_get_path_space_bytes(char *path, unsigned long long *total_bytes, unsigned long long *free_bytes) {
+  struct statvfs stats;
+
+  if(statvfs(path, &stats) != 0)
+    return false;
+
+  *total_bytes = (unsigned long long)stats.f_blocks * (unsigned long long)stats.f_frsize;
+  *free_bytes = (unsigned long long)stats.f_bavail * (unsigned long long)stats.f_frsize;
+  return true;
+}
+
+unsigned long long utils_get_single_file_size_bytes(char *file_path) {
+  struct stat file_stat;
+  if(file_path == NULL)
+    return 0ULL;
+  if(stat(file_path, &file_stat) != 0)
+    return 0ULL;
+  if(S_ISREG(file_stat.st_mode) == 0)
+    return 0ULL;
+  return (unsigned long long)file_stat.st_size;
+}
+
+unsigned long long utils_fetch_single_file_size_bytes(char *folder) {
+  DIR *directory = NULL;
+  struct dirent *entry = NULL;
+  unsigned long long size_bytes = 0ULL;
+
+  directory = opendir(folder);
+  if(directory == NULL)
+    return 0ULL;
+
+  while((entry = readdir(directory)) != NULL) {
+    if(entry->d_type == DT_REG && utils_file_is_macos_hidden_files(entry->d_name) == false) {
+      bool valid_ext = utils_is_file_extension_mkv(entry->d_name) ||
+                       utils_is_file_extension_mp4(entry->d_name) ||
+                       utils_is_file_extension_m2ts(entry->d_name);
+      if(valid_ext) {
+        char *full_path = utils_combine_to_full_path(folder, entry->d_name);
+        size_bytes = utils_get_single_file_size_bytes(full_path);
+        free(full_path);
+        break;
+      }
+    }
+  }
+
+  closedir(directory);
+  return size_bytes;
+}
+
+utils_location_pool_t* utils_location_pool_create(char *primary_location,
+                                                  char *locations_list,
+                                                  char *max_usage_pct_list,
+                                                  int default_max_usage_pct,
+                                                  unsigned long long reserve_bytes) {
+  utils_location_pool_t *pool = malloc(sizeof(utils_location_pool_t));
+  char **locations = NULL;
+  int location_count = 0;
+
+  if(default_max_usage_pct < 1 || default_max_usage_pct > 100) {
+    printf("ERROR: default max usage percent must be between 1 and 100.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(utils_string_is_empty_or_spaces(locations_list) == false) {
+    locations = utils_split_semicolon_list(locations_list, &location_count);
+  }
+
+  if(location_count == 0 && utils_string_is_empty_or_spaces(primary_location) == false) {
+    location_count = 1;
+    locations = malloc(sizeof(char*));
+    locations[0] = utils_trim_copy_internal(primary_location);
+  }
+
+  if(location_count == 0) {
+    printf("ERROR: no valid locations available to build storage pool.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  pool->roots = locations;
+  pool->count = location_count;
+  pool->reserve_bytes = reserve_bytes;
+  pool->max_usage_pct = malloc(sizeof(int) * (size_t)pool->count);
+
+  for(int i = 0; i < pool->count; i++) {
+    pool->max_usage_pct[i] = default_max_usage_pct;
+    if(utils_does_folder_exist(pool->roots[i]) == false) {
+      printf("ERROR: storage location does not exist: %s\n", pool->roots[i]);
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  if(utils_string_is_empty_or_spaces(max_usage_pct_list) == false) {
+    int cap_count = 0;
+    char **cap_tokens = utils_split_semicolon_list(max_usage_pct_list, &cap_count);
+
+    if(cap_count != pool->count) {
+      printf("ERROR: max usage cap count (%i) does not match location count (%i)\n", cap_count, pool->count);
+      exit(EXIT_FAILURE);
+    }
+
+    for(int i = 0; i < cap_count; i++) {
+      if(utils_string_only_contains_number_characters(cap_tokens[i]) == false) {
+        printf("ERROR: max usage cap is not numeric: %s\n", cap_tokens[i]);
+        exit(EXIT_FAILURE);
+      }
+
+      int cap = utils_convert_string_to_integer(cap_tokens[i]);
+      if(cap < 1 || cap > 100) {
+        printf("ERROR: max usage cap must be between 1 and 100: %s\n", cap_tokens[i]);
+        exit(EXIT_FAILURE);
+      }
+      pool->max_usage_pct[i] = cap;
+    }
+    utils_free_string_array(cap_tokens, cap_count);
+  }
+
+  return pool;
+}
+
+void utils_location_pool_free(utils_location_pool_t *pool) {
+  if(pool == NULL)
+    return;
+  utils_free_string_array(pool->roots, pool->count);
+  free(pool->max_usage_pct);
+  free(pool);
+}
+
+char* utils_location_pool_map_path(utils_location_pool_t *pool,
+                                   int location_index,
+                                   char *template_path,
+                                   char *template_root) {
+  size_t template_root_length = 0;
+  char *suffix = NULL;
+
+  if(pool == NULL || template_path == NULL || template_root == NULL)
+    return NULL;
+
+  if(location_index < 0 || location_index >= pool->count)
+    return NULL;
+
+  template_root_length = strlen(template_root);
+  if(template_root_length == 0)
+    return strdup(template_path);
+
+  if(strncmp(template_path, template_root, template_root_length) != 0)
+    return strdup(template_path);
+  if(template_path[template_root_length] != '\0' && template_path[template_root_length] != '/')
+    return strdup(template_path);
+
+  suffix = template_path + template_root_length;
+  if(suffix[0] == '/')
+    suffix++;
+
+  if(suffix[0] == '\0')
+    return strdup(pool->roots[location_index]);
+
+  return utils_combine_to_full_path(pool->roots[location_index], suffix);
+}
+
+bool utils_location_pool_find_existing_path(utils_location_pool_t *pool,
+                                            char *template_path,
+                                            char *template_root,
+                                            char **existing_path_out) {
+  if(existing_path_out != NULL)
+    *existing_path_out = NULL;
+
+  if(pool == NULL)
+    return false;
+
+  for(int i = 0; i < pool->count; i++) {
+    char *candidate_path = utils_location_pool_map_path(pool, i, template_path, template_root);
+    bool exists = (candidate_path != NULL) &&
+                  (utils_does_folder_exist(candidate_path) || utils_does_file_exist(candidate_path));
+    if(exists) {
+      if(existing_path_out != NULL)
+        *existing_path_out = candidate_path;
+      else
+        free(candidate_path);
+      return true;
+    }
+    free(candidate_path);
+  }
+
+  return false;
+}
+
+int utils_location_pool_select_root_index(utils_location_pool_t *pool,
+                                          char *template_path,
+                                          char *template_root,
+                                          unsigned long long estimated_bytes,
+                                          bool require_new_destination,
+                                          bool *excluded_indexes) {
+  int best_index = -1;
+  double best_used_pct_after = 1000.0;
+  unsigned long long best_free_after = 0ULL;
+
+  if(pool == NULL || pool->count == 0)
+    return -1;
+
+  for(int i = 0; i < pool->count; i++) {
+    unsigned long long total_bytes = 0ULL;
+    unsigned long long free_bytes = 0ULL;
+    unsigned long long predicted_free_after = 0ULL;
+    unsigned long long predicted_used_after = 0ULL;
+    double predicted_used_pct_after = 0.0;
+    bool candidate_allowed = true;
+
+    if(excluded_indexes != NULL && excluded_indexes[i] == true)
+      continue;
+
+    if(require_new_destination) {
+      char *candidate_path = utils_location_pool_map_path(pool, i, template_path, template_root);
+      if(candidate_path == NULL)
+        continue;
+      if(utils_does_folder_exist(candidate_path) || utils_does_file_exist(candidate_path))
+        candidate_allowed = false;
+      free(candidate_path);
+      if(candidate_allowed == false)
+        continue;
+    }
+
+    if(utils_get_path_space_bytes(pool->roots[i], &total_bytes, &free_bytes) == false)
+      continue;
+
+    if(estimated_bytes >= free_bytes)
+      continue;
+
+    predicted_free_after = free_bytes - estimated_bytes;
+    if(predicted_free_after < pool->reserve_bytes)
+      continue;
+
+    predicted_used_after = total_bytes - predicted_free_after;
+    predicted_used_pct_after = ((double)predicted_used_after * 100.0) / (double)total_bytes;
+    if(predicted_used_pct_after > (double)pool->max_usage_pct[i])
+      continue;
+
+    if(best_index == -1 ||
+       predicted_used_pct_after < best_used_pct_after ||
+       (predicted_used_pct_after == best_used_pct_after && predicted_free_after > best_free_after)) {
+      best_index = i;
+      best_used_pct_after = predicted_used_pct_after;
+      best_free_after = predicted_free_after;
+    }
+  }
+
+  return best_index;
 }

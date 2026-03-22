@@ -6,7 +6,11 @@
 
 struct sole_var_markers {
   char* original_location;
+  char* original_locations;
+  char* original_location_max_usage_pct;
   char* source_location;
+  char* source_locations;
+  char* source_location_max_usage_pct;
   char* keep_source;
 
   char* source_test_active_marker;

@@ -28,6 +28,8 @@ ca_node_t* ca_create_new_empty_node() {
   ca_node_t *result = malloc(sizeof(ca_node_t));
   result->alias_name = "";
   result->alias_location = "";
+  result->alias_locations = "";
+  result->alias_location_max_usage_pct = "";
   result->alias_crit_codec = "";
   result->alias_crit_bits = "";
   result->alias_crit_color_space = "";
@@ -58,6 +60,8 @@ ca_node_t* ca_create_new_empty_node() {
 
 ca_node_t* ca_create_new_node(char *alias_name,
                               char *alias_location,
+                              char *alias_locations,
+                              char *alias_location_max_usage_pct,
                               char *alias_crit_codec,
                               char *alias_crit_bits,
                               char *alias_crit_color_space,
@@ -70,6 +74,8 @@ ca_node_t* ca_create_new_node(char *alias_name,
   ca_node_t *result = malloc(sizeof(ca_node_t));
   result->alias_name = alias_name;
   result->alias_location = alias_location;
+  result->alias_locations = alias_locations;
+  result->alias_location_max_usage_pct = alias_location_max_usage_pct;
   result->alias_crit_codec = alias_crit_codec;
   result->alias_crit_bits = alias_crit_bits;
   result->alias_crit_color_space = alias_crit_color_space;

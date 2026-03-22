@@ -25,14 +25,44 @@
 #include "u_tests.h"
 
 void test_utils_does_folder_exist_null_ptr(void **state) {
+  (void)state;
   bool result = utils_does_folder_exist(NULL);
   assert_false(result);
 }
 
 void test_utils_does_folder_exist_empty_str(void **state) {
+  (void)state;
   char *empty_string = "";
   bool result = utils_does_folder_exist(empty_string);
   assert_string_equal(empty_string, "");
   assert_false(result);
 }
 
+void test_utils_split_semicolon_list_trims_and_counts(void **state) {
+  (void)state;
+  int count = 0;
+  char **items = utils_split_semicolon_list(" /tmp ; /var/tmp ;/opt ", &count);
+  assert_int_equal(count, 3);
+  assert_string_equal(items[0], "/tmp");
+  assert_string_equal(items[1], "/var/tmp");
+  assert_string_equal(items[2], "/opt");
+  utils_free_string_array(items, count);
+}
+
+void test_utils_location_pool_create_and_map_path(void **state) {
+  (void)state;
+  utils_location_pool_t *pool = utils_location_pool_create("/tmp", "/tmp", "90", 95, 0ULL);
+  char *mapped = NULL;
+
+  assert_non_null(pool);
+  assert_int_equal(pool->count, 1);
+  assert_int_equal(pool->max_usage_pct[0], 90);
+  mapped = utils_location_pool_map_path(pool,
+                                        0,
+                                        "/Volumes/A/source/content/Movies/Test",
+                                        "/Volumes/A/source/content");
+  assert_string_equal(mapped, "/tmp/Movies/Test");
+
+  free(mapped);
+  utils_location_pool_free(pool);
+}

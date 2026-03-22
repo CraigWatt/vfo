@@ -3,7 +3,11 @@
 sole_var_markers_t* svm_create_new_struct() {
   sole_var_markers_t *result = malloc(sizeof(sole_var_markers_t));
   result->original_location = "ORIGINAL_LOCATION=";
+  result->original_locations = "ORIGINAL_LOCATIONS=";
+  result->original_location_max_usage_pct = "ORIGINAL_LOCATION_MAX_USAGE_PCT=";
   result->source_location = "SOURCE_LOCATION=";
+  result->source_locations = "SOURCE_LOCATIONS=";
+  result->source_location_max_usage_pct = "SOURCE_LOCATION_MAX_USAGE_PCT=";
   result->keep_source = "KEEP_SOURCE=";
 
   result->source_test_active_marker = "SOURCE_TEST_ACTIVE=";

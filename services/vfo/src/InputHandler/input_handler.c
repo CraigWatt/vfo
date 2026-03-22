@@ -93,6 +93,29 @@ static bool ih_doctor_check_path(const char *label, const char *path, bool requi
   return true;
 }
 
+static bool ih_doctor_check_location_list(const char *label, char *locations_csv) {
+  int location_count = 0;
+  char **locations = NULL;
+  bool healthy = true;
+
+  if(utils_string_is_empty_or_spaces(locations_csv))
+    return false;
+
+  locations = utils_split_semicolon_list(locations_csv, &location_count);
+  if(location_count == 0) {
+    printf("DOCTOR ERROR: %s has no valid locations configured\n", label);
+    utils_free_string_array(locations, location_count);
+    return false;
+  }
+  for(int i = 0; i < location_count; i++) {
+    char list_label[256];
+    snprintf(list_label, sizeof(list_label), "%s[%i]", label, i + 1);
+    healthy = ih_doctor_check_path(list_label, locations[i], true) && healthy;
+  }
+  utils_free_string_array(locations, location_count);
+  return healthy;
+}
+
 static bool ih_run_doctor(config_t *config, const char *config_dir) {
   bool healthy = true;
 
@@ -103,8 +126,8 @@ static bool ih_run_doctor(config_t *config, const char *config_dir) {
   healthy = ih_doctor_check_command("dovi_tool", false) && healthy;
 
   healthy = ih_doctor_check_path("config directory", config_dir, true) && healthy;
-  healthy = ih_doctor_check_path("ORIGINAL_LOCATION", config->svc->original_location, true) && healthy;
-  healthy = ih_doctor_check_path("SOURCE_LOCATION", config->svc->source_location, true) && healthy;
+  healthy = ih_doctor_check_location_list("ORIGINAL_LOCATIONS", config->svc->original_locations) && healthy;
+  healthy = ih_doctor_check_location_list("SOURCE_LOCATIONS", config->svc->source_locations) && healthy;
 
   if(!(utils_string_is_empty_or_spaces(config->svc->source_as_location)))
     healthy = ih_doctor_check_path("SOURCE_AS_LOCATION", config->svc->source_as_location, false) && healthy;
@@ -117,6 +140,14 @@ static bool ih_run_doctor(config_t *config, const char *config_dir) {
   }
 
   printf("DOCTOR INFO: KEEP_SOURCE=%s\n", config->svc->keep_source ? "true" : "false");
+
+  ca_node_t *alias_profile = config->ca_head;
+  while(alias_profile != NULL) {
+    char label[256];
+    snprintf(label, sizeof(label), "ALIAS_%s_LOCATIONS", alias_profile->alias_name);
+    healthy = ih_doctor_check_location_list(label, alias_profile->alias_locations) && healthy;
+    alias_profile = alias_profile->next;
+  }
 
   if(healthy) {
     printf("DOCTOR ALERT: checks completed successfully\n");
@@ -185,20 +216,89 @@ static void ih_execute_all_profiles(config_t *config) {
   aliases = NULL;
 }
 
-static void ih_execute_default_run(config_t *config) {
-  printf("RUN ALERT: initiating default pipeline\n");
+static char** ih_resolve_locations(char *locations_csv, char *fallback, int *count) {
+  char **locations = NULL;
 
-  original_t *original = original_create_new_struct(config);
-  o_original(original);
-  free(original);
-  original = NULL;
+  *count = 0;
+  if(utils_string_is_empty_or_spaces(locations_csv) == false)
+    locations = utils_split_semicolon_list(locations_csv, count);
 
-  if(config->svc->keep_source == true) {
+  if(*count == 0 && utils_string_is_empty_or_spaces(fallback) == false) {
+    locations = malloc(sizeof(char*));
+    locations[0] = strdup(fallback);
+    *count = 1;
+  }
+
+  return locations;
+}
+
+static void ih_execute_original_stage_for_all_roots(config_t *config) {
+  char *original_location_before = config->svc->original_location;
+  int original_root_count = 0;
+  char **original_roots = ih_resolve_locations(config->svc->original_locations,
+                                               config->svc->original_location,
+                                               &original_root_count);
+
+  for(int i = 0; i < original_root_count; i++) {
+    config->svc->original_location = original_roots[i];
+    printf("RUN ALERT: original stage root %i/%i => %s\n", i + 1, original_root_count, original_roots[i]);
+    original_t *original = original_create_new_struct(config);
+    o_original(original);
+    free(original);
+    original = NULL;
+  }
+
+  config->svc->original_location = original_location_before;
+  utils_free_string_array(original_roots, original_root_count);
+}
+
+static void ih_execute_revert_stage_for_all_roots(config_t *config) {
+  char *original_location_before = config->svc->original_location;
+  int original_root_count = 0;
+  char **original_roots = ih_resolve_locations(config->svc->original_locations,
+                                               config->svc->original_location,
+                                               &original_root_count);
+
+  for(int i = 0; i < original_root_count; i++) {
+    config->svc->original_location = original_roots[i];
+    printf("RUN ALERT: revert stage root %i/%i => %s\n", i + 1, original_root_count, original_roots[i]);
+    original_t *original = original_create_new_struct(config);
+    o_revert_to_start(original);
+    free(original);
+    original = NULL;
+  }
+
+  config->svc->original_location = original_location_before;
+  utils_free_string_array(original_roots, original_root_count);
+}
+
+static void ih_execute_source_stage_for_all_original_roots(config_t *config) {
+  char *original_location_before = config->svc->original_location;
+  int original_root_count = 0;
+  char **original_roots = ih_resolve_locations(config->svc->original_locations,
+                                               config->svc->original_location,
+                                               &original_root_count);
+
+  for(int i = 0; i < original_root_count; i++) {
+    config->svc->original_location = original_roots[i];
+    printf("RUN ALERT: source stage root %i/%i => %s\n", i + 1, original_root_count, original_roots[i]);
     source_t *source = source_create_new_struct(config);
     s_original_to_source(source);
     free(source);
     source = NULL;
   }
+
+  config->svc->original_location = original_location_before;
+  utils_free_string_array(original_roots, original_root_count);
+}
+
+static void ih_execute_default_run(config_t *config) {
+  printf("RUN ALERT: initiating default pipeline\n");
+
+  ih_execute_original_stage_for_all_roots(config);
+
+  if(config->svc->keep_source == true)
+    ih_execute_source_stage_for_all_original_roots(config);
 
   ih_execute_all_profiles(config);
   printf("RUN ALERT: default pipeline completed successfully\n");
@@ -343,6 +443,61 @@ static bool ih_prompt_timecode(const char *prompt, const char *default_value, ch
   }
 }
 
+static int ih_suggest_max_usage_pct_for_location(const char *location) {
+  unsigned long long total_bytes = 0ULL;
+  unsigned long long free_bytes = 0ULL;
+  (void)free_bytes;
+
+  if(location == NULL)
+    return 95;
+  if(utils_get_path_space_bytes((char *)location, &total_bytes, &free_bytes) == false)
+    return 95;
+
+  if(total_bytes < (unsigned long long)(2ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL))
+    return 85;
+  if(total_bytes < (unsigned long long)(8ULL * 1024ULL * 1024ULL * 1024ULL * 1024ULL))
+    return 90;
+  return 95;
+}
+
+static bool ih_first_location_from_list(const char *locations_csv, char *output, size_t output_size) {
+  int count = 0;
+  char **locations = NULL;
+
+  if(locations_csv == NULL)
+    return false;
+
+  locations = utils_split_semicolon_list((char *)locations_csv, &count);
+  if(count == 0) {
+    utils_free_string_array(locations, count);
+    return false;
+  }
+
+  ih_copy_string(output, output_size, locations[0]);
+  utils_free_string_array(locations, count);
+  return true;
+}
+
+static void ih_build_default_cap_list(const char *locations_csv, char *output, size_t output_size) {
+  int count = 0;
+  char **locations = NULL;
+  output[0] = '\0';
+
+  if(locations_csv == NULL)
+    return;
+
+  locations = utils_split_semicolon_list((char *)locations_csv, &count);
+  for(int i = 0; i < count; i++) {
+    char cap_value[16];
+    int suggested = ih_suggest_max_usage_pct_for_location(locations[i]);
+    snprintf(cap_value, sizeof(cap_value), "%i", suggested);
+    if(i > 0)
+      strncat(output, ";", output_size - strlen(output) - 1);
+    strncat(output, cap_value, output_size - strlen(output) - 1);
+  }
+  utils_free_string_array(locations, count);
+}
+
 static void ih_sanitize_alias_name(char *alias_name, size_t alias_name_size) {
   size_t i = 0;
   size_t write_index = 0;
@@ -433,7 +588,11 @@ static bool ih_create_config_dir_if_needed(const char *config_dir) {
 
 static int ih_run_wizard(const char *config_dir) {
   char original_location[IH_INPUT_BUFFER_SIZE];
+  char original_locations[IH_INPUT_BUFFER_SIZE];
+  char original_location_max_usage_pct[IH_INPUT_BUFFER_SIZE];
   char source_location[IH_INPUT_BUFFER_SIZE];
+  char source_locations[IH_INPUT_BUFFER_SIZE];
+  char source_location_max_usage_pct[IH_INPUT_BUFFER_SIZE];
   char source_test_trim_start[IH_INPUT_BUFFER_SIZE];
   char source_test_trim_duration[IH_INPUT_BUFFER_SIZE];
   char custom_folder_name[IH_INPUT_BUFFER_SIZE];
@@ -441,6 +600,8 @@ static int ih_run_wizard(const char *config_dir) {
   char alias_name[IH_INPUT_BUFFER_SIZE];
   char alias_upper[IH_INPUT_BUFFER_SIZE];
   char alias_location[IH_INPUT_BUFFER_SIZE];
+  char alias_locations[IH_INPUT_BUFFER_SIZE];
+  char alias_location_max_usage_pct[IH_INPUT_BUFFER_SIZE];
   char alias_crit_codec[IH_INPUT_BUFFER_SIZE];
   char alias_crit_bits[IH_INPUT_BUFFER_SIZE];
   char alias_crit_color_space[IH_INPUT_BUFFER_SIZE];
@@ -451,6 +612,9 @@ static int ih_run_wizard(const char *config_dir) {
   char alias_scenario[IH_INPUT_BUFFER_SIZE];
   char alias_ffmpeg_command[IH_INPUT_BUFFER_SIZE];
   char default_alias_location[IH_INPUT_BUFFER_SIZE];
+  char default_original_caps[IH_INPUT_BUFFER_SIZE];
+  char default_source_caps[IH_INPUT_BUFFER_SIZE];
+  char default_alias_caps[IH_INPUT_BUFFER_SIZE];
   char *config_path = NULL;
   FILE *config_file = NULL;
   bool keep_source = true;
@@ -461,8 +625,24 @@ static int ih_run_wizard(const char *config_dir) {
 
   if(!ih_prompt_line("Original location", "/Volumes/Media/original", original_location, sizeof(original_location), true))
     return EXIT_FAILURE;
+  if(!ih_prompt_line("Original locations (semicolon list)", original_location, original_locations, sizeof(original_locations), true))
+    return EXIT_FAILURE;
+  ih_build_default_cap_list(original_locations, original_location_max_usage_pct, sizeof(original_location_max_usage_pct));
+  ih_copy_string(default_original_caps, sizeof(default_original_caps), original_location_max_usage_pct);
+  if(!ih_prompt_line("Original max usage pct list (semicolon, 1-100)", default_original_caps, original_location_max_usage_pct, sizeof(original_location_max_usage_pct), true))
+    return EXIT_FAILURE;
+  if(!ih_first_location_from_list(original_locations, original_location, sizeof(original_location)))
+    return EXIT_FAILURE;
 
   if(!ih_prompt_line("Source location", "/Volumes/Media/source", source_location, sizeof(source_location), true))
+    return EXIT_FAILURE;
+  if(!ih_prompt_line("Source locations (semicolon list)", source_location, source_locations, sizeof(source_locations), true))
+    return EXIT_FAILURE;
+  ih_build_default_cap_list(source_locations, source_location_max_usage_pct, sizeof(source_location_max_usage_pct));
+  ih_copy_string(default_source_caps, sizeof(default_source_caps), source_location_max_usage_pct);
+  if(!ih_prompt_line("Source max usage pct list (semicolon, 1-100)", default_source_caps, source_location_max_usage_pct, sizeof(source_location_max_usage_pct), true))
+    return EXIT_FAILURE;
+  if(!ih_first_location_from_list(source_locations, source_location, sizeof(source_location)))
     return EXIT_FAILURE;
 
   if(!ih_prompt_bool("Keep source outputs?", true, &keep_source))
@@ -499,6 +679,14 @@ static int ih_run_wizard(const char *config_dir) {
 
   snprintf(default_alias_location, sizeof(default_alias_location), "%s/%s", source_location, alias_name);
   if(!ih_prompt_line("Profile output location", default_alias_location, alias_location, sizeof(alias_location), true))
+    return EXIT_FAILURE;
+  if(!ih_prompt_line("Profile output locations (semicolon list)", alias_location, alias_locations, sizeof(alias_locations), true))
+    return EXIT_FAILURE;
+  ih_build_default_cap_list(alias_locations, alias_location_max_usage_pct, sizeof(alias_location_max_usage_pct));
+  ih_copy_string(default_alias_caps, sizeof(default_alias_caps), alias_location_max_usage_pct);
+  if(!ih_prompt_line("Profile max usage pct list (semicolon, 1-100)", default_alias_caps, alias_location_max_usage_pct, sizeof(alias_location_max_usage_pct), true))
+    return EXIT_FAILURE;
+  if(!ih_first_location_from_list(alias_locations, alias_location, sizeof(alias_location)))
     return EXIT_FAILURE;
 
   if(!ih_prompt_line("Profile criteria codec", "h264", alias_crit_codec, sizeof(alias_crit_codec), true))
@@ -547,7 +735,11 @@ static int ih_run_wizard(const char *config_dir) {
 
   fprintf(config_file, "/* vfo config generated by `vfo wizard` */\n\n");
   fprintf(config_file, "ORIGINAL_LOCATION=\"%s\"\n", original_location);
+  fprintf(config_file, "ORIGINAL_LOCATIONS=\"%s\"\n", original_locations);
+  fprintf(config_file, "ORIGINAL_LOCATION_MAX_USAGE_PCT=\"%s\"\n", original_location_max_usage_pct);
   fprintf(config_file, "SOURCE_LOCATION=\"%s\"\n", source_location);
+  fprintf(config_file, "SOURCE_LOCATIONS=\"%s\"\n", source_locations);
+  fprintf(config_file, "SOURCE_LOCATION_MAX_USAGE_PCT=\"%s\"\n", source_location_max_usage_pct);
   fprintf(config_file, "KEEP_SOURCE=\"%s\"\n\n", keep_source ? "true" : "false");
   fprintf(config_file, "SOURCE_TEST_ACTIVE=\"%s\"\n", source_test_active ? "true" : "false");
   fprintf(config_file, "SOURCE_TEST_TRIM_START=\"%s\"\n", source_test_trim_start);
@@ -555,6 +747,8 @@ static int ih_run_wizard(const char *config_dir) {
   fprintf(config_file, "CUSTOM_FOLDER=\"%s,%s\"\n\n", custom_folder_name, custom_folder_type);
   fprintf(config_file, "ALIAS=\"%s\"\n", alias_name);
   fprintf(config_file, "%s_LOCATION=\"%s\"\n", alias_upper, alias_location);
+  fprintf(config_file, "%s_LOCATIONS=\"%s\"\n", alias_upper, alias_locations);
+  fprintf(config_file, "%s_LOCATION_MAX_USAGE_PCT=\"%s\"\n", alias_upper, alias_location_max_usage_pct);
   fprintf(config_file, "%s_CRITERIA_CODEC_NAME=\"%s\"\n", alias_upper, alias_crit_codec);
   fprintf(config_file, "%s_CRITERIA_BITS=\"%s\"\n", alias_upper, alias_crit_bits);
   fprintf(config_file, "%s_CRITERIA_COLOR_SPACE=\"%s\"\n", alias_upper, alias_crit_color_space);
@@ -585,7 +779,13 @@ static void ih_show_config(config_t *config, const char *config_dir) {
 
   printf("\n[global]\n");
   printf("ORIGINAL_LOCATION=%s\n", config->svc->original_location);
+  printf("ORIGINAL_LOCATIONS=%s\n", config->svc->original_locations);
+  if(utils_string_is_empty_or_spaces(config->svc->original_location_max_usage_pct) == false)
+    printf("ORIGINAL_LOCATION_MAX_USAGE_PCT=%s\n", config->svc->original_location_max_usage_pct);
   printf("SOURCE_LOCATION=%s\n", config->svc->source_location);
+  printf("SOURCE_LOCATIONS=%s\n", config->svc->source_locations);
+  if(utils_string_is_empty_or_spaces(config->svc->source_location_max_usage_pct) == false)
+    printf("SOURCE_LOCATION_MAX_USAGE_PCT=%s\n", config->svc->source_location_max_usage_pct);
   printf("KEEP_SOURCE=%s\n", config->svc->keep_source ? "true" : "false");
   printf("SOURCE_TEST_ACTIVE=%s\n", config->svc->source_test ? "true" : "false");
   if(config->svc->source_test) {
@@ -616,6 +816,9 @@ static void ih_show_config(config_t *config, const char *config_dir) {
     int scenario_count = ih_cs_count(profile->cs_head);
     printf("\nprofile=%s\n", profile->alias_name);
     printf("  location=%s\n", profile->alias_location);
+    printf("  locations=%s\n", profile->alias_locations);
+    if(utils_string_is_empty_or_spaces(profile->alias_location_max_usage_pct) == false)
+      printf("  location_max_usage_pct=%s\n", profile->alias_location_max_usage_pct);
     printf("  criteria codec=%s bits=%s color_space=%s min=%sx%s max=%sx%s\n",
            profile->alias_crit_codec,
            profile->alias_crit_bits,
@@ -746,22 +949,12 @@ int main (int argc, char **argv) {
   //does argv contain the words 'original' AND 'revert'
   if(ih->arguments->original_detected == true && ih->arguments->revert_detected == true) {
     printf("DEV: ih logic check = 1\n");
-    //create a original object and point to relevant data in config
-    original_t *original = original_create_new_struct(config);
-    //execute revert_original_to_start();
-    o_revert_to_start(original);
-    free(original);
-    original = NULL;
+    ih_execute_revert_stage_for_all_roots(config);
   }
   //does argv contain the word 'original' WITHOUT 'revert'
   else if(ih->arguments->original_detected == true && ih->arguments->revert_detected == false){
     printf("DEV: ih logic check = 2\n");
-    //create a original object and point to relevant data in config
-    original_t *original = original_create_new_struct(config);
-    //execute execute_original();
-    o_original(original);
-    free(original);
-    original = NULL;
+    ih_execute_original_stage_for_all_roots(config);
   }
   //does argv contain the word 'source' AND 'wipe'
   if(ih->arguments->source_detected == true && ih->arguments->wipe_detected == true) {
@@ -809,12 +1002,7 @@ int main (int argc, char **argv) {
   //does argv contain the word 'source' WITHOUT 'wipe'
   if(ih->arguments->source_detected == true && ih->arguments->wipe_detected == false && config->svc->keep_source == true) {
     printf("DEV: ih logic check = 7\n");
-    //create a source object and point it to relevant data in config
-    source_t *source = source_create_new_struct(config);
-    //execute encode_original_to_source_();
-    s_original_to_source(source);
-    free(source);
-    source = NULL;
+    ih_execute_source_stage_for_all_original_roots(config);
   }
   //does argv contain the word 'all_aliases' WITHOUT 'wipe' AND 'config.keep_source_bool == FALSE 
   if(ih->arguments->all_aliases_detected == true && ih->arguments->wipe_detected == false && config->svc->keep_source == false) {
@@ -851,18 +1039,8 @@ int main (int argc, char **argv) {
   //does argv contain the word 'do_it_all' WITHOUT 'wipe' AND 'config.keep_source_bool == TRUE
   if(ih->arguments->do_it_all_detected == true && ih->arguments->wipe_detected == false && config->svc->keep_source == true) {
     printf("DEV: ih logic check = 10\n");
-    //create a original object and point it to relevant data in config
-    original_t *original = original_create_new_struct(config);
-    //execute execute_original();
-    o_original(original);
-    free(original);
-    original = NULL;
-    //create a source object and point it to relevant data in config
-    source_t *source = source_create_new_struct(config);
-    //execute encode_original_to_source_();
-    s_original_to_source(source);
-    free(source);
-    source = NULL;
+    ih_execute_original_stage_for_all_roots(config);
+    ih_execute_source_stage_for_all_original_roots(config);
 
     aliases_t *aliases = NULL;
     for(int i = 0; i < uw_get_count(config->uw_head); i++) {
@@ -877,12 +1055,7 @@ int main (int argc, char **argv) {
   //does argv contain the word 'do_it_all' WITHOUT 'wipe' AND 'config.keep_source_bool == FALSE 
   else if(ih->arguments->do_it_all_detected == true && ih->arguments->wipe_detected == false && config->svc->keep_source == false) {
     printf("DEV: ih logic check = 11\n");
-    //create a original object and point it to relevant data in config
-    original_t *original = original_create_new_struct(config);
-    //execute execute_original();
-    o_original(original);
-    free(original);
-    original = NULL;
+    ih_execute_original_stage_for_all_roots(config);
    
     aliases_t *aliases = NULL;
     for(int i = 0; i < uw_get_count(config->uw_head); i++) {

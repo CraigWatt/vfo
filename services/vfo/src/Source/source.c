@@ -24,6 +24,91 @@
 
 #include "s_internal.h"
 
+static unsigned long long s_estimate_output_size_bytes(char *from_folder) {
+  unsigned long long input_size = utils_fetch_single_file_size_bytes(from_folder);
+  if(input_size == 0ULL)
+    return 2ULL * 1024ULL * 1024ULL * 1024ULL;
+  return input_size + (input_size / 20ULL);
+}
+
+static char* s_unable_to_process_for_index(source_t *source, int index) {
+  return utils_location_pool_map_path(source->location_pool, index, source->unable_to_process, source->root);
+}
+
+static bool s_destination_exists_anywhere(source_t *source, char *template_destination) {
+  return utils_location_pool_find_existing_path(source->location_pool,
+                                                template_destination,
+                                                source->content,
+                                                NULL);
+}
+
+static bool s_encode_candidate_with_retry(source_t *source,
+                                          char *from_folder,
+                                          char *to_template_folder,
+                                          char *to_tv_level_1_template,
+                                          char *to_tv_level_2_template) {
+  bool *excluded_indexes = calloc((size_t)source->location_pool->count, sizeof(bool));
+  unsigned long long estimated_output_bytes = s_estimate_output_size_bytes(from_folder);
+
+  for(int attempt = 0; attempt < source->location_pool->count; attempt++) {
+    int selected_index = utils_location_pool_select_root_index(source->location_pool,
+                                                               to_template_folder,
+                                                               source->content,
+                                                               estimated_output_bytes,
+                                                               true,
+                                                               excluded_indexes);
+    char *to_folder = NULL;
+    char *to_tv_level_1 = NULL;
+    char *to_tv_level_2 = NULL;
+    char *unable_to_process = NULL;
+
+    if(selected_index < 0)
+      break;
+
+    to_folder = utils_location_pool_map_path(source->location_pool, selected_index, to_template_folder, source->content);
+    unable_to_process = s_unable_to_process_for_index(source, selected_index);
+
+    if(to_tv_level_1_template != NULL)
+      to_tv_level_1 = utils_location_pool_map_path(source->location_pool, selected_index, to_tv_level_1_template, source->content);
+    if(to_tv_level_2_template != NULL)
+      to_tv_level_2 = utils_location_pool_map_path(source->location_pool, selected_index, to_tv_level_2_template, source->content);
+
+    if(to_tv_level_1 != NULL && !utils_does_folder_exist(to_tv_level_1))
+      utils_create_folder(to_tv_level_1);
+    if(to_tv_level_2 != NULL && !utils_does_folder_exist(to_tv_level_2))
+      utils_create_folder(to_tv_level_2);
+    if(!utils_does_folder_exist(to_folder))
+      utils_create_folder(to_folder);
+
+    if(s_execute_ffmpeg_command(from_folder, to_folder, source->source_test, source->source_test_start, source->source_test_duration) == true) {
+      printf("SOURCE ALERT: ffmpeg command executed successfully.\n");
+      free(excluded_indexes);
+      free(to_tv_level_1);
+      free(to_tv_level_2);
+      free(to_folder);
+      free(unable_to_process);
+      return true;
+    }
+
+    printf("SOURCE WARNING: ffmpeg command failed for destination %s\n", to_folder);
+    if(unable_to_process != NULL)
+      utils_create_error_encoding_file(unable_to_process, from_folder);
+    if(utils_does_folder_exist(to_folder) && utils_is_folder_empty(to_folder) == false)
+      utils_danger_delete_contents_of_folder(to_folder);
+    if(utils_does_folder_exist(to_folder))
+      utils_delete_folder_if_it_is_empty(to_folder);
+
+    excluded_indexes[selected_index] = true;
+    free(to_tv_level_1);
+    free(to_tv_level_2);
+    free(to_folder);
+    free(unable_to_process);
+  }
+
+  free(excluded_indexes);
+  return false;
+}
+
 void s_original_to_source(source_t *source) {
   printf("SOURCE ALERT: initiating 'source'\n");
   /* pre-encode checks */
@@ -56,17 +141,12 @@ void s_wipe_source(source_t *source) {
 
 void s_pre_encode_checks(source_t *source) {
   printf("SOURCE ALERT: initiating 'pre-encode checks'\n");
-  //does source/content folder contain valid custom folders
-  utils_does_folder_contain_valid_custom_folders(source->content, source->cf_head);
-  //is source/content folder missing any custom folders
-  utils_is_folder_missing_custom_folders(source->content, source->cf_head);
-  /*in future I would like to be able to SAY what folders are missing*/
-  /*now we know all necessary folders contain necessary custom_folders*/
-
-  /*but let's check to see if each custom_folder is adhering to their custom_folder_type*/
-  //are the source/content folder custom_folders adhering to their types?
-  //(using mp4_original flag as source also only uses mp4 format.)
-  utils_are_custom_folders_type_compliant(source->content, "mp4_original", source->cf_head);
+  for(int i = 0; i < source->source_locations_count; i++) {
+    char *content_root = source->content_locations[i];
+    utils_does_folder_contain_valid_custom_folders(content_root, source->cf_head);
+    utils_is_folder_missing_custom_folders(content_root, source->cf_head);
+    utils_are_custom_folders_type_compliant(content_root, "mp4_original", source->cf_head);
+  }
     
   // maybe necessary but not sure?
   // are_custom_folders_files_source_compliant();
@@ -78,56 +158,54 @@ void s_pre_encode_checks(source_t *source) {
 }
 
 void s_danger_wipe_all_in_source_content(source_t *source) {
-  active_cf_node_t *active_cf = utils_generate_from_to_ll(source->cf_head, source->content, source->content);
-  if(active_cf != NULL) {
-    while(active_cf != NULL) {
-      active_films_f_node_t *tmp_f = active_cf->active_films_f_head;
-      if(tmp_f != NULL) {
-        while(tmp_f != NULL) {
-          //if from_folder doesn't exist, 
-          if(utils_does_folder_exist(tmp_f->from_films_f_folder)) {
-            //delete contents of folder
-            utils_danger_delete_contents_of_folder(tmp_f->from_films_f_folder);
-            //delete folder
-            utils_delete_folder_if_it_is_empty(tmp_f->from_films_f_folder);
-          }
-          tmp_f = tmp_f->next;
-        }
-      }
-      active_tv_f_node_t *tmp_tv1 = active_cf->active_tv_f_head;
-      if(tmp_tv1!= NULL) {
-        while(tmp_tv1 != NULL) {
-          active_tv_f_node_t *tmp_tv2 = tmp_tv1->active_tv_f_head;
-          if(tmp_tv2 != NULL) {
-            while(tmp_tv2 != NULL) {
-              active_tv_f_node_t *tmp_tv3 = tmp_tv2->active_tv_f_head;
-              if(tmp_tv3 != NULL) {
-                while(tmp_tv3 != NULL) {
-                  //if from_folder does exist
-                  if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder)) {
-                    //delete contents of folder
-                    utils_danger_delete_contents_of_folder(tmp_tv3->from_tv_f_folder);
-                    //delete folder
-                    utils_delete_folder_if_it_is_empty(tmp_tv3->from_tv_f_folder);
-                  }
-                  tmp_tv3 = tmp_tv3->next;
-                }
-              }
-              if(utils_does_folder_exist(tmp_tv2->from_tv_f_folder))
-                utils_delete_folder_if_it_is_empty(tmp_tv2->from_tv_f_folder);
-              tmp_tv2 = tmp_tv2->next;
+  for(int i = 0; i < source->source_locations_count; i++) {
+    active_cf_node_t *active_cf = utils_generate_from_to_ll(source->cf_head,
+                                                            source->content_locations[i],
+                                                            source->content_locations[i]);
+    if(active_cf != NULL) {
+      while(active_cf != NULL) {
+        active_films_f_node_t *tmp_f = active_cf->active_films_f_head;
+        if(tmp_f != NULL) {
+          while(tmp_f != NULL) {
+            if(utils_does_folder_exist(tmp_f->from_films_f_folder)) {
+              utils_danger_delete_contents_of_folder(tmp_f->from_films_f_folder);
+              utils_delete_folder_if_it_is_empty(tmp_f->from_films_f_folder);
             }
+            tmp_f = tmp_f->next;
           }
-          if(utils_does_folder_exist(tmp_tv1->from_tv_f_folder))
-            utils_delete_folder_if_it_is_empty(tmp_tv1->from_tv_f_folder);
-          tmp_tv1 = tmp_tv1->next;
         }
+        active_tv_f_node_t *tmp_tv1 = active_cf->active_tv_f_head;
+        if(tmp_tv1!= NULL) {
+          while(tmp_tv1 != NULL) {
+            active_tv_f_node_t *tmp_tv2 = tmp_tv1->active_tv_f_head;
+            if(tmp_tv2 != NULL) {
+              while(tmp_tv2 != NULL) {
+                active_tv_f_node_t *tmp_tv3 = tmp_tv2->active_tv_f_head;
+                if(tmp_tv3 != NULL) {
+                  while(tmp_tv3 != NULL) {
+                    if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder)) {
+                      utils_danger_delete_contents_of_folder(tmp_tv3->from_tv_f_folder);
+                      utils_delete_folder_if_it_is_empty(tmp_tv3->from_tv_f_folder);
+                    }
+                    tmp_tv3 = tmp_tv3->next;
+                  }
+                }
+                if(utils_does_folder_exist(tmp_tv2->from_tv_f_folder))
+                  utils_delete_folder_if_it_is_empty(tmp_tv2->from_tv_f_folder);
+                tmp_tv2 = tmp_tv2->next;
+              }
+            }
+            if(utils_does_folder_exist(tmp_tv1->from_tv_f_folder))
+              utils_delete_folder_if_it_is_empty(tmp_tv1->from_tv_f_folder);
+            tmp_tv1 = tmp_tv1->next;
+          }
+        }
+        active_cf = active_cf->next;
       }
-      active_cf = active_cf->next;
     }
+    free(active_cf);
+    active_cf = NULL;
   }
-  free(active_cf);
-  active_cf = NULL;
 }
 
 void s_encode_original_to_source(source_t *source) {
@@ -160,27 +238,15 @@ void s_encode_shared_code(active_cf_node_t *active_cf, source_t *source) {
       active_films_f_node_t *tmp_f = active_cf->active_films_f_head;
       if(tmp_f != NULL) {
         while(tmp_f != NULL) {
-          //if to_folder doesn't exist, 
-          if(!utils_does_folder_exist(tmp_f->to_films_f_folder)) {
-            //create the folder
-            utils_create_folder(tmp_f->to_films_f_folder);
-
-            if(s_execute_ffmpeg_command(tmp_f->from_films_f_folder, tmp_f->to_films_f_folder, source->source_test, source->source_test_start, source->source_test_duration) == true) {
-              //command executed successfully
-              printf("SOURCE ALERT: ffmpeg command executed successfully.\n");
-            }
-            else {
-              //command unsuccessful - need to generate a error txt file in source->unable_to_process
-              printf("SOURCE WARNING: ffmpeg command FAILED.  Printing error message to source/unable_to_process\n");
-              printf("DEV: attempting to create error txt file in unable to process.\n");
+          bool destination_exists = s_destination_exists_anywhere(source, tmp_f->to_films_f_folder);
+          if(!destination_exists) {
+            if(s_encode_candidate_with_retry(source,
+                                             tmp_f->from_films_f_folder,
+                                             tmp_f->to_films_f_folder,
+                                             NULL,
+                                             NULL) == false) {
+              printf("SOURCE WARNING: all destination locations were exhausted for %s\n", tmp_f->from_films_f_folder);
               utils_create_error_encoding_file(source->unable_to_process, tmp_f->from_films_f_folder);
-              //attempt to remove failed encode scrap.
-              if(utils_is_folder_empty(tmp_f->to_films_f_folder) == false) {
-                utils_danger_delete_contents_of_folder(tmp_f->to_films_f_folder);
-                utils_delete_folder_if_it_is_empty(tmp_f->to_films_f_folder);
-              } 
-              else
-                utils_delete_folder_if_it_is_empty(tmp_f->to_films_f_folder);
             }
           }
           tmp_f = tmp_f->next;
@@ -195,31 +261,15 @@ void s_encode_shared_code(active_cf_node_t *active_cf, source_t *source) {
               active_tv_f_node_t *tmp_tv3 = tmp_tv2->active_tv_f_head;
               if(tmp_tv3 != NULL) {
                 while(tmp_tv3 != NULL) {
-                  //if to_folder doesn't exist
-                  if(!utils_does_folder_exist(tmp_tv3->to_tv_f_folder)) {
-                    //create folder
-                    if(!utils_does_folder_exist(tmp_tv1->to_tv_f_folder))
-                      utils_create_folder(tmp_tv1->to_tv_f_folder);
-                    if(!utils_does_folder_exist(tmp_tv2->to_tv_f_folder))
-                      utils_create_folder(tmp_tv2->to_tv_f_folder);
-                    utils_create_folder(tmp_tv3->to_tv_f_folder);
-                    //encode the video file
-                    if(s_execute_ffmpeg_command(tmp_tv3->from_tv_f_folder, tmp_tv3->to_tv_f_folder, source->source_test, source->source_test_start, source->source_test_duration) == true) {
-                      //command executed successfully
-                      printf("SOURCE ALERT: ffmpeg command executed successfully.\n");
-                    }
-                    else {
-                      //command unsuccessful - need to generate a error txt file in source->unable_to_process
-                      printf("SOURCE WARNING: ffmpeg command FAILED.  Printing error message to source/unable_to_process\n");
-                      printf("DEV: attempting to create error txt file in unable to process.\n");
+                  bool destination_exists = s_destination_exists_anywhere(source, tmp_tv3->to_tv_f_folder);
+                  if(!destination_exists) {
+                    if(s_encode_candidate_with_retry(source,
+                                                     tmp_tv3->from_tv_f_folder,
+                                                     tmp_tv3->to_tv_f_folder,
+                                                     tmp_tv1->to_tv_f_folder,
+                                                     tmp_tv2->to_tv_f_folder) == false) {
+                      printf("SOURCE WARNING: all destination locations were exhausted for %s\n", tmp_tv3->from_tv_f_folder);
                       utils_create_error_encoding_file(source->unable_to_process, tmp_tv3->from_tv_f_folder);
-                      //attempt to remove failed encode scrap.
-                      if(utils_is_folder_empty(tmp_tv3->to_tv_f_folder) == false) {
-                        utils_danger_delete_contents_of_folder(tmp_tv3->to_tv_f_folder);
-                        utils_delete_folder_if_it_is_empty(tmp_tv3->to_tv_f_folder);
-                      } 
-                      else
-                        utils_delete_folder_if_it_is_empty(tmp_tv3->to_tv_f_folder);
                     }
                   }
                   tmp_tv3 = tmp_tv3->next;
@@ -330,9 +380,11 @@ void s_highlight_encode_candidates_from_mkv_original(source_t *source) {
       if(tmp_f != NULL) {
         while(tmp_f != NULL) {
           //if to_folder does exist AND if from_folder does exist
-          if(utils_does_folder_exist(tmp_f->from_films_f_folder) && utils_does_folder_exist(tmp_f->to_films_f_folder))
+          if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
+             s_destination_exists_anywhere(source, tmp_f->to_films_f_folder))
             already_present_in_source_counter++;
-          else if(utils_does_folder_exist(tmp_f->from_films_f_folder) && !(utils_does_folder_exist(tmp_f->to_films_f_folder)))
+          else if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
+                  !(s_destination_exists_anywhere(source, tmp_f->to_films_f_folder)))
             mkv_encode_candidates_counter++;
           tmp_f = tmp_f->next;
         }
@@ -347,9 +399,11 @@ void s_highlight_encode_candidates_from_mkv_original(source_t *source) {
               if(tmp_tv3 != NULL) {
                 while(tmp_tv3 != NULL) {
                   //if to_folder doesn't exist AND from_folder contains valid file
-                  if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) && utils_does_folder_exist(tmp_tv3->to_tv_f_folder))
+                  if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
+                     s_destination_exists_anywhere(source, tmp_tv3->to_tv_f_folder))
                     already_present_in_source_counter++;
-                  else if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) && !(utils_does_folder_exist(tmp_tv3->to_tv_f_folder)))
+                  else if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
+                          !(s_destination_exists_anywhere(source, tmp_tv3->to_tv_f_folder)))
                     mkv_encode_candidates_counter++;
                   tmp_tv3 = tmp_tv3->next;
                 }
@@ -379,9 +433,11 @@ void s_highlight_encode_candidates_from_mp4_original(source_t *source) {
       if(tmp_f != NULL) {
         while(tmp_f != NULL) {
           //if to_folder does exist AND if from_folder does exist
-          if(utils_does_folder_exist(tmp_f->from_films_f_folder) && utils_does_folder_exist(tmp_f->to_films_f_folder))
+          if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
+             s_destination_exists_anywhere(source, tmp_f->to_films_f_folder))
             already_present_in_source_counter++;
-          else if(utils_does_folder_exist(tmp_f->from_films_f_folder) && !(utils_does_folder_exist(tmp_f->to_films_f_folder)))
+          else if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
+                  !(s_destination_exists_anywhere(source, tmp_f->to_films_f_folder)))
             mp4_encode_candidates_counter++;
           tmp_f = tmp_f->next;
         }
@@ -396,9 +452,11 @@ void s_highlight_encode_candidates_from_mp4_original(source_t *source) {
               if(tmp_tv3 != NULL) {
                 while(tmp_tv3 != NULL) {
                   //if to_folder doesn't exist AND from_folder contains valid file
-                  if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) && utils_does_folder_exist(tmp_tv3->to_tv_f_folder))
+                  if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
+                     s_destination_exists_anywhere(source, tmp_tv3->to_tv_f_folder))
                     already_present_in_source_counter++;
-                  else if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) && !(utils_does_folder_exist(tmp_tv3->to_tv_f_folder)))
+                  else if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
+                          !(s_destination_exists_anywhere(source, tmp_tv3->to_tv_f_folder)))
                     mp4_encode_candidates_counter++;
                   tmp_tv3 = tmp_tv3->next;
                 }
@@ -428,9 +486,11 @@ void s_highlight_encode_candidates_from_m2ts_original(source_t *source) {
       if(tmp_f != NULL) {
         while(tmp_f != NULL) {
           //if to_folder does exist AND if from_folder does exist
-          if(utils_does_folder_exist(tmp_f->from_films_f_folder) && utils_does_folder_exist(tmp_f->to_films_f_folder))
+          if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
+             s_destination_exists_anywhere(source, tmp_f->to_films_f_folder))
             already_present_in_source_counter++;
-          else if(utils_does_folder_exist(tmp_f->from_films_f_folder) && !(utils_does_folder_exist(tmp_f->to_films_f_folder)))
+          else if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
+                  !(s_destination_exists_anywhere(source, tmp_f->to_films_f_folder)))
             m2ts_encode_candidates_counter++;
           tmp_f = tmp_f->next;
         }
@@ -445,9 +505,11 @@ void s_highlight_encode_candidates_from_m2ts_original(source_t *source) {
               if(tmp_tv3 != NULL) {
                 while(tmp_tv3 != NULL) {
                   //if to_folder doesn't exist AND from_folder contains valid file
-                  if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) && utils_does_folder_exist(tmp_tv3->to_tv_f_folder))
+                  if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
+                     s_destination_exists_anywhere(source, tmp_tv3->to_tv_f_folder))
                     already_present_in_source_counter++;
-                  else if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) && !(utils_does_folder_exist(tmp_tv3->to_tv_f_folder)))
+                  else if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
+                          !(s_destination_exists_anywhere(source, tmp_tv3->to_tv_f_folder)))
                     m2ts_encode_candidates_counter++;
                   tmp_tv3 = tmp_tv3->next;
                 }

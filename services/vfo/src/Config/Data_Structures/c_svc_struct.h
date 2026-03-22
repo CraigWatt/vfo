@@ -31,7 +31,11 @@
 
 struct sole_var_content {
   char* original_location;
+  char* original_locations;
+  char* original_location_max_usage_pct;
   char* source_location;
+  char* source_locations;
+  char* source_location_max_usage_pct;
   char* source_as_location;
   bool keep_source;
   bool keep_source_as;

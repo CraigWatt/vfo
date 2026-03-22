@@ -29,14 +29,26 @@ aliases_t* alias_create_new_struct(config_t *config, ca_node_t *ca_node) {
   aliases_t *result = malloc(sizeof(aliases_t));
   //point to relevant param config variables
 
-  //NEED TO VERIFY
-  result->root = a_verify_alias_location(ca_node->alias_location);
-  //NOW VERIFIED 
+  result->locations = ca_node->alias_locations;
+  result->location_max_usage_pct = ca_node->alias_location_max_usage_pct;
+  result->alias_location_pool = utils_location_pool_create(ca_node->alias_location,
+                                                          ca_node->alias_locations,
+                                                          ca_node->alias_location_max_usage_pct,
+                                                          95,
+                                                          40ULL * 1024ULL * 1024ULL * 1024ULL);
+  result->alias_locations_count = result->alias_location_pool->count;
+  result->content_locations = malloc(sizeof(char*) * (size_t)result->alias_locations_count);
+  result->unable_to_process_locations = malloc(sizeof(char*) * (size_t)result->alias_locations_count);
 
-  //VERIFIED
-  result->content = a_create_content(result->root);  
-  //VERIFIED
-  result->unable_to_process = a_create_unable_to_process(result->root);
+  for(int i = 0; i < result->alias_locations_count; i++) {
+    char *verified_location = a_verify_alias_location(result->alias_location_pool->roots[i]);
+    result->content_locations[i] = a_create_content(verified_location);
+    result->unable_to_process_locations[i] = a_create_unable_to_process(verified_location);
+  }
+
+  result->root = result->alias_location_pool->roots[0];
+  result->content = result->content_locations[0];
+  result->unable_to_process = result->unable_to_process_locations[0];
 
   //ALREADY VERIFIED (by config)
   result->keep_source = config->svc->keep_source;
@@ -48,10 +60,17 @@ aliases_t* alias_create_new_struct(config_t *config, ca_node_t *ca_node) {
   //VERIFIED
   result->original_mp4_original = a_get_mp4_original_if_it_exists(result->original_root);
 
-  //ALREADY VERIFIED (by config)
-  result->source_root = config->svc->source_location;
-  //VERIFIED
-  result->source_content = a_create_source_content(config->svc->source_location);
+  result->source_location_pool = utils_location_pool_create(config->svc->source_location,
+                                                            config->svc->source_locations,
+                                                            config->svc->source_location_max_usage_pct,
+                                                            95,
+                                                            40ULL * 1024ULL * 1024ULL * 1024ULL);
+  result->source_locations_count = result->source_location_pool->count;
+  result->source_content_locations = malloc(sizeof(char*) * (size_t)result->source_locations_count);
+  for(int i = 0; i < result->source_locations_count; i++)
+    result->source_content_locations[i] = a_create_source_content(result->source_location_pool->roots[i]);
+  result->source_root = result->source_location_pool->roots[0];
+  result->source_content = result->source_content_locations[0];
 
   //ALREADY VERIFIED (by config)
   result->cf_head = config->cf_head;

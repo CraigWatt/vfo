@@ -46,6 +46,8 @@
 struct ca_node {
   char *alias_name;
   char *alias_location;
+  char *alias_locations;
+  char *alias_location_max_usage_pct;
   char *alias_crit_codec;
   char *alias_crit_bits;
   char *alias_crit_color_space;
@@ -80,6 +82,8 @@ typedef struct ca_node ca_node_t;
 ca_node_t* ca_create_new_empty_node();
 ca_node_t *ca_create_new_node(char *alias_name,
                               char *alias_location,
+                              char *alias_locations,
+                              char *alias_location_max_usage_pct,
                               char *alias_crit_codec,
                               char *alias_crit_bits,
                               char *alias_crit_color_space,

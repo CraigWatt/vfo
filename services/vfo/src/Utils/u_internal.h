@@ -32,6 +32,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <unistd.h>
 #include <ctype.h>
 #include <inttypes.h>
