@@ -111,17 +111,17 @@ Rules:
 
 These exist today and are allowed until explicitly migrated:
 
-- `services/vfo/src/Alias/`
+- `services/vfo/src/Profile/`
 - `services/vfo/src/Config/`
 - `services/vfo/src/InputHandler/`
-- `services/vfo/src/Original/`
+- `services/vfo/src/Mezzanine/`
 - `services/vfo/src/Source/`
 - `services/vfo/src/Source_AS/`
 - `services/vfo/src/Utils/`
-- `services/vfo/test/AliasTests/`
+- `services/vfo/test/ProfileTests/`
 - `services/vfo/test/ConfigTests/`
 - `services/vfo/test/InputHandlerTests/`
-- `services/vfo/test/OriginalTests/`
+- `services/vfo/test/MezzanineTests/`
 - `services/vfo/test/SourceTests/`
 - `services/vfo/test/UtilsTests/`
 - existing workflow filenames `on-*.yml` under `.github/workflows/`

@@ -22,11 +22,14 @@
  * THE SOFTWARE.
  */
 
-#include "a_internal.h"
+#ifndef P_TESTS_H
+#define P_TESTS_H
 
-/*
- * Profile initiating message
- */
- void a_mes_init_alias() {
-    fprintf(stdout, "profile initiating...\n");
-}
+#include "../t_internal.h"
+
+#include "../../src/profile.h"
+#include "../../src/Profile/p_internal.h"
+
+void test_a_source_to_aliases(void **state);
+
+#endif // P_TESTS_H

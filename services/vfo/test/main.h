@@ -31,8 +31,8 @@
 #include "InputHandlerTests/ih_tests.h"
 #include "UtilsTests/u_tests.h"
 #include "ConfigTests/c_tests.h"
-#include "OriginalTests/o_tests.h"
+#include "MezzanineTests/m_tests.h"
 #include "SourceTests/s_tests.h"
-#include "AliasTests/a_tests.h"
+#include "ProfileTests/p_tests.h"
 
 #endif // MAIN_H

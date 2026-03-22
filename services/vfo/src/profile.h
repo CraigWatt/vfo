@@ -22,13 +22,15 @@
  * THE SOFTWARE.
  */
 
-#include "o_tests.h"
-#include "cmocka.h"
+#ifndef PROFILE_H
+#define PROFILE_H
 
-void test_o_original_null_ptr(void **state) {
-  original_t *test_original = NULL;
-  // o_original(test_original);
-  // add a comment and a second bit a third bit fourth fifth
-  int duck = 1;
-  assert_int_equal(duck, 1);
-}
+#include "Config/Data_Structures/c_cf_ll_struct.h"
+#include "Mezzanine/Data_Structures/m_mezzanine_struct.h"
+#include "Source/Data_Structures/s_source_struct.h"
+#include "Profile/Data_Structures/p_profiles_struct.h"
+
+void a_source_to_aliases(aliases_t *aliases);
+void a_original_to_aliases(aliases_t *aliases);
+void a_wipe_aliases(aliases_t *aliases);
+#endif // PROFILE_H

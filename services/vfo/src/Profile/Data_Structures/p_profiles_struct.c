@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-#include "a_aliases_struct.h"
+#include "p_profiles_struct.h"
 #include <stdlib.h>
 
 aliases_t* alias_create_new_struct(config_t *config, ca_node_t *ca_node) {

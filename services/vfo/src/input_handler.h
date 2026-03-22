@@ -26,9 +26,9 @@
 #define INPUT_HANDLER_H
 
 #include "config.h"
-#include "original.h"
+#include "mezzanine.h"
 #include "source.h"
-#include "alias.h"
+#include "profile.h"
 
 /* ---------- main function ---------- */
 /*

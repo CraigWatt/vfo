@@ -22,13 +22,11 @@
  * THE SOFTWARE.
  */
 
-#ifndef ORIGINAL_H
-#define ORIGINAL_H
+#include "p_tests.h"
 
-#include "Config/Data_Structures/c_cf_ll_struct.h"
-#include "Original/Data_Structures/o_original_struct.h"
-
-void o_original(original_t *original);
-void o_revert_to_start(original_t *original);
-
-#endif // ORIGINAL_H
+void test_a_source_to_aliases(void **state) {
+  aliases_t *test_alias = NULL;
+  // a_source_to_aliases();
+  int duck = 1;
+  assert_int_equal(duck, 1);
+}
