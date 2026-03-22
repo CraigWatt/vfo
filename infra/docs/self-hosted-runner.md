@@ -71,11 +71,13 @@ In GitHub Actions:
 1. Open workflow `🧪 Full E2E (self-hosted media)`
 2. Click `Run workflow`
 3. Set `assets_dir` to your mounted media path
-4. Run
+4. Optionally set `max_seeds` (for example `4`)
+5. Run
 
 The workflow executes `make ci` with:
 
 - `VFO_E2E_ASSET_MODE=local`
 - `VFO_E2E_ASSETS_DIR=<assets_dir>`
+- `VFO_E2E_MAX_SEEDS=<max_seeds>`
 
 and uploads `tests/e2e/.tmp/` as artifact for debugging.

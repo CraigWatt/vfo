@@ -341,7 +341,7 @@ Note that `make tests` links against `cmocka`, so you may need to install that d
 For full local-media e2e:
 
 ```bash
-VFO_E2E_ASSET_MODE=local VFO_E2E_ASSETS_DIR="/absolute/path/to/open-source-media" make e2e
+VFO_E2E_ASSET_MODE=local VFO_E2E_ASSETS_DIR="/absolute/path/to/open-source-media" VFO_E2E_MAX_SEEDS=4 make e2e
 ```
 
 ## Known rough edges

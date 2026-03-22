@@ -11,6 +11,10 @@ on:
         description: "Fixture clip duration in seconds (higher = slower, more representative)"
         required: false
         default: "6"
+      max_seeds:
+        description: "Number of seed media files to exercise in this run"
+        required: false
+        default: "4"
 
 permissions:
   contents: read
@@ -44,6 +48,7 @@ jobs:
           VFO_E2E_ASSET_MODE: local
           VFO_E2E_ASSETS_DIR: ${{ inputs.assets_dir }}
           VFO_E2E_CLIP_DURATION: ${{ inputs.clip_duration }}
+          VFO_E2E_MAX_SEEDS: ${{ inputs.max_seeds }}
         run: make ci
 
       - name: ⬆️ Upload e2e debug artifacts
