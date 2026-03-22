@@ -1,5 +1,18 @@
 ## vfo Installation and Quick Start
 
+### Supported platforms (this release)
+- macOS 13+ (Apple Silicon ARM64 and Intel x64)
+- Linux/Windows installers are not yet published
+
+### Runtime requirements
+- Required:
+  - `ffmpeg` (includes `ffprobe`)
+  - `mkvmerge` (from `mkvtoolnix`)
+- Optional:
+  - `dovi_tool` (recommended for Dolby Vision workflows)
+
+vfo now checks required dependencies before pipeline execution and clearly reports what is missing.
+
 ### macOS (recommended: signed package)
 1. Download `vfo_macOS_installer-v*.*.*.pkg` from this release's assets.
 2. If macOS blocks first launch, right-click the package and choose **Open**.
@@ -29,5 +42,14 @@ Installed paths:
 3. `vfo doctor` to validate paths and required tools.
 4. `vfo run` to execute the default pipeline.
 
-### Linux and Windows
-Installers are planned, but not yet published in this release.
+### Troubleshooting
+- `required command missing: ffmpeg/ffprobe`:
+  - `brew install ffmpeg`
+- `required command missing: mkvmerge`:
+  - `brew install mkvtoolnix`
+- `optional command missing: dovi_tool`:
+  - `brew install dovi_tool`
+- `could not create config directory` during `vfo wizard`:
+  - run with elevated permissions, for example: `sudo vfo wizard`
+- Gatekeeper warning on `.pkg`:
+  - right-click installer -> **Open**
