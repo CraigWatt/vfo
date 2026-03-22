@@ -45,7 +45,10 @@ int main(void) {
     const struct CMUnitTest tests[] = {
         /* so, we want to test all functions related to Input Handler */
 
-        // to be added
+        cmocka_unit_test(test_status_report_update_and_summary),
+        cmocka_unit_test(test_status_report_update_overwrites_existing_component),
+        cmocka_unit_test(test_status_report_print_json_contract),
+        cmocka_unit_test(test_ih_arguments_parser_detects_status_commands),
 
         /* Utils */
         cmocka_unit_test(test_utils_does_folder_exist_null_ptr),

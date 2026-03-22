@@ -25,6 +25,7 @@
 #include "ih_internal.h"
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <strings.h>
 #include <sys/stat.h>
@@ -33,6 +34,46 @@
 #define IH_CONFIG_FILENAME "vfo_config.conf"
 #define IH_INPUT_BUFFER_SIZE 4096
 #define IH_PREVIEW_LIMIT 140
+
+static int ih_cs_count(cs_node_t *cs_head);
+
+static bool ih_suppress_stdout_begin(int *saved_stdout_fd) {
+  int dev_null_fd = -1;
+
+  if(saved_stdout_fd == NULL)
+    return false;
+
+  *saved_stdout_fd = dup(STDOUT_FILENO);
+  if(*saved_stdout_fd < 0)
+    return false;
+
+  fflush(stdout);
+  dev_null_fd = open("/dev/null", O_WRONLY);
+  if(dev_null_fd < 0) {
+    close(*saved_stdout_fd);
+    *saved_stdout_fd = -1;
+    return false;
+  }
+
+  if(dup2(dev_null_fd, STDOUT_FILENO) < 0) {
+    close(dev_null_fd);
+    close(*saved_stdout_fd);
+    *saved_stdout_fd = -1;
+    return false;
+  }
+
+  close(dev_null_fd);
+  return true;
+}
+
+static void ih_suppress_stdout_end(int saved_stdout_fd) {
+  if(saved_stdout_fd < 0)
+    return;
+
+  fflush(stdout);
+  dup2(saved_stdout_fd, STDOUT_FILENO);
+  close(saved_stdout_fd);
+}
 
 static bool ih_command_exists(const char *command_name) {
   char shell_command[256];
@@ -157,6 +198,211 @@ static bool ih_run_doctor(config_t *config, const char *config_dir) {
   return false;
 }
 
+static void ih_status_update_with_log(status_report_t *report,
+                                      const char *component,
+                                      status_state_t state,
+                                      const char *detail) {
+  status_report_update(report, component, state, detail);
+  printf("STATUS %s %s: %s\n",
+         status_state_to_string(state),
+         component,
+         detail == NULL ? "" : detail);
+}
+
+static bool ih_status_check_command(status_report_t *report, const char *command_name, bool required) {
+  char component[256];
+  char detail[512];
+  bool exists = ih_command_exists(command_name);
+  const char *hint = ih_command_install_hint(command_name);
+
+  snprintf(component, sizeof(component), "dependency.%s", command_name);
+
+  if(exists) {
+    snprintf(detail, sizeof(detail), "%s available", command_name);
+    status_report_update(report, component, STATUS_STATE_COMPLETE, detail);
+    return true;
+  }
+
+  if(required) {
+    if(hint != NULL)
+      snprintf(detail, sizeof(detail), "%s missing (%s)", command_name, hint);
+    else
+      snprintf(detail, sizeof(detail), "%s missing", command_name);
+    status_report_update(report, component, STATUS_STATE_ERROR, detail);
+    return false;
+  }
+
+  if(hint != NULL)
+    snprintf(detail, sizeof(detail), "%s missing (%s)", command_name, hint);
+  else
+    snprintf(detail, sizeof(detail), "%s missing", command_name);
+  status_report_update(report, component, STATUS_STATE_SKIPPED, detail);
+  return true;
+}
+
+static bool ih_status_check_location_list(status_report_t *report,
+                                          const char *component_prefix,
+                                          char *locations_csv,
+                                          bool required) {
+  int location_count = 0;
+  char **locations = NULL;
+  bool healthy = true;
+  char missing_detail[256];
+
+  if(utils_string_is_empty_or_spaces(locations_csv)) {
+    snprintf(missing_detail, sizeof(missing_detail), "no configured locations for %s", component_prefix);
+    status_report_update(report,
+                         component_prefix,
+                         required ? STATUS_STATE_ERROR : STATUS_STATE_SKIPPED,
+                         missing_detail);
+    return !required;
+  }
+
+  locations = utils_split_semicolon_list(locations_csv, &location_count);
+  if(location_count == 0) {
+    snprintf(missing_detail, sizeof(missing_detail), "no valid locations in list for %s", component_prefix);
+    status_report_update(report,
+                         component_prefix,
+                         required ? STATUS_STATE_ERROR : STATUS_STATE_SKIPPED,
+                         missing_detail);
+    utils_free_string_array(locations, location_count);
+    return !required;
+  }
+
+  for(int i = 0; i < location_count; i++) {
+    char component[320];
+    char detail[512];
+    bool exists = utils_does_folder_exist(locations[i]);
+
+    snprintf(component, sizeof(component), "%s[%i]", component_prefix, i + 1);
+
+    if(exists) {
+      snprintf(detail, sizeof(detail), "%s exists", locations[i]);
+      status_report_update(report, component, STATUS_STATE_COMPLETE, detail);
+    } else {
+      snprintf(detail, sizeof(detail), "%s missing", locations[i]);
+      status_report_update(report, component, required ? STATUS_STATE_ERROR : STATUS_STATE_SKIPPED, detail);
+      if(required)
+        healthy = false;
+    }
+  }
+
+  utils_free_string_array(locations, location_count);
+  return healthy;
+}
+
+static bool ih_status_check_profiles(status_report_t *report, ca_node_t *profiles_head) {
+  int profile_count = ca_get_count(profiles_head);
+  ca_node_t *profile = profiles_head;
+  bool healthy = true;
+  char detail[512];
+
+  if(profile_count == 0) {
+    status_report_update(report, "profiles.detected", STATUS_STATE_ERROR, "no profiles configured");
+    return false;
+  }
+
+  snprintf(detail, sizeof(detail), "%i profile(s) configured", profile_count);
+  status_report_update(report, "profiles.detected", STATUS_STATE_COMPLETE, detail);
+
+  while(profile != NULL) {
+    char location_component[320];
+    char scenario_component[320];
+    int scenario_count = ih_cs_count(profile->cs_head);
+
+    snprintf(location_component, sizeof(location_component), "profile.%s.locations", profile->alias_name);
+    if(ih_status_check_location_list(report, location_component, profile->alias_locations, true) == false)
+      healthy = false;
+
+    snprintf(scenario_component, sizeof(scenario_component), "profile.%s.scenarios", profile->alias_name);
+    if(scenario_count > 0) {
+      snprintf(detail, sizeof(detail), "%i scenario(s) configured", scenario_count);
+      status_report_update(report, scenario_component, STATUS_STATE_COMPLETE, detail);
+    } else {
+      status_report_update(report, scenario_component, STATUS_STATE_ERROR, "no scenarios configured");
+      healthy = false;
+    }
+
+    profile = profile->next;
+  }
+
+  return healthy;
+}
+
+static bool ih_run_status_snapshot(config_t *config, const char *config_dir, bool json_output) {
+  status_report_t *report = status_report_create();
+  bool healthy = true;
+  bool originals_healthy = true;
+  bool source_healthy = true;
+  bool profiles_healthy = true;
+
+  if(report == NULL) {
+    printf("STATUS ERROR: could not allocate status report\n");
+    return false;
+  }
+
+  status_report_update(report, "engine.snapshot", STATUS_STATE_IN_PROGRESS, "collecting component status");
+
+  if(utils_does_folder_exist((char *)config_dir))
+    status_report_update(report, "config.directory", STATUS_STATE_COMPLETE, config_dir);
+  else {
+    status_report_update(report, "config.directory", STATUS_STATE_ERROR, "config directory missing");
+    healthy = false;
+  }
+
+  healthy = ih_status_check_command(report, "ffmpeg", true) && healthy;
+  healthy = ih_status_check_command(report, "ffprobe", true) && healthy;
+  healthy = ih_status_check_command(report, "mkvmerge", true) && healthy;
+  healthy = ih_status_check_command(report, "dovi_tool", false) && healthy;
+
+  originals_healthy = ih_status_check_location_list(report,
+                                                    "storage.original",
+                                                    config->svc->original_locations,
+                                                    true);
+  source_healthy = ih_status_check_location_list(report,
+                                                 "storage.source",
+                                                 config->svc->source_locations,
+                                                 true);
+  profiles_healthy = ih_status_check_profiles(report, config->ca_head);
+
+  healthy = originals_healthy && source_healthy && profiles_healthy && healthy;
+
+  status_report_update(report,
+                       "stage.mezzanine",
+                       originals_healthy ? STATUS_STATE_COMPLETE : STATUS_STATE_ERROR,
+                       originals_healthy ? "ready to run mezzanine stage" : "mezzanine stage blocked by missing original locations");
+
+  if(config->svc->keep_source) {
+    status_report_update(report,
+                         "stage.source",
+                         source_healthy ? STATUS_STATE_COMPLETE : STATUS_STATE_ERROR,
+                         source_healthy ? "ready to run source stage" : "source stage blocked by missing source locations");
+  } else {
+    status_report_update(report, "stage.source", STATUS_STATE_SKIPPED, "KEEP_SOURCE=false");
+  }
+
+  status_report_update(report,
+                       "stage.profiles",
+                       profiles_healthy ? STATUS_STATE_COMPLETE : STATUS_STATE_ERROR,
+                       profiles_healthy ? "ready to run profile stage" : "profile stage blocked by configuration errors");
+
+  status_report_update(report, "stage.execute", STATUS_STATE_PENDING, "run `vfo run` to execute the pipeline");
+
+  status_report_update(report,
+                       "engine.snapshot",
+                       healthy ? STATUS_STATE_COMPLETE : STATUS_STATE_ERROR,
+                       healthy ? "snapshot completed successfully" : "snapshot completed with errors");
+
+  if(json_output)
+    status_report_print_json(report, stdout);
+  else
+    status_report_print_text(report, stdout);
+
+  healthy = status_report_is_healthy(report);
+  status_report_free(report);
+  return healthy;
+}
+
 static bool ih_run_runtime_dependency_precheck() {
   bool healthy = true;
 
@@ -198,6 +444,16 @@ static bool ih_pipeline_work_requested(arguments_t *arguments, config_t *config)
     return true;
 
   return false;
+}
+
+static bool ih_should_use_lenient_config_validation(arguments_t *arguments) {
+  if(arguments == NULL)
+    return false;
+
+  return arguments->doctor_detected
+      || arguments->show_detected
+      || arguments->status_detected
+      || arguments->status_json_detected;
 }
 
 static void ih_execute_all_profiles(config_t *config) {
@@ -293,14 +549,39 @@ static void ih_execute_source_stage_for_all_original_roots(config_t *config) {
 }
 
 static void ih_execute_default_run(config_t *config) {
+  status_report_t *run_report = status_report_create();
+
   printf("RUN ALERT: initiating default pipeline\n");
+  if(run_report != NULL)
+    ih_status_update_with_log(run_report, "engine.run", STATUS_STATE_IN_PROGRESS, "default pipeline started");
 
+  if(run_report != NULL)
+    ih_status_update_with_log(run_report, "stage.mezzanine", STATUS_STATE_IN_PROGRESS, "processing mezzanine stage");
   ih_execute_original_stage_for_all_roots(config);
+  if(run_report != NULL)
+    ih_status_update_with_log(run_report, "stage.mezzanine", STATUS_STATE_COMPLETE, "mezzanine stage completed");
 
-  if(config->svc->keep_source == true)
+  if(config->svc->keep_source == true) {
+    if(run_report != NULL)
+      ih_status_update_with_log(run_report, "stage.source", STATUS_STATE_IN_PROGRESS, "processing source stage");
     ih_execute_source_stage_for_all_original_roots(config);
+    if(run_report != NULL)
+      ih_status_update_with_log(run_report, "stage.source", STATUS_STATE_COMPLETE, "source stage completed");
+  } else if(run_report != NULL) {
+    ih_status_update_with_log(run_report, "stage.source", STATUS_STATE_SKIPPED, "KEEP_SOURCE=false");
+  }
 
+  if(run_report != NULL)
+    ih_status_update_with_log(run_report, "stage.profiles", STATUS_STATE_IN_PROGRESS, "processing profile stage");
   ih_execute_all_profiles(config);
+  if(run_report != NULL)
+    ih_status_update_with_log(run_report, "stage.profiles", STATUS_STATE_COMPLETE, "profile stage completed");
+
+  if(run_report != NULL) {
+    ih_status_update_with_log(run_report, "engine.run", STATUS_STATE_COMPLETE, "default pipeline completed");
+    status_report_print_text(run_report, stdout);
+    status_report_free(run_report);
+  }
   printf("RUN ALERT: default pipeline completed successfully\n");
 }
 
@@ -892,8 +1173,24 @@ int main (int argc, char **argv) {
 
   /* initiate config data extraction and validation */
   //extract config file data and unknown words from user input, to config struct
+  int suppressed_stdout_fd = -1;
+
+  if(ih->arguments->status_detected == true || ih->arguments->status_json_detected == true)
+    ih_suppress_stdout_begin(&suppressed_stdout_fd);
+
+  con_set_lenient_location_validation(ih_should_use_lenient_config_validation(ih->arguments));
   config_t *config = con_init(config_dir, revised_argv, revised_argc);
+  con_set_lenient_location_validation(false);
+  ih_suppress_stdout_end(suppressed_stdout_fd);
   //does argv contain an unknown word << this is actually validated by the con_init, because if an arg doesn't match config pre defined words AND doesn't define an alias mentioned in the config file, we have found an unknown word and the program will stop
+
+  if(ih->arguments->status_detected == true || ih->arguments->status_json_detected == true) {
+    bool json_output = ih->arguments->status_json_detected == true;
+    bool status_success = ih_run_status_snapshot(config, config_dir, json_output);
+    free(config);
+    config = NULL;
+    return status_success ? EXIT_SUCCESS : EXIT_FAILURE;
+  }
 
   if(ih->arguments->show_detected == true) {
     ih_show_config(config, config_dir);
@@ -939,6 +1236,8 @@ int main (int argc, char **argv) {
   printf("ih->arguments->source_detected: %i\n", ih->arguments->source_detected);
   printf("ih->arguments->run_detected: %i\n", ih->arguments->run_detected);
   printf("ih->arguments->doctor_detected: %i\n", ih->arguments->doctor_detected);
+  printf("ih->arguments->status_detected: %i\n", ih->arguments->status_detected);
+  printf("ih->arguments->status_json_detected: %i\n", ih->arguments->status_json_detected);
   printf("ih->arguments->wizard_detected: %i\n", ih->arguments->wizard_detected);
   printf("ih->arguments->show_detected: %i\n", ih->arguments->show_detected);
   printf("ih->arguments->wipe_detected: %i\n", ih->arguments->wipe_detected);

@@ -27,6 +27,12 @@
 #include <errno.h>
 #include <ctype.h>
 
+static bool con_lenient_location_validation = false;
+
+void con_set_lenient_location_validation(bool enabled) {
+  con_lenient_location_validation = enabled;
+}
+
 static char* con_fetch_optional_sole_var_content(char *string_conf, char *marker) {
   int marker_count = con_get_marker_count(string_conf, marker);
   if(marker_count == 0) {
@@ -112,8 +118,12 @@ static void con_validate_location_csv(char *csv, char *label) {
 
   for(int i = 0; i < location_count; i++) {
     if(utils_does_folder_exist(locations[i]) == false) {
-      printf("ERROR: %s contains a location that does not exist: %s\n", label, locations[i]);
-      exit(EXIT_FAILURE);
+      if(con_lenient_location_validation) {
+        printf("WARN: %s contains a location that does not exist: %s (continuing in lenient validation mode)\n", label, locations[i]);
+      } else {
+        printf("ERROR: %s contains a location that does not exist: %s\n", label, locations[i]);
+        exit(EXIT_FAILURE);
+      }
     }
   }
 
@@ -192,7 +202,7 @@ config_t* con_init(const char *config_dir, char **revised_argv, int revised_argc
   /* assess uw words.  this is being done here BECAUSE ca nodes have to 
   be populated first before determining if a word*/
   bool activate_uw_work = false;
-  char *pre_alias_approved_words[] = {"vfo", "original", "source", "revert", "wipe", "all_aliases", "do_it_all", "run", "doctor", "wizard", "show"};
+  char *pre_alias_approved_words[] = {"vfo", "original", "source", "revert", "wipe", "all_aliases", "do_it_all", "run", "doctor", "wizard", "show", "status", "status-json", "status_json"};
   int pre_array_length = (sizeof pre_alias_approved_words / sizeof(char*));
   for(int i = 0; i < revised_argc; i++) {
     bool pre_approved_word_found = false;
@@ -300,8 +310,12 @@ ca_node_t* con_extract_to_ca_ll(char *conf_string, char *ca_marker, ca_node_t *c
       free(alias_locations);
     } else {
       if(utils_does_folder_exist(tmp_alias_location_content) == false) {
-        printf("ERROR: alias location does not exist: %s\n", tmp_alias_location_content);
-        exit(EXIT_FAILURE);
+        if(con_lenient_location_validation) {
+          printf("WARN: alias location does not exist: %s (continuing in lenient validation mode)\n", tmp_alias_location_content);
+        } else {
+          printf("ERROR: alias location does not exist: %s\n", tmp_alias_location_content);
+          exit(EXIT_FAILURE);
+        }
       }
       tmp_alias_locations_content = tmp_alias_location_content;
       con_validate_usage_cap_csv(tmp_alias_location_max_usage_pct_content,
@@ -723,10 +737,10 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
     3. has to be either TRUE or FALSE
     we can make use of utils_uppercase to help the user avoid issues here */
   if(!(utils_string_is_empty_or_spaces(svc->original_location)))
-    if(utils_does_folder_exist(svc->original_location))
+    if(utils_does_folder_exist(svc->original_location) || con_lenient_location_validation)
       svc->is_original_location_valid = true;
   if(!(utils_string_is_empty_or_spaces(svc->source_location)))
-    if(utils_does_folder_exist(svc->source_location))
+    if(utils_does_folder_exist(svc->source_location) || con_lenient_location_validation)
       svc->is_source_location_valid = true;
   //verify tmp_bool_word / svc->keep_source
   tmp_bool_word = utils_lowercase_string(tmp_bool_word);
@@ -777,21 +791,32 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   }
 
   //tell the user if something isn't valid
-  if(svc->is_original_location_valid == false)
-    printf("ERROR: the content of %s variable in config file is invalid\n", svm->original_location);
-  if(svc->is_source_location_valid == false)
-    printf("ERROR: the content of %s variable in config file is invalid\n", svm->source_location);
+  if(svc->is_original_location_valid == false) {
+    if(con_lenient_location_validation)
+      printf("WARN: the content of %s variable in config file points to a missing location (lenient validation mode)\n", svm->original_location);
+    else
+      printf("ERROR: the content of %s variable in config file is invalid\n", svm->original_location);
+  }
+  if(svc->is_source_location_valid == false) {
+    if(con_lenient_location_validation)
+      printf("WARN: the content of %s variable in config file points to a missing location (lenient validation mode)\n", svm->source_location);
+    else
+      printf("ERROR: the content of %s variable in config file is invalid\n", svm->source_location);
+  }
   if(svc->is_keep_source_valid == false) 
     printf("ERROR: the content of %s variable in config file is invalid\n", svm->keep_source);
-  //is svc entirely valid?
-  if(svc->is_original_location_valid && svc->is_source_location_valid && svc->is_keep_source_valid && svc->is_source_test_valid)
-    if(svc->source_test == false)
+
+  bool is_location_set_valid = svc->is_original_location_valid && svc->is_source_location_valid;
+  bool is_non_location_valid = svc->is_keep_source_valid && svc->is_source_test_valid;
+  bool is_source_test_window_valid = (svc->source_test == false)
+                                      || (svc->is_source_test_start_valid && svc->is_source_test_duration_valid);
+
+  if(is_non_location_valid && is_source_test_window_valid) {
+    if(is_location_set_valid || con_lenient_location_validation)
       svc->is_entire_svc_valid = true;
-    else {
-     if(svc->is_source_test_start_valid && svc->is_source_test_duration_valid)
-      svc->is_entire_svc_valid = true;
-    }
-  else {
+  }
+
+  if(svc->is_entire_svc_valid == false) {
     printf("vfo can not continue unless the errors mentioned above are addressed.\n");
     printf("MAJOR ERROR DETAILS: The program failed because an essential variable required from config file was found to be invalid by vfo.\n");
     exit(EXIT_FAILURE);

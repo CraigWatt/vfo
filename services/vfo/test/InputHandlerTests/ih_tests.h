@@ -25,10 +25,14 @@
 #ifndef IH_TESTS_H
 #define IH_TESTS_H
 
-// #include "../t_internal.h"
+#include "../t_internal.h"
 
-// #include "../../src/input_handler.h"
-// #include "../../src/InputHandler/ih_internal.h"
+#include "../../src/InputHandler/Data_Structures/ih_arguments_struct.h"
+#include "../../src/Status/status_engine.h"
 
+void test_status_report_update_and_summary(void **state);
+void test_status_report_update_overwrites_existing_component(void **state);
+void test_status_report_print_json_contract(void **state);
+void test_ih_arguments_parser_detects_status_commands(void **state);
 
 #endif // IH_TESTS_H

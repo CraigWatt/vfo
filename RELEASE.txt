@@ -12,6 +12,7 @@
   - `dovi_tool` (recommended for Dolby Vision workflows)
 
 vfo now checks required dependencies before pipeline execution and clearly reports what is missing.
+Use `vfo status` or `vfo status-json` to inspect component/stage readiness before running the pipeline.
 
 ### macOS (recommended: signed package)
 1. Download `vfo_macOS_installer-v*.*.*.pkg` from this release's assets.
@@ -41,7 +42,8 @@ Installed paths:
 1. `vfo wizard` to generate or update config interactively.
 2. `vfo show` to review active config values.
 3. `vfo doctor` to validate paths and required tools.
-4. `vfo run` to execute the default pipeline.
+4. `vfo status` (or `vfo status-json`) to confirm engine readiness.
+5. `vfo run` to execute the default pipeline.
 
 ### Multi-location storage routing
 - `ORIGINAL_LOCATIONS`, `SOURCE_LOCATIONS`, and `<PROFILE>_LOCATIONS` support semicolon-separated paths.

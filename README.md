@@ -147,8 +147,9 @@ It also copies stock profile-action scripts (`transcode_*_profile.sh`) into `/us
 4. Edit the config file so the folder paths match your machine.
 5. Define at least one profile (`ALIAS=` today) and one scenario.
 6. Run `vfo doctor` to validate environment + config.
-7. Run `vfo run` for the default end-to-end pipeline.
-8. Run `vfo` with individual stage commands or a specific profile name when needed.
+7. Run `vfo status` for a high-level readiness snapshot.
+8. Run `vfo run` for the default end-to-end pipeline.
+9. Run `vfo` with individual stage commands or a specific profile name when needed.
 
 Example starter flow:
 
@@ -158,6 +159,8 @@ sudo cp services/vfo/src/vfo_config.conf /usr/local/bin/vfo_conf_folder/vfo_conf
 $EDITOR /usr/local/bin/vfo_conf_folder/vfo_config.conf
 vfo --help
 vfo doctor
+vfo status
+vfo status-json
 vfo run
 vfo all_aliases
 ```
@@ -180,7 +183,11 @@ vfo [argument] || [options]
 
 - `original`
 - `source`
+- `show`
+- `wizard`
 - `doctor`
+- `status`
+- `status-json` (legacy alias: `status_json`)
 - `run`
 - `all_aliases`
 - `do_it_all`
@@ -193,6 +200,8 @@ A useful mental model is:
 - use a specific profile name to run only that profile
 - use `wipe` together with profile-oriented commands when you want profile outputs removed
 - use `doctor` before first run (or after machine/config changes)
+- use `status` to view a component-level readiness summary before execution
+- use `status-json` in automation/tests when you need machine-readable status
 - use `run` for the default pipeline (mezzanine -> source if enabled -> profiles)
 
 ## Configuration guide
@@ -213,6 +222,10 @@ For device compatibility conformance checks, see:
 
 - `services/vfo/docs/device-conformance.md`
 - `tests/e2e/validate_device_conformance.sh`
+
+For engine readiness and observability status output, see:
+
+- `services/vfo/docs/status-observability.md`
 
 ### 1. Set required paths
 
@@ -343,6 +356,11 @@ Testing convention:
 - Platform component tests live beside each component in `platform/<component>/test/`.
 - Infra validation tests live in `infra/test/`.
 - Cross-service end-to-end tests live in `tests/e2e/`.
+
+Naming conventions and terminology policy:
+
+- canonical policy: `AGENT.md`
+- latest audit snapshot: `infra/docs/naming-conventions-audit.md`
 
 ### Build commands
 
