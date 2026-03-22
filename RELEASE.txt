@@ -1,33 +1,33 @@
-## macOS Installation
+## vfo Installation and Quick Start
 
-### macOS Option 1: 
-Install by downloading the vfo_macOS_installer-v*.*.*.pkg in 'assets' below.
-For now, you will have to 'shift click open' the package.  This will will not be nearer v1.0.0 release day.
-Open the package and follow the instructions provided.
-After installation complete...
-Open Terminal
-run: vfo -v
+### macOS (recommended: signed package)
+1. Download `vfo_macOS_installer-v*.*.*.pkg` from this release's assets.
+2. If macOS blocks first launch, right-click the package and choose **Open**.
+3. Complete the installer.
+4. Verify installation:
+   - `vfo --version`
+   - `vfo doctor`
 
-vfo installed successfully.
-    
-### macOS Option 2:
-Install by downloading the static_build.zip folder in 'assets' below.
-Unzip the folder on your machine.
-Drag BOTH the vfo file AND the vfo_config.conf file to usr/local/bin directory.  (Your $PATH).
-Open Terminal
-run: vfo -v
+Installed paths:
+- Binary: `/usr/local/bin/vfo`
+- Config directory: `/usr/local/bin/vfo_conf_folder`
+- Config file: `/usr/local/bin/vfo_conf_folder/vfo_config.conf`
 
-vfo installed successfully.
+### macOS (advanced: static build zip)
+1. Download `static_build.zip` from assets and unzip it.
+2. Move `vfo` to `/usr/local/bin`.
+3. Create config directory and copy the default config:
+   - `sudo mkdir -p /usr/local/bin/vfo_conf_folder`
+   - `sudo cp vfo_config.conf /usr/local/bin/vfo_conf_folder/vfo_config.conf`
+4. Verify installation:
+   - `vfo --version`
+   - `vfo doctor`
 
-## Linux (Ubuntu or similar) installation options:
+### First-run workflow
+1. `vfo wizard` to generate or update config interactively.
+2. `vfo show` to review active config values.
+3. `vfo doctor` to validate paths and required tools.
+4. `vfo run` to execute the default pipeline.
 
-### Linux Option 1:
-    TBA
-### Linux Option 2:
-    TBA
-
-## Windows (10 or 11 or similar) installation options:
-    
-### Windows Option 1:
-    TBA
-
+### Linux and Windows
+Installers are planned, but not yet published in this release.

@@ -45,6 +45,8 @@ void ih_mes_usage () {
   fprintf(stdout, "%s [argument] || [options]\n\n", __PROGRAM_NAME__);
   fprintf(stdout, BROWN "Usage examples: " NO_COLOR);
   fprintf(stdout, "%s doctor      # check environment and config readiness\n\n", __PROGRAM_NAME__);
+  fprintf(stdout, "%s wizard      # guided config setup/update\n\n", __PROGRAM_NAME__);
+  fprintf(stdout, "%s show        # print active config summary\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s run         # run default pipeline end-to-end\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s original    # mezzanine preparation stage\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s source      # normalized source stage\n\n", __PROGRAM_NAME__);
@@ -85,6 +87,10 @@ void ih_mes_arguments() {
       fprintf(stdout, BROWN "Arguments:\n\n" NO_COLOR);
     fprintf(stdout, GRAY "\tdoctor\n" NO_COLOR
                     "\t\trun preflight checks (commands, paths, config)\n\n");
+    fprintf(stdout, GRAY "\twizard\n" NO_COLOR
+                    "\t\tinteractive setup/update for vfo_config.conf\n\n");
+    fprintf(stdout, GRAY "\tshow\n" NO_COLOR
+                    "\t\tprint current vfo configuration summary\n\n");
     fprintf(stdout, GRAY "\trun\n" NO_COLOR
                     "\t\texecutes default pipeline: mezzanine -> source (if enabled) -> profiles\n\n");
     fprintf(stdout, GRAY "\toriginal\n" NO_COLOR

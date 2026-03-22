@@ -36,5 +36,7 @@ Cross-cutting E2E tests live under `tests/e2e/` and are run from repository root
 
 ## Runtime helpers
 
+- `vfo wizard` walks users through creating/updating `vfo_config.conf`.
+- `vfo show` prints the active config in a readable summary view.
 - `vfo doctor` validates toolchain and configured paths.
 - `vfo run` executes the default pipeline (mezzanine -> source if enabled -> profiles).

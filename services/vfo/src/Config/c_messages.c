@@ -35,7 +35,8 @@ void c_mes_find_config_file_success() {
 void c_mes_find_config_file_fail() {
   fprintf(stdout, "mes_find_config_file_fail NOT FOUND\n"
           "vfo_config.conf file is essential for vfo to run\n"
-          "vfo_config.conf must be located in /usr/local/bin directory\n");
+          "Expected path: /usr/local/bin/vfo_conf_folder/vfo_config.conf\n"
+          "Run `vfo wizard` to create it interactively.\n");
 }
 
 void c_mes_init_access_config_variable() {
@@ -53,7 +54,7 @@ void c_mes_init_extract_to_variables() {
 void c_mes_init_generate_default_config_file() {
     fprintf(stdout, "mes_init_generate_default_config_file initiating...\n");
     fprintf(stdout, "UNFORTUNATELY, THIS FEATURE IS STILL IN DEVELOPMENT.  PLEASE REINSTALL vfo...\n"
-            "PLEASE CHECK TO SEE IF /usr/local/bin/vfo_config.conf is present\n"
+            "PLEASE CHECK TO SEE IF /usr/local/bin/vfo_conf_folder/vfo_config.conf is present\n"
             "PLEASE CHECK TO SEE IF vfo executable is installed in /usr/local/bin as vfo\n");
 }
 
