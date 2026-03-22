@@ -24,6 +24,9 @@ Included aliases:
 Important:
 
 - These are conservative baseline profiles, not a guarantee for every firmware/model revision.
+- 1080 SDR-target aliases use explicit HDR->SDR conversion action:
+  - `services/vfo/actions/transcode_h264_1080_hdr_to_sdr_profile.sh`
+- 4K HDR/DV-oriented aliases keep preserve-style behavior unless explicitly named otherwise.
 - For predictive validation, pair these profiles with:
   - `tests/e2e/validate_device_conformance.sh`
   - `tests/e2e/run_device_conformance_e2e.sh`

@@ -13,6 +13,7 @@ This directory contains end-to-end tests for profile action scripts under:
   - Fire TV Stick Lite / 4K / 4K Max
   - Chromecast with Google TV HD / 4K
   - Apple TV HD / Apple TV 4K
+  - SDR-target checks run against explicit HDR->SDR H.264 action output
 - optional Dolby Vision metadata retention check (skip when no DV P7 fixture is configured)
 - Assertions for:
   - output is readable by `ffprobe`

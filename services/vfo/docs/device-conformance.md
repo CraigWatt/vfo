@@ -29,6 +29,12 @@ Conformance checks provide a fast "will this likely play?" signal by validating 
 - each audio stream codec is in allowed set
 - each audio stream channel count is within cap
 
+## Profile intent guidance
+
+- Use explicit conversion profiles for SDR-only targets (for example HDR->SDR H.264 1080).
+- Keep preserve-style HDR/DV profiles separate and explicitly named.
+- Avoid mixing transfer-intent behavior inside one generic profile name.
+
 ## Important limits
 
 - This is a conservative baseline model, not a vendor certification.
