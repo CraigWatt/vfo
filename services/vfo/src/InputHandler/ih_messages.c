@@ -50,6 +50,7 @@ void ih_mes_usage () {
   fprintf(stdout, "%s status      # high-level engine observability snapshot\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s status-json # machine-readable observability snapshot\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s run         # run default pipeline end-to-end\n\n", __PROGRAM_NAME__);
+  fprintf(stdout, "%s mezzanine-clean # audit/normalize mezzanine naming and structure\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s mezzanine   # mezzanine preparation stage\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s source      # normalized source stage\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s profiles    # run all delivery profiles\n\n", __PROGRAM_NAME__);
@@ -100,6 +101,8 @@ void ih_mes_arguments() {
                     "\t\tprint machine-readable status report for automation/tests\n\n");
     fprintf(stdout, GRAY "\trun\n" NO_COLOR
                     "\t\texecutes default pipeline: mezzanine -> source (if enabled) -> profiles\n\n");
+    fprintf(stdout, GRAY "\tmezzanine-clean\n" NO_COLOR
+                    "\t\taudit or apply Jellyfin-style mezzanine naming/structure hygiene\n\n");
     fprintf(stdout, GRAY "\tmezzanine\n" NO_COLOR
                     "\t\texecutes mezzanine preparation stage only\n\n");
     fprintf(stdout, GRAY "\tsource\n" NO_COLOR

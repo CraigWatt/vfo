@@ -13,6 +13,10 @@ sole_var_markers_t* svm_create_new_struct() {
   result->source_test_active_marker = "SOURCE_TEST_ACTIVE=";
   result->source_test_trim_start_marker = "SOURCE_TEST_TRIM_START=";
   result->source_test_trim_duration_marker = "SOURCE_TEST_TRIM_DURATION=";
+  result->mezzanine_clean_enabled_marker = "MEZZANINE_CLEAN_ENABLED=";
+  result->mezzanine_clean_apply_changes_marker = "MEZZANINE_CLEAN_APPLY_CHANGES=";
+  result->mezzanine_clean_append_media_tags_marker = "MEZZANINE_CLEAN_APPEND_MEDIA_TAGS=";
+  result->mezzanine_clean_strict_quality_gate_marker = "MEZZANINE_CLEAN_STRICT_QUALITY_GATE=";
 
   result->source_as_activate = "SOURCE_AS_ACTIVATE=";
   result->source_as_location = "SOURCE_AS_LOCATION=";

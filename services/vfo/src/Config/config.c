@@ -26,6 +26,7 @@
 #include "c_internal.h"
 #include <errno.h>
 #include <ctype.h>
+#include <strings.h>
 
 static bool con_lenient_location_validation = false;
 
@@ -163,6 +164,32 @@ static void con_validate_usage_cap_csv(char *csv, char *label, int expected_coun
   free(caps);
 }
 
+static void con_parse_optional_bool_marker(char *raw_value,
+                                           bool default_value,
+                                           bool *target_value,
+                                           bool *target_valid,
+                                           const char *label) {
+  if(utils_string_is_empty_or_spaces(raw_value)) {
+    *target_value = default_value;
+    *target_valid = true;
+    return;
+  }
+
+  if(strcasecmp(raw_value, "true") == 0) {
+    *target_value = true;
+    *target_valid = true;
+    return;
+  }
+  if(strcasecmp(raw_value, "false") == 0) {
+    *target_value = false;
+    *target_valid = true;
+    return;
+  }
+
+  *target_valid = false;
+  printf("ERROR: the content of %s variable in config file is invalid (expected true/false)\n", label);
+}
+
 config_t* con_init(const char *config_dir, char **revised_argv, int revised_argc) {
   // config struct container
   config_t *config = config_create_new_struct(); 
@@ -210,7 +237,7 @@ config_t* con_init(const char *config_dir, char **revised_argv, int revised_argc
   /* assess uw words.  this is being done here BECAUSE ca nodes have to 
   be populated first before determining if a word*/
   bool activate_uw_work = false;
-  char *pre_alias_approved_words[] = {"vfo", "mezzanine", "original", "source", "revert", "wipe", "profiles", "all_aliases", "do_it_all", "run", "doctor", "wizard", "show", "status", "status-json", "status_json"};
+  char *pre_alias_approved_words[] = {"vfo", "mezzanine", "original", "source", "revert", "wipe", "profiles", "all_aliases", "do_it_all", "run", "doctor", "wizard", "show", "status", "status-json", "status_json", "mezzanine-clean", "mezzanine_clean"};
   int pre_array_length = (sizeof pre_alias_approved_words / sizeof(char*));
   for(int i = 0; i < revised_argc; i++) {
     bool pre_approved_word_found = false;
@@ -754,6 +781,10 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
 
   char *tmp_source_test_trim_start = con_fetch_sole_var_content(conf_string, svm->source_test_trim_start_marker);
   char *tmp_source_test_trim_duration = con_fetch_sole_var_content(conf_string, svm->source_test_trim_duration_marker);
+  char *tmp_mezzanine_clean_enabled = con_fetch_optional_sole_var_content(conf_string, svm->mezzanine_clean_enabled_marker);
+  char *tmp_mezzanine_clean_apply_changes = con_fetch_optional_sole_var_content(conf_string, svm->mezzanine_clean_apply_changes_marker);
+  char *tmp_mezzanine_clean_append_media_tags = con_fetch_optional_sole_var_content(conf_string, svm->mezzanine_clean_append_media_tags_marker);
+  char *tmp_mezzanine_clean_strict_quality_gate = con_fetch_optional_sole_var_content(conf_string, svm->mezzanine_clean_strict_quality_gate_marker);
   /* HOW TO VERIFY ABOVE NOTES:*/
   /*  svc->original_location AND 
       svc->source_location
@@ -811,6 +842,27 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
     }
   }
 
+  con_parse_optional_bool_marker(tmp_mezzanine_clean_enabled,
+                                 false,
+                                 &svc->mezzanine_clean_enabled,
+                                 &svc->is_mezzanine_clean_enabled_valid,
+                                 svm->mezzanine_clean_enabled_marker);
+  con_parse_optional_bool_marker(tmp_mezzanine_clean_apply_changes,
+                                 false,
+                                 &svc->mezzanine_clean_apply_changes,
+                                 &svc->is_mezzanine_clean_apply_changes_valid,
+                                 svm->mezzanine_clean_apply_changes_marker);
+  con_parse_optional_bool_marker(tmp_mezzanine_clean_append_media_tags,
+                                 true,
+                                 &svc->mezzanine_clean_append_media_tags,
+                                 &svc->is_mezzanine_clean_append_media_tags_valid,
+                                 svm->mezzanine_clean_append_media_tags_marker);
+  con_parse_optional_bool_marker(tmp_mezzanine_clean_strict_quality_gate,
+                                 false,
+                                 &svc->mezzanine_clean_strict_quality_gate,
+                                 &svc->is_mezzanine_clean_strict_quality_gate_valid,
+                                 svm->mezzanine_clean_strict_quality_gate_marker);
+
   //tell the user if something isn't valid
   if(svc->is_original_location_valid == false) {
     if(con_lenient_location_validation)
@@ -826,9 +878,22 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   }
   if(svc->is_keep_source_valid == false) 
     printf("ERROR: the content of %s variable in config file is invalid\n", svm->keep_source);
+  if(svc->is_mezzanine_clean_enabled_valid == false)
+    printf("ERROR: the content of %s variable in config file is invalid\n", svm->mezzanine_clean_enabled_marker);
+  if(svc->is_mezzanine_clean_apply_changes_valid == false)
+    printf("ERROR: the content of %s variable in config file is invalid\n", svm->mezzanine_clean_apply_changes_marker);
+  if(svc->is_mezzanine_clean_append_media_tags_valid == false)
+    printf("ERROR: the content of %s variable in config file is invalid\n", svm->mezzanine_clean_append_media_tags_marker);
+  if(svc->is_mezzanine_clean_strict_quality_gate_valid == false)
+    printf("ERROR: the content of %s variable in config file is invalid\n", svm->mezzanine_clean_strict_quality_gate_marker);
 
   bool is_location_set_valid = svc->is_original_location_valid && svc->is_source_location_valid;
-  bool is_non_location_valid = svc->is_keep_source_valid && svc->is_source_test_valid;
+  bool is_non_location_valid = svc->is_keep_source_valid
+                            && svc->is_source_test_valid
+                            && svc->is_mezzanine_clean_enabled_valid
+                            && svc->is_mezzanine_clean_apply_changes_valid
+                            && svc->is_mezzanine_clean_append_media_tags_valid
+                            && svc->is_mezzanine_clean_strict_quality_gate_valid;
   bool is_source_test_window_valid = (svc->source_test == false)
                                       || (svc->is_source_test_start_valid && svc->is_source_test_duration_valid);
 

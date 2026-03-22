@@ -36,6 +36,10 @@ sole_var_content_t* svc_create_new_struct() {
   result->source_test = false;
   result->source_test_trim_start = "";
   result->source_test_trim_duration = "";
+  result->mezzanine_clean_enabled = false;
+  result->mezzanine_clean_apply_changes = false;
+  result->mezzanine_clean_append_media_tags = true;
+  result->mezzanine_clean_strict_quality_gate = false;
 
 
 
@@ -47,6 +51,10 @@ sole_var_content_t* svc_create_new_struct() {
   result->is_source_test_valid = false;
   result->is_source_test_start_valid = false;
   result->is_source_test_duration_valid = false;
+  result->is_mezzanine_clean_enabled_valid = false;
+  result->is_mezzanine_clean_apply_changes_valid = false;
+  result->is_mezzanine_clean_append_media_tags_valid = false;
+  result->is_mezzanine_clean_strict_quality_gate_valid = false;
   result->is_entire_svc_valid = false;
   return result;
 }

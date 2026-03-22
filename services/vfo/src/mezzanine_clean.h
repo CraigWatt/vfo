@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Craig Watt
+ * Copyright (c) 2026 Craig Watt
  *
  * Contact: craig@webrefine.co.uk
  *
@@ -22,18 +22,35 @@
  * THE SOFTWARE.
  */
 
-#ifndef IH_TESTS_H
-#define IH_TESTS_H
+#ifndef MEZZANINE_CLEAN_H
+#define MEZZANINE_CLEAN_H
 
-#include "../t_internal.h"
+#include <stdbool.h>
 
-#include "../../src/InputHandler/Data_Structures/ih_arguments_struct.h"
-#include "../../src/Status/status_engine.h"
+struct mezzanine_clean_options {
+  bool apply_changes;
+  bool append_media_tags;
+  bool strict_quality_gate;
+  const char *movies_folder_name;
+  const char *tv_folder_name;
+};
+typedef struct mezzanine_clean_options mezzanine_clean_options_t;
 
-void test_status_report_update_and_summary(void **state);
-void test_status_report_update_overwrites_existing_component(void **state);
-void test_status_report_print_json_contract(void **state);
-void test_ih_arguments_parser_detects_status_commands(void **state);
-void test_ih_arguments_parser_detects_mezzanine_clean_commands(void **state);
+struct mezzanine_clean_report {
+  int scanned_files;
+  int planned_moves;
+  int applied_moves;
+  int warnings;
+  int errors;
+  int skipped;
+};
+typedef struct mezzanine_clean_report mezzanine_clean_report_t;
 
-#endif // IH_TESTS_H
+void mc_options_init(mezzanine_clean_options_t *options);
+void mc_report_init(mezzanine_clean_report_t *report);
+void mc_report_add(mezzanine_clean_report_t *target, const mezzanine_clean_report_t *source);
+bool mc_run_for_root(const char *mezzanine_root,
+                     const mezzanine_clean_options_t *options,
+                     mezzanine_clean_report_t *report);
+
+#endif // MEZZANINE_CLEAN_H

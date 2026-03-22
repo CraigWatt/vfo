@@ -44,6 +44,11 @@ struct sole_var_content {
   char *source_test_trim_start;
   char *source_test_trim_duration;
 
+  bool mezzanine_clean_enabled;
+  bool mezzanine_clean_apply_changes;
+  bool mezzanine_clean_append_media_tags;
+  bool mezzanine_clean_strict_quality_gate;
+
   bool is_original_location_valid;
   bool is_source_location_valid;
   bool is_source_as_location_valid;
@@ -52,6 +57,11 @@ struct sole_var_content {
   bool is_source_test_valid;
   bool is_source_test_start_valid;
   bool is_source_test_duration_valid;
+
+  bool is_mezzanine_clean_enabled_valid;
+  bool is_mezzanine_clean_apply_changes_valid;
+  bool is_mezzanine_clean_append_media_tags_valid;
+  bool is_mezzanine_clean_strict_quality_gate_valid;
 
   bool is_entire_svc_valid;
 };

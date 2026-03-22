@@ -13,6 +13,7 @@
 
 vfo now checks required dependencies before pipeline execution and clearly reports what is missing.
 Use `vfo status` or `vfo status-json` to inspect component/stage readiness before running the pipeline.
+`vfo mezzanine-clean` provides optional mezzanine folder/filename hygiene with probe-based recommendations.
 
 ### macOS (recommended: signed package)
 1. Download `vfo_macOS_installer-v*.*.*.pkg` from this release's assets.
@@ -43,12 +44,19 @@ Installed paths:
 2. `vfo show` to review active config values.
 3. `vfo doctor` to validate paths and required tools.
 4. `vfo status` (or `vfo status-json`) to confirm engine readiness.
-5. `vfo run` to execute the default pipeline.
+5. `vfo mezzanine-clean` to audit (or apply) mezzanine naming/structure hygiene.
+6. `vfo run` to execute the default pipeline.
 
 ### Multi-location storage routing
 - `MEZZANINE_LOCATIONS`, `SOURCE_LOCATIONS`, and `<PROFILE>_LOCATIONS` support semicolon-separated paths.
 - `MEZZANINE_LOCATION_MAX_USAGE_PCT`, `SOURCE_LOCATION_MAX_USAGE_PCT`, and `<PROFILE>_LOCATION_MAX_USAGE_PCT` set per-path usage caps.
 - vfo routes writes by projected utilization and free-space reserve, then retries on alternate locations when a destination fails.
+
+### Optional mezzanine hygiene controls
+- `MEZZANINE_CLEAN_ENABLED`: enable/disable automatic mezzanine hygiene in `vfo run`.
+- `MEZZANINE_CLEAN_APPLY_CHANGES`: `false` = audit only, `true` = perform rename/move.
+- `MEZZANINE_CLEAN_APPEND_MEDIA_TAGS`: append tags like `UHD/HDR10/HEVC/AAC` to filenames.
+- `MEZZANINE_CLEAN_STRICT_QUALITY_GATE`: fail when mezzanine warnings are detected.
 
 ### Troubleshooting
 - `required command missing: ffmpeg/ffprobe`:

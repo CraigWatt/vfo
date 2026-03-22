@@ -40,6 +40,7 @@ Snapshot command (`vfo status` / `vfo status-json`) includes:
 - `profile.<profile_name>.locations[<n>]`
 - `profile.<profile_name>.scenarios`
 - `stage.mezzanine`
+- `stage.mezzanine_clean`
 - `stage.source`
 - `stage.profiles`
 - `stage.execute`
@@ -47,6 +48,7 @@ Snapshot command (`vfo status` / `vfo status-json`) includes:
 Run command (`vfo run`) emits stage progress transitions for:
 
 - `engine.run`
+- `stage.mezzanine_clean`
 - `stage.mezzanine`
 - `stage.source`
 - `stage.profiles`

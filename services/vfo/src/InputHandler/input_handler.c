@@ -181,6 +181,10 @@ static bool ih_run_doctor(config_t *config, const char *config_dir) {
   }
 
   printf("DOCTOR INFO: KEEP_SOURCE=%s\n", config->svc->keep_source ? "true" : "false");
+  printf("DOCTOR INFO: MEZZANINE_CLEAN_ENABLED=%s\n", config->svc->mezzanine_clean_enabled ? "true" : "false");
+  printf("DOCTOR INFO: MEZZANINE_CLEAN_APPLY_CHANGES=%s\n", config->svc->mezzanine_clean_apply_changes ? "true" : "false");
+  printf("DOCTOR INFO: MEZZANINE_CLEAN_APPEND_MEDIA_TAGS=%s\n", config->svc->mezzanine_clean_append_media_tags ? "true" : "false");
+  printf("DOCTOR INFO: MEZZANINE_CLEAN_STRICT_QUALITY_GATE=%s\n", config->svc->mezzanine_clean_strict_quality_gate ? "true" : "false");
 
   ca_node_t *alias_profile = config->ca_head;
   while(alias_profile != NULL) {
@@ -372,6 +376,19 @@ static bool ih_run_status_snapshot(config_t *config, const char *config_dir, boo
                        originals_healthy ? STATUS_STATE_COMPLETE : STATUS_STATE_ERROR,
                        originals_healthy ? "ready to run mezzanine stage" : "mezzanine stage blocked by missing mezzanine locations");
 
+  if(config->svc->mezzanine_clean_enabled) {
+    status_report_update(report,
+                         "stage.mezzanine_clean",
+                         originals_healthy ? STATUS_STATE_PENDING : STATUS_STATE_ERROR,
+                         originals_healthy
+                           ? (config->svc->mezzanine_clean_apply_changes
+                               ? "enabled (apply mode)"
+                               : "enabled (audit mode)")
+                           : "mezzanine-clean blocked by missing mezzanine locations");
+  } else {
+    status_report_update(report, "stage.mezzanine_clean", STATUS_STATE_SKIPPED, "MEZZANINE_CLEAN_ENABLED=false");
+  }
+
   if(config->svc->keep_source) {
     status_report_update(report,
                          "stage.source",
@@ -419,6 +436,21 @@ static bool ih_run_runtime_dependency_precheck() {
 
   printf("PRECHECK ALERT: dependency checks failed\n");
   printf("PRECHECK INFO: run `vfo doctor` for full diagnostics after installing missing commands\n");
+  return false;
+}
+
+static bool ih_run_mezzanine_clean_dependency_precheck() {
+  bool healthy = true;
+
+  printf("PRECHECK ALERT: validating mezzanine-clean dependencies\n");
+  healthy = ih_check_command("PRECHECK", "ffprobe", true) && healthy;
+
+  if(healthy) {
+    printf("PRECHECK ALERT: mezzanine-clean dependency checks passed\n");
+    return true;
+  }
+
+  printf("PRECHECK ALERT: mezzanine-clean dependency checks failed\n");
   return false;
 }
 
@@ -488,6 +520,83 @@ static char** ih_resolve_locations(char *locations_csv, char *fallback, int *cou
   return locations;
 }
 
+static const char* ih_get_custom_folder_name_for_type(cf_node_t *cf_head,
+                                                       const char *folder_type,
+                                                       const char *fallback) {
+  cf_node_t *current = cf_head;
+  while(current != NULL) {
+    if(current->folder_type != NULL
+       && current->folder_name != NULL
+       && strcasecmp(current->folder_type, folder_type) == 0
+       && utils_string_is_empty_or_spaces(current->folder_name) == false) {
+      return current->folder_name;
+    }
+    current = current->next;
+  }
+  return fallback;
+}
+
+static bool ih_execute_mezzanine_clean_for_all_roots(config_t *config,
+                                                     bool force_enabled,
+                                                     bool force_apply_changes) {
+  mezzanine_clean_options_t options;
+  mezzanine_clean_report_t aggregate_report;
+  int mezzanine_root_count = 0;
+  char **mezzanine_roots = NULL;
+  bool healthy = true;
+  bool should_run = force_enabled || config->svc->mezzanine_clean_enabled;
+
+  if(should_run == false) {
+    printf("MEZZANINE CLEAN ALERT: disabled (MEZZANINE_CLEAN_ENABLED=false)\n");
+    return true;
+  }
+
+  mezzanine_roots = ih_resolve_locations(config->svc->original_locations,
+                                         config->svc->original_location,
+                                         &mezzanine_root_count);
+  if(mezzanine_root_count == 0) {
+    printf("MEZZANINE CLEAN ERROR: no mezzanine roots configured\n");
+    return false;
+  }
+
+  mc_options_init(&options);
+  mc_report_init(&aggregate_report);
+  options.apply_changes = force_apply_changes ? true : config->svc->mezzanine_clean_apply_changes;
+  options.append_media_tags = config->svc->mezzanine_clean_append_media_tags;
+  options.strict_quality_gate = config->svc->mezzanine_clean_strict_quality_gate;
+  options.movies_folder_name = ih_get_custom_folder_name_for_type(config->cf_head, "films", "Movies");
+  options.tv_folder_name = ih_get_custom_folder_name_for_type(config->cf_head, "tv", "TV Shows");
+
+  for(int i = 0; i < mezzanine_root_count; i++) {
+    mezzanine_clean_report_t root_report;
+    bool root_ok = false;
+
+    mc_report_init(&root_report);
+    printf("MEZZANINE CLEAN ALERT: processing root %i/%i => %s\n",
+           i + 1,
+           mezzanine_root_count,
+           mezzanine_roots[i]);
+
+    root_ok = mc_run_for_root(mezzanine_roots[i], &options, &root_report);
+    mc_report_add(&aggregate_report, &root_report);
+    if(root_ok == false)
+      healthy = false;
+  }
+
+  utils_free_string_array(mezzanine_roots, mezzanine_root_count);
+
+  printf("MEZZANINE CLEAN OVERALL: roots=%i scanned=%i planned_moves=%i applied_moves=%i warnings=%i errors=%i skipped=%i\n",
+         mezzanine_root_count,
+         aggregate_report.scanned_files,
+         aggregate_report.planned_moves,
+         aggregate_report.applied_moves,
+         aggregate_report.warnings,
+         aggregate_report.errors,
+         aggregate_report.skipped);
+
+  return healthy && aggregate_report.errors == 0;
+}
+
 static void ih_execute_original_stage_for_all_roots(config_t *config) {
   char *original_location_before = config->svc->original_location;
   int original_root_count = 0;
@@ -548,12 +657,36 @@ static void ih_execute_source_stage_for_all_original_roots(config_t *config) {
   utils_free_string_array(original_roots, original_root_count);
 }
 
-static void ih_execute_default_run(config_t *config) {
+static bool ih_execute_default_run(config_t *config) {
   status_report_t *run_report = status_report_create();
+  bool mezzanine_clean_ok = true;
 
   printf("RUN ALERT: initiating default pipeline\n");
   if(run_report != NULL)
     ih_status_update_with_log(run_report, "engine.run", STATUS_STATE_IN_PROGRESS, "default pipeline started");
+
+  if(config->svc->mezzanine_clean_enabled) {
+    if(run_report != NULL)
+      ih_status_update_with_log(run_report, "stage.mezzanine_clean", STATUS_STATE_IN_PROGRESS, "running mezzanine-clean hygiene stage");
+    mezzanine_clean_ok = ih_execute_mezzanine_clean_for_all_roots(config, false, false);
+    if(run_report != NULL) {
+      ih_status_update_with_log(run_report,
+                                "stage.mezzanine_clean",
+                                mezzanine_clean_ok ? STATUS_STATE_COMPLETE : STATUS_STATE_ERROR,
+                                mezzanine_clean_ok ? "mezzanine-clean stage completed" : "mezzanine-clean stage failed");
+    }
+    if(mezzanine_clean_ok == false) {
+      if(run_report != NULL) {
+        ih_status_update_with_log(run_report, "engine.run", STATUS_STATE_ERROR, "aborting run after mezzanine-clean failure");
+        status_report_print_text(run_report, stdout);
+        status_report_free(run_report);
+      }
+      printf("RUN ERROR: mezzanine-clean failed. Disable MEZZANINE_CLEAN_ENABLED or fix reported issues.\n");
+      return false;
+    }
+  } else if(run_report != NULL) {
+    ih_status_update_with_log(run_report, "stage.mezzanine_clean", STATUS_STATE_SKIPPED, "MEZZANINE_CLEAN_ENABLED=false");
+  }
 
   if(run_report != NULL)
     ih_status_update_with_log(run_report, "stage.mezzanine", STATUS_STATE_IN_PROGRESS, "processing mezzanine stage");
@@ -583,6 +716,7 @@ static void ih_execute_default_run(config_t *config) {
     status_report_free(run_report);
   }
   printf("RUN ALERT: default pipeline completed successfully\n");
+  return true;
 }
 
 static void ih_copy_string(char *destination, size_t destination_size, const char *source) {
@@ -900,6 +1034,10 @@ static int ih_run_wizard(const char *config_dir) {
   FILE *config_file = NULL;
   bool keep_source = true;
   bool source_test_active = false;
+  bool mezzanine_clean_enabled = false;
+  bool mezzanine_clean_apply_changes = false;
+  bool mezzanine_clean_append_media_tags = true;
+  bool mezzanine_clean_strict_quality_gate = false;
 
   printf("WIZARD ALERT: guided setup for %s\n", IH_CONFIG_FILENAME);
   printf("WIZARD INFO: press Enter to accept defaults\n");
@@ -941,6 +1079,15 @@ static int ih_run_wizard(const char *config_dir) {
     ih_copy_string(source_test_trim_start, sizeof(source_test_trim_start), "00:00:20");
     ih_copy_string(source_test_trim_duration, sizeof(source_test_trim_duration), "00:01:00");
   }
+
+  if(!ih_prompt_bool("Enable mezzanine-clean hygiene checks?", false, &mezzanine_clean_enabled))
+    return EXIT_FAILURE;
+  if(!ih_prompt_bool("Apply mezzanine-clean renames/moves automatically?", false, &mezzanine_clean_apply_changes))
+    return EXIT_FAILURE;
+  if(!ih_prompt_bool("Append probe-derived media tags to mezzanine filenames?", true, &mezzanine_clean_append_media_tags))
+    return EXIT_FAILURE;
+  if(!ih_prompt_bool("Fail mezzanine-clean when warnings are found (strict gate)?", false, &mezzanine_clean_strict_quality_gate))
+    return EXIT_FAILURE;
 
   if(!ih_prompt_line("First library folder name", "Movies", custom_folder_name, sizeof(custom_folder_name), true))
     return EXIT_FAILURE;
@@ -1024,7 +1171,11 @@ static int ih_run_wizard(const char *config_dir) {
   fprintf(config_file, "KEEP_SOURCE=\"%s\"\n\n", keep_source ? "true" : "false");
   fprintf(config_file, "SOURCE_TEST_ACTIVE=\"%s\"\n", source_test_active ? "true" : "false");
   fprintf(config_file, "SOURCE_TEST_TRIM_START=\"%s\"\n", source_test_trim_start);
-  fprintf(config_file, "SOURCE_TEST_TRIM_DURATION=\"%s\"\n\n", source_test_trim_duration);
+  fprintf(config_file, "SOURCE_TEST_TRIM_DURATION=\"%s\"\n", source_test_trim_duration);
+  fprintf(config_file, "MEZZANINE_CLEAN_ENABLED=\"%s\"\n", mezzanine_clean_enabled ? "true" : "false");
+  fprintf(config_file, "MEZZANINE_CLEAN_APPLY_CHANGES=\"%s\"\n", mezzanine_clean_apply_changes ? "true" : "false");
+  fprintf(config_file, "MEZZANINE_CLEAN_APPEND_MEDIA_TAGS=\"%s\"\n", mezzanine_clean_append_media_tags ? "true" : "false");
+  fprintf(config_file, "MEZZANINE_CLEAN_STRICT_QUALITY_GATE=\"%s\"\n\n", mezzanine_clean_strict_quality_gate ? "true" : "false");
   fprintf(config_file, "CUSTOM_FOLDER=\"%s,%s\"\n\n", custom_folder_name, custom_folder_type);
   fprintf(config_file, "PROFILE=\"%s\"\n", alias_name);
   fprintf(config_file, "%s_LOCATION=\"%s\"\n", alias_upper, alias_location);
@@ -1043,7 +1194,7 @@ static int ih_run_wizard(const char *config_dir) {
   fclose(config_file);
 
   printf("WIZARD ALERT: config written to %s\n", config_path);
-  printf("WIZARD NEXT: run `vfo show`, then `vfo doctor`, then `vfo run`\n");
+  printf("WIZARD NEXT: run `vfo show`, then `vfo doctor`, then `vfo mezzanine-clean`, then `vfo run`\n");
 
   free(config_path);
   return EXIT_SUCCESS;
@@ -1073,6 +1224,10 @@ static void ih_show_config(config_t *config, const char *config_dir) {
     printf("SOURCE_TEST_TRIM_START=%s\n", config->svc->source_test_trim_start);
     printf("SOURCE_TEST_TRIM_DURATION=%s\n", config->svc->source_test_trim_duration);
   }
+  printf("MEZZANINE_CLEAN_ENABLED=%s\n", config->svc->mezzanine_clean_enabled ? "true" : "false");
+  printf("MEZZANINE_CLEAN_APPLY_CHANGES=%s\n", config->svc->mezzanine_clean_apply_changes ? "true" : "false");
+  printf("MEZZANINE_CLEAN_APPEND_MEDIA_TAGS=%s\n", config->svc->mezzanine_clean_append_media_tags ? "true" : "false");
+  printf("MEZZANINE_CLEAN_STRICT_QUALITY_GATE=%s\n", config->svc->mezzanine_clean_strict_quality_gate ? "true" : "false");
 
   printf("\n[custom_folders]\n");
   custom_folder = config->cf_head;
@@ -1221,11 +1376,23 @@ int main (int argc, char **argv) {
     return doctor_success ? EXIT_SUCCESS : EXIT_FAILURE;
   }
 
-  if(ih->arguments->run_detected == true) {
-    ih_execute_default_run(config);
+  if(ih->arguments->mezzanine_clean_detected == true) {
+    if(ih_run_mezzanine_clean_dependency_precheck() == false) {
+      free(config);
+      config = NULL;
+      return EXIT_FAILURE;
+    }
+    bool mezzanine_clean_success = ih_execute_mezzanine_clean_for_all_roots(config, true, false);
     free(config);
     config = NULL;
-    return EXIT_SUCCESS;
+    return mezzanine_clean_success ? EXIT_SUCCESS : EXIT_FAILURE;
+  }
+
+  if(ih->arguments->run_detected == true) {
+    bool run_success = ih_execute_default_run(config);
+    free(config);
+    config = NULL;
+    return run_success ? EXIT_SUCCESS : EXIT_FAILURE;
   }
   //can i validate any more errors at this point?
 
@@ -1240,6 +1407,7 @@ int main (int argc, char **argv) {
   printf("ih->arguments->status_json_detected: %i\n", ih->arguments->status_json_detected);
   printf("ih->arguments->wizard_detected: %i\n", ih->arguments->wizard_detected);
   printf("ih->arguments->show_detected: %i\n", ih->arguments->show_detected);
+  printf("ih->arguments->mezzanine_clean_detected: %i\n", ih->arguments->mezzanine_clean_detected);
   printf("ih->arguments->wipe_detected: %i\n", ih->arguments->wipe_detected);
   printf("ih->arguments->profile_queue_detected: %i\n", ih->arguments->alias_queue_detected);
   printf("ih->arguments->profiles_detected: %i\n", ih->arguments->all_aliases_detected);

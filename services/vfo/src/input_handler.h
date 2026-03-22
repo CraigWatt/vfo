@@ -27,6 +27,7 @@
 
 #include "config.h"
 #include "mezzanine.h"
+#include "mezzanine_clean.h"
 #include "source.h"
 #include "profile.h"
 
