@@ -37,6 +37,8 @@ struct arguments {
   bool source_detected;
   bool run_detected;
   bool doctor_detected;
+  bool status_detected;
+  bool status_json_detected;
   bool wizard_detected;
   bool show_detected;
   bool alias_queue_detected;

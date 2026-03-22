@@ -39,5 +39,9 @@ Cross-cutting E2E tests live under `tests/e2e/` and are run from repository root
 - `vfo wizard` walks users through creating/updating `vfo_config.conf`.
 - `vfo show` prints the active config in a readable summary view.
 - `vfo doctor` validates toolchain and configured paths.
+- `vfo status` prints component/stage readiness snapshot for the vfo engine.
+- `vfo status-json` prints machine-readable status (`status_json` remains as legacy alias).
 - `vfo run` executes the default pipeline (mezzanine -> source if enabled -> profiles) and pre-checks required dependencies.
 - `ORIGINAL_LOCATIONS`, `SOURCE_LOCATIONS`, and `<PROFILE>_LOCATIONS` support semicolon-separated multi-drive targets with per-location caps via `*_LOCATION_MAX_USAGE_PCT`.
+
+Status schema/details are documented in `docs/status-observability.md`.

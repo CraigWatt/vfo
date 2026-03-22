@@ -632,11 +632,11 @@ void utils_found_a_rogue_file(char *file_name, char *folder) {
 }
 
 bool utils_is_string_a_reserved_word(char *string) {
-  char *reserved_words[] = {"original", "source", "revert", "wipe", "all_aliases", "do_it_all", "alias"};
+  char *reserved_words[] = {"original", "source", "revert", "wipe", "all_aliases", "do_it_all", "alias", "status", "status-json", "status_json"};
   int reserved_words_array_length = (sizeof reserved_words / sizeof(char*));
   
   bool match_found = false;
-  for(int i = 0; i <= reserved_words_array_length; i++) {
+  for(int i = 0; i < reserved_words_array_length; i++) {
     if (strcmp(string, reserved_words[i]) == 0) {
       match_found = true;
     } 

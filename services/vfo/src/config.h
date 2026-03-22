@@ -25,8 +25,10 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <stdbool.h>
 #include "Config/Data_Structures/c_config_struct.h"
 
 config_t* con_init(const char *config_dir, char **revised_argv, int revised_argc);
+void con_set_lenient_location_validation(bool enabled);
 
 #endif // CONFIG_H

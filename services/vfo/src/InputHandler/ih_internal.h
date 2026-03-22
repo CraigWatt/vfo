@@ -52,6 +52,7 @@ These Functions and variables should only ever be used internally
 
 //include necessary public facing headers
 #include "../input_handler.h"
+#include "../Status/status_engine.h"
 
 //include relevant structs
 #include "Data_Structures/ih_options_struct.h"

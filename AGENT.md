@@ -87,6 +87,21 @@ Rules:
   - `run_*_e2e.sh` for execution flows
   - `validate_*` for assertions/check-only scripts
 
+### 7) Observability Key Naming
+
+- Status component keys should use dot-scoped `lower_snake_case` segments.
+  - good: `dependency.ffmpeg`
+  - good: `stage.mezzanine`
+  - good: `profile.netflixy_open_audio_1080p.scenarios`
+- Keep top-level scopes stable so CI/test automation can safely parse:
+  - `engine.*`
+  - `config.*`
+  - `dependency.*`
+  - `storage.*`
+  - `profiles.*`
+  - `profile.*`
+  - `stage.*`
+
 ## Compatibility and Deprecation Rules
 
 - Never break existing CLI/config names in one step.
