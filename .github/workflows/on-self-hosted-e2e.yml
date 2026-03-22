@@ -18,6 +18,14 @@ on:
         description: "Number of seed media files to exercise in this run"
         required: false
         default: "4"
+      dv_p7_asset:
+        description: "Optional absolute path to a local DV P7/P8 fixture file on the runner"
+        required: false
+        default: ""
+      dv_require_retention:
+        description: "Set 1 to fail if DV side data is not retained when DV fixture is provided"
+        required: false
+        default: "0"
 
 permissions:
   contents: read
@@ -31,6 +39,8 @@ jobs:
       DEFAULT_ASSETS_DIR: /Volumes/vfo-e2e-media/vfo-runner-mezzanines
       DEFAULT_CLIP_DURATION: "6"
       DEFAULT_MAX_SEEDS: "4"
+      DEFAULT_DV_P7_ASSET: ""
+      DEFAULT_DV_REQUIRE_RETENTION: "0"
 
     steps:
       - name: ⬇️ Checkout repo
@@ -42,12 +52,16 @@ jobs:
           EVENT_ASSETS_DIR: ${{ github.event.inputs.assets_dir }}
           EVENT_CLIP_DURATION: ${{ github.event.inputs.clip_duration }}
           EVENT_MAX_SEEDS: ${{ github.event.inputs.max_seeds }}
+          EVENT_DV_P7_ASSET: ${{ github.event.inputs.dv_p7_asset }}
+          EVENT_DV_REQUIRE_RETENTION: ${{ github.event.inputs.dv_require_retention }}
         run: |
           set -euo pipefail
 
           assets_dir="${EVENT_ASSETS_DIR:-}"
           clip_duration="${EVENT_CLIP_DURATION:-}"
           max_seeds="${EVENT_MAX_SEEDS:-}"
+          dv_p7_asset="${EVENT_DV_P7_ASSET:-}"
+          dv_require_retention="${EVENT_DV_REQUIRE_RETENTION:-}"
 
           if [ -z "$assets_dir" ]; then
             assets_dir="$DEFAULT_ASSETS_DIR"
@@ -58,14 +72,24 @@ jobs:
           if [ -z "$max_seeds" ]; then
             max_seeds="$DEFAULT_MAX_SEEDS"
           fi
+          if [ -z "$dv_p7_asset" ]; then
+            dv_p7_asset="$DEFAULT_DV_P7_ASSET"
+          fi
+          if [ -z "$dv_require_retention" ]; then
+            dv_require_retention="$DEFAULT_DV_REQUIRE_RETENTION"
+          fi
 
           echo "assets_dir=$assets_dir" >> "$GITHUB_OUTPUT"
           echo "clip_duration=$clip_duration" >> "$GITHUB_OUTPUT"
           echo "max_seeds=$max_seeds" >> "$GITHUB_OUTPUT"
+          echo "dv_p7_asset=$dv_p7_asset" >> "$GITHUB_OUTPUT"
+          echo "dv_require_retention=$dv_require_retention" >> "$GITHUB_OUTPUT"
 
           echo "Resolved assets_dir=$assets_dir"
           echo "Resolved clip_duration=$clip_duration"
           echo "Resolved max_seeds=$max_seeds"
+          echo "Resolved dv_p7_asset=${dv_p7_asset:-<unset>}"
+          echo "Resolved dv_require_retention=$dv_require_retention"
 
       - name: 🧰 Verify runner dependencies
         run: |
@@ -87,6 +111,8 @@ jobs:
           VFO_E2E_ASSETS_DIR: ${{ steps.params.outputs.assets_dir }}
           VFO_E2E_CLIP_DURATION: ${{ steps.params.outputs.clip_duration }}
           VFO_E2E_MAX_SEEDS: ${{ steps.params.outputs.max_seeds }}
+          VFO_E2E_DV_P7_ASSET: ${{ steps.params.outputs.dv_p7_asset }}
+          VFO_E2E_DV_REQUIRE_RETENTION: ${{ steps.params.outputs.dv_require_retention }}
         run: make ci
 
       - name: ⬆️ Upload e2e debug artifacts

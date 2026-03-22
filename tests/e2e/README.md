@@ -8,6 +8,12 @@ This directory contains end-to-end tests for profile action scripts under:
 
 - 1080 profile action output (`transcode_hevc_1080_profile.sh`)
 - 4K profile action output (`transcode_hevc_4k_profile.sh`)
+- conservative device conformance checks for stock targets:
+  - Roku Express / Roku 4K
+  - Fire TV Stick Lite / 4K / 4K Max
+  - Chromecast with Google TV HD / 4K
+  - Apple TV HD / Apple TV 4K
+- optional Dolby Vision metadata retention check (skip when no DV P7 fixture is configured)
 - Assertions for:
   - output is readable by `ffprobe`
   - video codec is HEVC
@@ -45,6 +51,9 @@ make e2e
 - `VFO_E2E_CLIP_DURATION`: fixture clip duration in seconds (default: `2`)
 - `VFO_E2E_MAX_SEEDS`: number of local seed assets to process per run (default: `1`)
 - `VFO_E2E_KEEP_TMP=1`: keep `tests/e2e/.tmp/` for debugging
+- `VFO_E2E_DV_P7_ASSET`: optional absolute path to a private DV P7/P8 mezzanine for metadata-retention tests
+- `VFO_E2E_DV_REQUIRE_RETENTION=1`: fail if DV side data is not retained when DV test is active
+- `VFO_E2E_DV_CLIP_DURATION`: clip length for optional DV test (default: `8`)
 
 ## GitHub Actions (Self-Hosted Media Runner)
 
@@ -60,7 +69,7 @@ It targets runner labels:
 
 This workflow now runs in two ways:
 
-- automatically on `main` pushes (uses workflow defaults)
+- automatically on same-repo PRs to `main` and on `main` pushes (uses workflow defaults)
 - manually via `workflow_dispatch` (override inputs as needed)
 
 Trigger manually in Actions and provide:
@@ -68,3 +77,10 @@ Trigger manually in Actions and provide:
 - `assets_dir`: absolute path on the runner machine where your open-source media is mounted
 - `clip_duration`: optional fixture duration override
 - `max_seeds`: optional count of media assets to exercise in one run (default: `4`)
+- `dv_p7_asset`: optional absolute path to local DV P7/P8 fixture on the runner
+- `dv_require_retention`: set `1` to fail if DV side data is not retained when fixture is present
+
+Notes:
+
+- The optional DV metadata test is non-blocking by default unless a DV fixture path is provided.
+- If no DV fixture is configured, the DV test lane exits with a skip message and success.

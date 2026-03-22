@@ -66,7 +66,14 @@ From the runner install directory:
 
 ## 5) Trigger full-media E2E
 
-The workflow runs automatically on `main` pushes using defaults.
+The workflow runs automatically on:
+
+- same-repo pull requests targeting `main`
+- pushes to `main`
+
+using defaults.
+
+For safety, fork-origin pull requests are skipped to avoid running untrusted code on a self-hosted machine.
 
 You can also run it manually from GitHub Actions:
 
@@ -76,7 +83,8 @@ In GitHub Actions:
 2. Click `Run workflow`
 3. Set `assets_dir` to your mounted media path
 4. Optionally set `max_seeds` (for example `4`)
-5. Run
+5. Optionally set `dv_p7_asset` and `dv_require_retention=1` when you want strict DV metadata checks
+6. Run
 
 The workflow executes `make ci` with:
 
@@ -85,3 +93,8 @@ The workflow executes `make ci` with:
 - `VFO_E2E_MAX_SEEDS=<max_seeds>`
 
 and uploads `tests/e2e/.tmp/` as artifact for debugging.
+
+Optional DV metadata lane:
+
+- set `VFO_E2E_DV_P7_ASSET` on the runner environment to enable the optional DV metadata test
+- if unset, the DV lane auto-skips successfully
