@@ -86,7 +86,7 @@ bool utils_string_is_empty_or_spaces(char *string) {
  * This function creates a folder using the param location
  */
 void utils_create_folder(char *location) {
-  mkdir(location, BUFSIZ);
+  mkdir(location, 0755);
 }
 
 void utils_create_error_encoding_file(char *location, char *candidate_name) {

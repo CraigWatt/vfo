@@ -23,6 +23,9 @@
  */
 
 #include "u_tests.h"
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 void test_utils_does_folder_exist_null_ptr(void **state) {
   (void)state;
@@ -65,4 +68,30 @@ void test_utils_location_pool_create_and_map_path(void **state) {
 
   free(mapped);
   utils_location_pool_free(pool);
+}
+
+void test_utils_create_folder_creates_accessible_directory(void **state) {
+  (void)state;
+  char parent_template[] = "/tmp/vfo-utils-create-folder-XXXXXX";
+  char *parent = mkdtemp(parent_template);
+  char *child = NULL;
+  struct stat st;
+
+  assert_non_null(parent);
+
+  child = utils_combine_to_full_path(parent, "child");
+  assert_non_null(child);
+
+  utils_create_folder(child);
+
+  assert_int_equal(stat(child, &st), 0);
+  assert_true(S_ISDIR(st.st_mode));
+  assert_true((st.st_mode & S_IRUSR) != 0);
+  assert_true((st.st_mode & S_IWUSR) != 0);
+  assert_true((st.st_mode & S_IXUSR) != 0);
+  assert_int_equal(access(child, R_OK | W_OK | X_OK), 0);
+
+  assert_int_equal(rmdir(child), 0);
+  assert_int_equal(rmdir(parent), 0);
+  free(child);
 }
