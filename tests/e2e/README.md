@@ -24,7 +24,7 @@ make e2e
 
 This uses asset mode `auto` by default:
 
-- if `tests/e2e/assets/open-source/` contains media files, those are used as the seed input
+- if `tests/e2e/assets/open-source/` contains media files, those are used as seed inputs
 - otherwise synthetic fixtures are generated (CI-safe fallback)
 
 ## Force Real Open-Source Local Assets
@@ -34,6 +34,7 @@ If you already keep your open-source sample pack locally:
 ```bash
 VFO_E2E_ASSET_MODE=local \
 VFO_E2E_ASSETS_DIR="/absolute/path/to/open-source-media" \
+VFO_E2E_MAX_SEEDS=4 \
 make e2e
 ```
 
@@ -42,4 +43,23 @@ make e2e
 - `VFO_E2E_ASSET_MODE`: `auto` (default), `local`, `synthetic`
 - `VFO_E2E_ASSETS_DIR`: media directory used by `auto/local` modes
 - `VFO_E2E_CLIP_DURATION`: fixture clip duration in seconds (default: `2`)
+- `VFO_E2E_MAX_SEEDS`: number of local seed assets to process per run (default: `1`)
 - `VFO_E2E_KEEP_TMP=1`: keep `tests/e2e/.tmp/` for debugging
+
+## GitHub Actions (Self-Hosted Media Runner)
+
+Use workflow:
+
+- `.github/workflows/on-self-hosted-e2e.yml`
+
+It targets runner labels:
+
+- `self-hosted`
+- `macOS`
+- `vfo-media`
+
+Trigger manually in Actions and provide:
+
+- `assets_dir`: absolute path on the runner machine where your open-source media is mounted
+- `clip_duration`: optional fixture duration override
+- `max_seeds`: optional count of media assets to exercise in one run (default: `4`)

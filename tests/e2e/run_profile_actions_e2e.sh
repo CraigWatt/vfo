@@ -9,6 +9,7 @@ OUTPUTS_DIR="${TMP_DIR}/outputs"
 ASSET_MODE="${VFO_E2E_ASSET_MODE:-auto}" # auto|local|synthetic
 ASSETS_DIR="${VFO_E2E_ASSETS_DIR:-${ROOT_DIR}/tests/e2e/assets/open-source}"
 CLIP_DURATION="${VFO_E2E_CLIP_DURATION:-2}"
+MAX_SEEDS="${VFO_E2E_MAX_SEEDS:-1}"
 KEEP_TMP="${VFO_E2E_KEEP_TMP:-0}"
 
 ACTION_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_profile.sh"
@@ -53,18 +54,44 @@ assert_int_lte() {
   fi
 }
 
-find_first_video() {
+assert_positive_int() {
+  local value="$1"
+  local name="$2"
+  case "$value" in
+    ''|*[!0-9]*)
+      fail "${name} must be a positive integer (got: ${value})"
+      ;;
+    0)
+      fail "${name} must be greater than zero"
+      ;;
+  esac
+}
+
+is_video_file() {
+  local candidate="$1"
+  case "$candidate" in
+    *.mkv|*.mp4|*.mov|*.m4v|*.m2ts|*.ts|*.avi|*.webm|\
+    *.MKV|*.MP4|*.MOV|*.M4V|*.M2TS|*.TS|*.AVI|*.WEBM)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+collect_video_assets() {
+  local list_file="$1"
   local candidate
-  while IFS= read -r -d '' candidate; do
-    case "$candidate" in
-      *.mkv|*.mp4|*.mov|*.m4v|*.m2ts|*.ts|*.avi|*.webm|\
-      *.MKV|*.MP4|*.MOV|*.M4V|*.M2TS|*.TS|*.AVI|*.WEBM)
-        printf '%s\n' "$candidate"
-        return 0
-        ;;
-    esac
-  done < <(find "$ASSETS_DIR" -type f -print0 2>/dev/null)
-  return 1
+  : > "$list_file"
+
+  [ -d "$ASSETS_DIR" ] || return 0
+
+  while IFS= read -r candidate; do
+    if is_video_file "$candidate"; then
+      printf '%s\n' "$candidate" >> "$list_file"
+    fi
+  done < <(find "$ASSETS_DIR" -type f 2>/dev/null | LC_ALL=C sort)
 }
 
 create_fixture_from_input() {
@@ -160,39 +187,86 @@ run_action_assertions() {
   log "${action_name} passed (codec=${codec}, height=${height}, audio_streams=${output_audio_count})"
 }
 
-build_fixtures() {
+run_seed_from_input() {
+  local seed_index="$1"
+  local seed_asset="$2"
+  local fixture_1080="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080.mkv"
+  local fixture_2160="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160.mkv"
+  local output_1080="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_output.mkv"
+  local output_4k="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_output.mkv"
+
+  log "Using local open-source asset seed #${seed_index}: ${seed_asset}"
+  create_fixture_from_input "$seed_asset" 1920 1080 "$fixture_1080"
+  create_fixture_from_input "$seed_asset" 3840 2160 "$fixture_2160"
+
+  run_action_assertions \
+    "hevc_1080_profile_action(seed_${seed_index})" \
+    "$ACTION_1080" \
+    "$fixture_1080" \
+    "$output_1080" \
+    1080
+
+  run_action_assertions \
+    "hevc_4k_profile_action(seed_${seed_index})" \
+    "$ACTION_4K" \
+    "$fixture_2160" \
+    "$output_4k" \
+    2160
+}
+
+run_seed_synthetic() {
+  local seed_index="$1"
+  local fixture_1080="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080.mkv"
+  local fixture_2160="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160.mkv"
+  local output_1080="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_output.mkv"
+  local output_4k="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_output.mkv"
+
+  log "Using synthetic fixtures for seed #${seed_index} (no local assets required)"
+  create_synthetic_fixture 1920 1080 "$fixture_1080"
+  create_synthetic_fixture 3840 2160 "$fixture_2160"
+
+  run_action_assertions \
+    "hevc_1080_profile_action(seed_${seed_index})" \
+    "$ACTION_1080" \
+    "$fixture_1080" \
+    "$output_1080" \
+    1080
+
+  run_action_assertions \
+    "hevc_4k_profile_action(seed_${seed_index})" \
+    "$ACTION_4K" \
+    "$fixture_2160" \
+    "$output_4k" \
+    2160
+}
+
+run_local_asset_suite() {
+  local seed_list="${TMP_DIR}/seed_assets.txt"
   local seed_asset=""
+  local processed=0
 
-  mkdir -p "$FIXTURES_DIR" "$OUTPUTS_DIR"
+  collect_video_assets "$seed_list"
 
-  case "$ASSET_MODE" in
-    auto)
-      if seed_asset="$(find_first_video)"; then
-        log "Using local open-source asset seed: ${seed_asset}"
-        create_fixture_from_input "$seed_asset" 1920 1080 "${FIXTURES_DIR}/mezzanine_1080.mkv"
-        create_fixture_from_input "$seed_asset" 3840 2160 "${FIXTURES_DIR}/mezzanine_2160.mkv"
-      else
+  while IFS= read -r seed_asset; do
+    [ -n "$seed_asset" ] || continue
+    if [ "$processed" -ge "$MAX_SEEDS" ]; then
+      break
+    fi
+    processed=$((processed + 1))
+    run_seed_from_input "$processed" "$seed_asset"
+  done < "$seed_list"
+
+  if [ "$processed" -eq 0 ]; then
+    if [ "$ASSET_MODE" = "auto" ]; then
         log "No local asset found in ${ASSETS_DIR}; generating synthetic CI fixtures"
-        create_synthetic_fixture 1920 1080 "${FIXTURES_DIR}/mezzanine_1080.mkv"
-        create_synthetic_fixture 3840 2160 "${FIXTURES_DIR}/mezzanine_2160.mkv"
-      fi
-      ;;
-    local)
-      seed_asset="$(find_first_video || true)"
-      [ -n "$seed_asset" ] || fail "ASSET_MODE=local but no video assets found in ${ASSETS_DIR}"
-      log "Using local open-source asset seed: ${seed_asset}"
-      create_fixture_from_input "$seed_asset" 1920 1080 "${FIXTURES_DIR}/mezzanine_1080.mkv"
-      create_fixture_from_input "$seed_asset" 3840 2160 "${FIXTURES_DIR}/mezzanine_2160.mkv"
-      ;;
-    synthetic)
-      log "Using synthetic fixtures (no local assets required)"
-      create_synthetic_fixture 1920 1080 "${FIXTURES_DIR}/mezzanine_1080.mkv"
-      create_synthetic_fixture 3840 2160 "${FIXTURES_DIR}/mezzanine_2160.mkv"
-      ;;
-    *)
-      fail "Unsupported VFO_E2E_ASSET_MODE='${ASSET_MODE}' (expected: auto|local|synthetic)"
-      ;;
-  esac
+      run_seed_synthetic 1
+      processed=1
+    else
+      fail "ASSET_MODE=local but no video assets found in ${ASSETS_DIR}"
+    fi
+  fi
+
+  log "Processed ${processed} seed asset(s)"
 }
 
 main() {
@@ -205,22 +279,22 @@ main() {
   mkdir -p "$FIXTURES_DIR" "$OUTPUTS_DIR"
   trap cleanup EXIT
 
-  log "asset_mode=${ASSET_MODE} assets_dir=${ASSETS_DIR} clip_duration=${CLIP_DURATION}s"
-  build_fixtures
+  assert_positive_int "$MAX_SEEDS" "VFO_E2E_MAX_SEEDS"
 
-  run_action_assertions \
-    "hevc_1080_profile_action" \
-    "$ACTION_1080" \
-    "${FIXTURES_DIR}/mezzanine_1080.mkv" \
-    "${OUTPUTS_DIR}/profile_1080_output.mkv" \
-    1080
+  log "asset_mode=${ASSET_MODE} assets_dir=${ASSETS_DIR} clip_duration=${CLIP_DURATION}s max_seeds=${MAX_SEEDS}"
 
-  run_action_assertions \
-    "hevc_4k_profile_action" \
-    "$ACTION_4K" \
-    "${FIXTURES_DIR}/mezzanine_2160.mkv" \
-    "${OUTPUTS_DIR}/profile_4k_output.mkv" \
-    2160
+  case "$ASSET_MODE" in
+    auto|local)
+      run_local_asset_suite
+      ;;
+    synthetic)
+      run_seed_synthetic 1
+      log "Processed 1 seed asset(s)"
+      ;;
+    *)
+      fail "Unsupported VFO_E2E_ASSET_MODE='${ASSET_MODE}' (expected: auto|local|synthetic)"
+      ;;
+  esac
 
   log "All e2e profile action checks passed"
 }

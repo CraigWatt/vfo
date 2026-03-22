@@ -105,6 +105,7 @@ CI/CD test integration:
 - Tag release workflows also run `make ci` before packaging/release.
 - Hosted runners use synthetic e2e fixtures by default.
 - For full real-media e2e, run locally (or on self-hosted runners) with your local open-source asset path.
+- Manual full-media runner lane is available via `.github/workflows/on-self-hosted-e2e.yml`.
 
 ### Option 2: build from source
 
@@ -340,7 +341,7 @@ Note that `make tests` links against `cmocka`, so you may need to install that d
 For full local-media e2e:
 
 ```bash
-VFO_E2E_ASSET_MODE=local VFO_E2E_ASSETS_DIR="/absolute/path/to/open-source-media" make e2e
+VFO_E2E_ASSET_MODE=local VFO_E2E_ASSETS_DIR="/absolute/path/to/open-source-media" VFO_E2E_MAX_SEEDS=4 make e2e
 ```
 
 ## Known rough edges

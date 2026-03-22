@@ -14,6 +14,10 @@ This directory contains infrastructure and operational code.
 
 - Place infra-focused checks under `infra/test/`
 
+## CI/CD Operations Docs
+
+- Self-hosted full-media runner setup: `infra/docs/self-hosted-runner.md`
+
 ## Keep out
 
 - Product business logic
