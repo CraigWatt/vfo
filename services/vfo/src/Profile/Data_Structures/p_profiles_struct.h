@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  */
 
-#ifndef A_ALIASES_STRUCT_H
-#define A_ALIASES_STRUCT_H
-/*Alias Struct*/
+#ifndef P_PROFILES_STRUCT_H
+#define P_PROFILES_STRUCT_H
+/* Profile struct (legacy internal type names retained for compatibility). */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,7 @@
 #include "../../config.h"
 #include "../../utils.h"
 
-/* What exactly does alias need to point to in config to do it's work?*/
+/* What does profile need to point to in config to do its work? */
 
 struct alias {
   char *root;
@@ -99,4 +99,4 @@ int a_fetch_specific_res_from_scenario_string(char *scenario_string, char *res_m
 
 aliases_t *alias_insert_at_head(aliases_t **head, aliases_t *node_to_insert);
 void alias_insert_after_node(aliases_t *node_to_insert_after, aliases_t* newnode);
-#endif // A_ALIASES_STRUCT_H
+#endif // P_PROFILES_STRUCT_H

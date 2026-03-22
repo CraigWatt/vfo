@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-#include "o_original_struct.h"
+#include "m_mezzanine_struct.h"
 
 original_t* original_create_new_struct(config_t *config) {
   original_t *result = malloc(sizeof(original_t));
@@ -131,4 +131,3 @@ char* o_get_m2ts_original_if_it_exists(char *original_root) {
     printf("MEZZANINE ALERT: if /m2ts_original is required, vfo will create it later.\n");
   return "";
 }
-

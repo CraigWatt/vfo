@@ -48,12 +48,12 @@ This is expected for compatibility, but the naming strategy needs explicit rules
 
 ### 3) Source tree path style inconsistency
 
-Under `services/vfo/src/` and `services/vfo/test/`, legacy CamelCase directory names remain:
+Under `services/vfo/src/` and `services/vfo/test/`, CamelCase directory names remain:
 
-- `Alias`, `Config`, `InputHandler`, `Source_AS`, etc.
-- `AliasTests`, `ConfigTests`, etc.
+- `Profile`, `Config`, `InputHandler`, `Source_AS`, etc.
+- `ProfileTests`, `ConfigTests`, etc.
 
-Newer repository layout (`infra/`, `platform/`, `services/`) is already lowercase and cleaner.
+This is functionally fine, but still differs from the lowercase style used in newer top-level repository layout (`infra/`, `platform/`, `services/`).
 
 ### 4) Mixed command naming patterns
 

@@ -22,8 +22,8 @@
  * THE SOFTWARE.
  */
 
-#include "Data_Structures/o_original_struct.h"
-#include "o_internal.h"
+#include "Data_Structures/m_mezzanine_struct.h"
+#include "m_internal.h"
 
 void o_original(original_t *original) {
   printf("MEZZANINE ALERT: initiating 'mezzanine'\n");
@@ -319,6 +319,5 @@ void o_detect_duplicates(char *from_cf_parent_folder, char *to_cf_parent_folder,
     exit(EXIT_FAILURE);
   }
 }
-
 
 

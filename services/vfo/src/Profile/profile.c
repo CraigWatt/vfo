@@ -22,8 +22,8 @@
  * THE SOFTWARE.
  */
 
-#include "Data_Structures/a_aliases_struct.h"
-#include "a_internal.h"
+#include "Data_Structures/p_profiles_struct.h"
+#include "p_internal.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -921,7 +921,7 @@ char* a_generate_alias_file_name(char *from, char *to, char *alias_name) {
 
 
 
-/* Original to Aliases Work */
+/* Mezzanine-to-profile(s) work (legacy function names retained for compatibility). */
 
 void a_original_to_aliases(aliases_t *aliases) {
   printf("PROFILES ALERT: initiating 'mezzanine_to_profiles'\n");

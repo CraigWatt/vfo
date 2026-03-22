@@ -22,11 +22,13 @@
  * THE SOFTWARE.
  */
 
-#include "a_tests.h"
+#include "m_tests.h"
+#include "cmocka.h"
 
-void test_a_source_to_aliases(void **state) {
-  aliases_t *test_alias = NULL;
-  // a_source_to_aliases();
+void test_o_original_null_ptr(void **state) {
+  original_t *test_original = NULL;
+  // o_original(test_original);
+  // add a comment and a second bit a third bit fourth fifth
   int duck = 1;
   assert_int_equal(duck, 1);
 }

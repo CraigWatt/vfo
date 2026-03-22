@@ -22,14 +22,14 @@
  * THE SOFTWARE.
  */
 
-#ifndef O_TESTS_H
-#define O_TESTS_H
+#ifndef M_TESTS_H
+#define M_TESTS_H
 
 #include "../t_internal.h"
 
-#include "../../src/original.h"
-#include "../../src/Original/o_internal.h"
+#include "../../src/mezzanine.h"
+#include "../../src/Mezzanine/m_internal.h"
 
 void test_o_original_null_ptr(void **state);
 
-#endif // O_TESTS_H
+#endif // M_TESTS_H

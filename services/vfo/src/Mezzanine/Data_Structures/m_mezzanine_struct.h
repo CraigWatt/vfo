@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  */
 
-#ifndef O_ORIGINAL_STRUCT_H
-#define O_ORIGINAL_STRUCT_H
-/*Original Struct*/
+#ifndef M_MEZZANINE_STRUCT_H
+#define M_MEZZANINE_STRUCT_H
+/* Mezzanine struct (legacy internal type names retained for compatibility). */
 
 #include <stdio.h>
 #include <string.h>
@@ -33,7 +33,7 @@
 #include "../../config.h"
 #include "../../utils.h"
 
-/*What exactly does original need to point to in config to do it's work?*/
+/* What does mezzanine need to point to in config to do its work? */
 
 struct original {
   char *root;
@@ -59,4 +59,4 @@ char* o_get_mkv_original_if_it_exists(char *original_root);
 char* o_get_mp4_original_if_it_exists(char *original_root);
 char* o_get_m2ts_original_if_it_exists(char *original_root);
 
-#endif // O_ORIGINAL_STRUCT_H
+#endif // M_MEZZANINE_STRUCT_H

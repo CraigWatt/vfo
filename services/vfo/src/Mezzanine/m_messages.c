@@ -22,14 +22,11 @@
  * THE SOFTWARE.
  */
 
-#ifndef A_TESTS_H
-#define A_TESTS_H
+#include "m_internal.h"
 
-#include "../t_internal.h"
-
-#include "../../src/alias.h"
-#include "../../src/Alias/a_internal.h"
-
-void test_a_source_to_aliases(void **state);
-
-#endif // A_TESTS_H
+/*
+ * Mezzanine message
+ */
+void o_mes_init_original () {
+    fprintf(stdout, "mezzanine initiating...\n");
+}
