@@ -17,11 +17,13 @@ Support profile workflows such as:
 
 Use existing `*_FFMPEG_COMMAND` entries to call action scripts directly.
 
+Recommended default: reference installed command names in PATH.
+
 Example:
 
 ```text
 ROKU4K_SCENARIO="RES_TOO_HIGH"
-ROKU4K_FFMPEG_COMMAND="/ABS/PATH/services/vfo/actions/transcode_hevc_4k_profile.sh $vfo_input $vfo_output"
+ROKU4K_FFMPEG_COMMAND="transcode_hevc_4k_profile.sh $vfo_input $vfo_output"
 ```
 
 Why this works:

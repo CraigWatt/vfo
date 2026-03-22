@@ -27,6 +27,8 @@
 # Put here the binary file name. The compilation will result in that binary
 #
 BINARY = vfo
+ACTION_SCRIPTS := $(wildcard actions/*.sh)
+ACTION_SCRIPT_NAMES := $(notdir $(ACTION_SCRIPTS))
 
 PREFIX = /usr/local
 
@@ -208,9 +210,11 @@ install: $(OBJECTS)
 	sudo mkdir -p $(DESTDIR)$(PREFIX)/bin/vfo_conf_folder
 	sudo cp -f bin/vfo $(DESTDIR)$(PREFIX)/bin
 	sudo cp -f src/vfo_config.conf $(DESTDIR)$(PREFIX)/bin/vfo_conf_folder
+	sudo cp -f $(ACTION_SCRIPTS) $(DESTDIR)$(PREFIX)/bin
 	
 
 uninstall:
 	sudo rm -f $(DESTDIR)$(PREFIX)/bin/vfo
 	sudo rm -f $(DESTDIR)$(PREFIX)/bin/vfo_conf_folder/vfo_config.conf
+	sudo rm -f $(addprefix $(DESTDIR)$(PREFIX)/bin/,$(ACTION_SCRIPT_NAMES))
 	sudo rmdir $(DESTDIR)$(PREFIX)/bin/vfo_conf_folder

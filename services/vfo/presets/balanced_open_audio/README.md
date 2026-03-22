@@ -20,8 +20,10 @@ This preset is designed to call reusable action scripts that:
 
 See:
 
-- `services/vfo/actions/transcode_hevc_4k_profile.sh`
-- `services/vfo/actions/transcode_hevc_1080_profile.sh`
+- `transcode_hevc_4k_profile.sh`
+- `transcode_hevc_1080_profile.sh`
+
+These command names work out of the box after `.pkg` install or `make install`.
 
 ## File
 
