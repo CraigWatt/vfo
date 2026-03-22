@@ -22,11 +22,11 @@
  * THE SOFTWARE.
  */
 
-#include "o_internal.h"
+#include "p_internal.h"
 
 /*
- * Original message
+ * Profile initiating message
  */
-void o_mes_init_original () {
-    fprintf(stdout, "original initiating...\n");
+ void a_mes_init_alias() {
+    fprintf(stdout, "profile initiating...\n");
 }

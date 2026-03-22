@@ -26,16 +26,16 @@
 #define INPUT_HANDLER_H
 
 #include "config.h"
-#include "original.h"
+#include "mezzanine.h"
 #include "source.h"
-#include "alias.h"
+#include "profile.h"
 
 /* ---------- main function ---------- */
 /*
  * All roads start here
  * Always the first function ran.
  * argc: number of arguments provided by user 'vfo arg arg arg'
- * argv: value of arguments 'vfo original' 'vfo source' vfo 'do_it_all'
+ * argv: value of arguments such as 'vfo mezzanine', 'vfo source', or 'vfo run'
  */
 int main (int argc, char *argv[]);
 

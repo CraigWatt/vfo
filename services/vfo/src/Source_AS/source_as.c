@@ -83,12 +83,11 @@ void as_highlight_encode_candidates_from_source_content(audio_strat_t *audio_str
       active_cf = active_cf->next;
     }
   }
-  printf("SOURCE ALERT: %i mkv_original -> source/content candidates found.\n", mkv_encode_candidates_counter);
+  printf("SOURCE ALERT: %i mezzanine/mkv_original -> source/content candidates found.\n", mkv_encode_candidates_counter);
   printf("SOURCE ALERT: %i will be ignored as they appear to already exist in source/content.\n", already_present_in_source_counter);
   free(active_cf);
   active_cf = NULL;
 }
-
 
 
 

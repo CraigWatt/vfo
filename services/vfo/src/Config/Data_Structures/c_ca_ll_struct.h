@@ -33,7 +33,7 @@
 #include "c_cs_ll_struct.h"
 
 
-/*-----Custom Alias Linked List Struct-----*/
+/*-----Custom Profile Linked List Struct-----*/
 /*
  * The purpose of ca ll is to gather the alias name and it's targets from the conf file
  * What functions use this?:

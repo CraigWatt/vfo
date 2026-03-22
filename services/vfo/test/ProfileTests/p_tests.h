@@ -22,13 +22,14 @@
  * THE SOFTWARE.
  */
 
-#include "o_tests.h"
-#include "cmocka.h"
+#ifndef P_TESTS_H
+#define P_TESTS_H
 
-void test_o_original_null_ptr(void **state) {
-  original_t *test_original = NULL;
-  // o_original(test_original);
-  // add a comment and a second bit a third bit fourth fifth
-  int duck = 1;
-  assert_int_equal(duck, 1);
-}
+#include "../t_internal.h"
+
+#include "../../src/profile.h"
+#include "../../src/Profile/p_internal.h"
+
+void test_a_source_to_aliases(void **state);
+
+#endif // P_TESTS_H

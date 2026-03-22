@@ -22,8 +22,8 @@
  * THE SOFTWARE.
  */
 
-#include "Data_Structures/a_aliases_struct.h"
-#include "a_internal.h"
+#include "Data_Structures/p_profiles_struct.h"
+#include "p_internal.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -84,7 +84,7 @@ static bool a_encode_candidate_with_retry(aliases_t *alias,
       utils_create_folder(to_folder);
 
     if(a_execute_ffmpeg_command(from_folder, to_folder, alias) == true) {
-      printf("ALIAS %s ALERT: ffmpeg command executed successfully.\n", alias->name);
+      printf("PROFILE %s ALERT: ffmpeg command executed successfully.\n", alias->name);
       free(excluded_indexes);
       free(to_tv_level_1);
       free(to_tv_level_2);
@@ -93,7 +93,7 @@ static bool a_encode_candidate_with_retry(aliases_t *alias,
       return true;
     }
 
-    printf("ALIAS %s WARNING: ffmpeg command failed for destination %s\n", alias->name, to_folder);
+    printf("PROFILE %s WARNING: ffmpeg command failed for destination %s\n", alias->name, to_folder);
     if(unable_to_process != NULL)
       utils_create_error_encoding_file(unable_to_process, from_folder);
     if(utils_does_folder_exist(to_folder) && utils_is_folder_empty(to_folder) == false)
@@ -115,20 +115,20 @@ static bool a_encode_candidate_with_retry(aliases_t *alias,
 /* Source to Aliases Work */
 
 void a_source_to_aliases(aliases_t *aliases) {
-  printf("ALIASes ALERT: initiating 'source_to_aliases'\n");
+  printf("PROFILES ALERT: initiating 'source_to_profiles'\n");
   //for every alias node in aliases
   if(aliases != NULL) {
     aliases_t *tmp = aliases;
     while(tmp != NULL) {
-      //encode_source_to_alias();
+      //encode_source_to_profile();
       a_source_to_alias(tmp);
       tmp = tmp->next;
     }
   }
-  printf("ALIASes ALERT: ALIASes completed successfully\n");
+  printf("PROFILES ALERT: profiles completed successfully\n");
 }
 void a_source_to_alias(aliases_t *alias) {
-  printf("ALIAS %s ALERT: initiating 'source_to_alias'\n", alias->name);
+  printf("PROFILE %s ALERT: initiating 'source_to_profile'\n", alias->name);
   /* pre-encode checks */
   a_pre_encode_checks(alias);
 
@@ -136,18 +136,18 @@ void a_source_to_alias(aliases_t *alias) {
   a_highlight_encode_candidates_to_user(alias);
 
   /*ask user if they wish to proceed with encoding */
-  utils_wish_to_continue("'find an alias's candidates'", "'encode alias's candidates to alias'");
+  utils_wish_to_continue("'find a profile's candidates'", "'encode profile candidates to profile'");
 
   /* encode */
-  printf("ALIAS %s ALERT: initiating encoding.\n", alias->name);
+  printf("PROFILE %s ALERT: initiating encoding.\n", alias->name);
   a_encode_source_to_an_alias(alias);
   /* post-encode checks */
   //might need to add to here
-  printf("ALIAS %s ALERT: an alias completed successfully\n", alias->name);
+  printf("PROFILE %s ALERT: a profile completed successfully\n", alias->name);
 }
 
 void a_pre_encode_checks(aliases_t *alias) {
-  printf("ALIAS %s ALERT: initiating 'pre-encode checks'\n", alias->name);
+  printf("PROFILE %s ALERT: initiating 'pre-encode checks'\n", alias->name);
   for(int i = 0; i < alias->alias_locations_count; i++) {
     char *content_root = alias->content_locations[i];
     utils_does_folder_contain_valid_custom_folders(content_root, alias->cf_head);
@@ -162,7 +162,7 @@ void a_pre_encode_checks(aliases_t *alias) {
   //a_is_alias_out_of_sync_with_source(); - //simple meaning: if a movie/tv folder exists here that doesn't 
                                         //exist in source, tell the user.
 
-  printf("ALIAS %s ALERT: 'pre-encode checks' completed successfully\n", alias->name);
+  printf("PROFILE %s ALERT: 'pre-encode checks' completed successfully\n", alias->name);
 }
 
 void a_highlight_encode_candidates_to_user(aliases_t *alias) {
@@ -170,7 +170,7 @@ void a_highlight_encode_candidates_to_user(aliases_t *alias) {
   for(int i = 0; i < alias->source_locations_count; i++) {
     alias->source_content = alias->source_content_locations[i];
     if(strcmp(alias->source_content, "") != 0) {
-      printf("ALIAS %s ALERT: found source/content at %s\n", alias->name, alias->source_content);
+      printf("PROFILE %s ALERT: found source/content at %s\n", alias->name, alias->source_content);
       a_highlight_encode_candidates_from_source_content(alias);
     }
   }
@@ -224,8 +224,8 @@ void a_highlight_encode_candidates_from_source_content(aliases_t *alias) {
       active_cf = active_cf->next;
     }
   }
-  printf("ALIAS %s ALERT: %i source/content -> %s/content candidates found.\n",alias->name, alias_encode_candidates_counter, alias->name);
-  printf("ALIAS %s ALERT: %i will be ignored as they appear to already exist in source/content.\n", alias->name, already_present_in_alias_counter);
+  printf("PROFILE %s ALERT: %i source/content -> %s/content candidates found.\n",alias->name, alias_encode_candidates_counter, alias->name);
+  printf("PROFILE %s ALERT: %i will be ignored as they appear to already exist in source/content.\n", alias->name, already_present_in_alias_counter);
   free(active_cf);
   active_cf = NULL;
 }
@@ -254,7 +254,7 @@ void s_encode_from_source_to_alias(aliases_t *alias) {
                                              tmp_f->to_films_f_folder,
                                              NULL,
                                              NULL) == false) {
-              printf("ALIAS %s WARNING: all destination locations were exhausted for %s\n", alias->name, tmp_f->from_films_f_folder);
+              printf("PROFILE %s WARNING: all destination locations were exhausted for %s\n", alias->name, tmp_f->from_films_f_folder);
               utils_create_error_encoding_file(alias->unable_to_process, tmp_f->from_films_f_folder);
             }
           }
@@ -277,7 +277,7 @@ void s_encode_from_source_to_alias(aliases_t *alias) {
                                                      tmp_tv3->to_tv_f_folder,
                                                      tmp_tv1->to_tv_f_folder,
                                                      tmp_tv2->to_tv_f_folder) == false) {
-                      printf("ALIAS %s WARNING: all destination locations were exhausted for %s\n", alias->name, tmp_tv3->from_tv_f_folder);
+                      printf("PROFILE %s WARNING: all destination locations were exhausted for %s\n", alias->name, tmp_tv3->from_tv_f_folder);
                       utils_create_error_encoding_file(alias->unable_to_process, tmp_tv3->from_tv_f_folder);
                     }
                   }
@@ -393,7 +393,7 @@ char* a_match_json_file_with_scenario(aliases_t *alias) {
       if(tmp->codec_just_right) {
         printf("checking candidate codec matches criteria codec\n");
         printf("json_codec_name: %s\n", json_codec_name);
-        printf("alias->crit_codec: %s\n", alias->crit_codec);
+        printf("profile criteria codec: %s\n", alias->crit_codec);
         //does the candidate file match alias criteria codec?
         if(strcmp(json_codec_name, alias->crit_codec) == 0) {
           may_command_be_run = true;
@@ -414,7 +414,7 @@ char* a_match_json_file_with_scenario(aliases_t *alias) {
       if(tmp->color_space_just_right) {
         printf("checking candidate color space matches criteria color space\n");
         printf("json_color_space: %s\n", json_color_space);
-        printf("alias->crit_color_space: %s\n", alias->crit_color_space);
+        printf("profile criteria color space: %s\n", alias->crit_color_space);
         //does the candidate file match alias criteria color space?
         //DEV: perhaps this should be 'json_color_primaries' instead?  unsure
         if(strcmp(json_color_space,alias->crit_color_space) == 0) {
@@ -430,11 +430,11 @@ char* a_match_json_file_with_scenario(aliases_t *alias) {
       if(tmp->res_just_right) {
         printf("checking candidate resolution falls within criteria max and min\n");
         printf("json_width: %i\n", json_width);
-        printf("alias->crit_min_width: %i\n", alias->crit_min_width);
-        printf("alias->crit_max_width: %i\n", alias->crit_max_width);
+        printf("profile criteria min width: %i\n", alias->crit_min_width);
+        printf("profile criteria max width: %i\n", alias->crit_max_width);
         printf("json_height: %i\n", json_height);
-        printf("alias->crit_min_height: %i\n", alias->crit_min_height);
-        printf("alias->crit_max_height: %i\n", alias->crit_max_height);
+        printf("profile criteria min height: %i\n", alias->crit_min_height);
+        printf("profile criteria max height: %i\n", alias->crit_max_height);
         //does the candidate file match alias criteria max height & max width?
         if(json_width <= alias->crit_max_width && json_height <= alias->crit_max_height && json_width >= alias->crit_min_width && json_height >= alias->crit_min_height) {
           may_command_be_run = true;
@@ -921,25 +921,25 @@ char* a_generate_alias_file_name(char *from, char *to, char *alias_name) {
 
 
 
-/* Original to Aliases Work */
+/* Mezzanine-to-profile(s) work (legacy function names retained for compatibility). */
 
 void a_original_to_aliases(aliases_t *aliases) {
-  printf("ALIASes ALERT: initiating 'original_to_aliases'\n");
+  printf("PROFILES ALERT: initiating 'mezzanine_to_profiles'\n");
   //create a ?? object and point it to relevant data in config
     //for every file in original
       //original_file_to_source();
       //for every alias node
-        //encode_source_to_alias();
+        //encode_source_to_profile();
       //wipe_source();
 }
 void a_original_to_alias() {
-  printf("ALIAS ALERT: initiating 'original_to_alias'\n");
+  printf("PROFILE ALERT: initiating 'mezzanine_to_profile'\n");
 }
 
 /* Wipe Aliases Work */
 void a_wipe_aliases(aliases_t *aliases) {
-  printf("ALIASes ALERT: initiating 'wipe aliases'\n");
+  printf("PROFILES ALERT: initiating 'wipe profiles'\n");
 }
 void a_wipe_an_alias() {
-  printf("ALIAS ALERT: initiating 'wipe alias'\n");
+  printf("PROFILE ALERT: initiating 'wipe profile'\n");
 }

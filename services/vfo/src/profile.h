@@ -22,11 +22,15 @@
  * THE SOFTWARE.
  */
 
-#include "a_internal.h"
+#ifndef PROFILE_H
+#define PROFILE_H
 
-/*
- * Alias initiating message
- */
- void a_mes_init_alias() {
-    fprintf(stdout, "alias initiating...\n");
-}
+#include "Config/Data_Structures/c_cf_ll_struct.h"
+#include "Mezzanine/Data_Structures/m_mezzanine_struct.h"
+#include "Source/Data_Structures/s_source_struct.h"
+#include "Profile/Data_Structures/p_profiles_struct.h"
+
+void a_source_to_aliases(aliases_t *aliases);
+void a_original_to_aliases(aliases_t *aliases);
+void a_wipe_aliases(aliases_t *aliases);
+#endif // PROFILE_H

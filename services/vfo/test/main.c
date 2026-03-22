@@ -58,11 +58,11 @@ int main(void) {
         /* Config */
         cmocka_unit_test(test_con_init_config_dir_null_ptr),
         cmocka_unit_test(test_con_init_config_dir_empty_str),
-        /* Original */
+        /* Mezzanine */
         cmocka_unit_test(test_o_original_null_ptr),
         /* Source */
         cmocka_unit_test(test_s_original_to_source_null_ptr),
-        /* Alias */
+        /* Profile */
         cmocka_unit_test(test_a_source_to_aliases),
 
         /* Other (see above)*/

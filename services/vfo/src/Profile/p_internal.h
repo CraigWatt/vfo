@@ -22,42 +22,45 @@
  * THE SOFTWARE.
  */
 
-#ifndef O_INTERNAL_H
-#define O_INTERNAL_H
+#ifndef P_INTERNAL_H
+#define P_INTERNAL_H
+
+#define LOWER 1024
+#define UPPER 65536
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
-#include <stdbool.h>
 #include <dirent.h>
 #include <ftw.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <libgen.h>
 
-#include "../original.h"
+#include "../source.h"
+#include "../profile.h"
 #include "../utils.h"
-#include "Data_Structures/o_original_struct.h"
 
-void o_pre_move_checks(original_t *original);
+void a_source_to_alias(aliases_t *alias);
 
-void o_move_from_start_to_mkv_original(original_t *original);
-void o_move_from_start_to_mp4_original(original_t *original);
-void o_move_from_start_to_m2ts_original(original_t *original);
-void o_move_from_mkv_original_to_start(original_t *original);
-void o_move_from_mp4_original_to_start(original_t *original);
-void o_move_from_m2ts_original_to_start(original_t *original);
-void o_move(char *from_cf_parent_folder, char *to_cf_parent_folder, cf_node_t *cf_head, char *from_valid_extension_string);
+void a_pre_encode_checks(aliases_t *alias);
+void a_highlight_encode_candidates_to_user(aliases_t *alias);
+void a_highlight_encode_candidates_from_source_content(aliases_t *alias);
+void a_encode_source_to_an_alias(aliases_t *alias);
+void s_encode_from_source_to_alias(aliases_t *alias);
+bool a_execute_ffmpeg_command(char *from, char *to, aliases_t *alias);
+char* a_generate_ffmpeg_command(char *from, char *to, aliases_t *alias);
+char* a_generate_alias_file_name(char *from, char *to, char *alias_name);
+bool a_execute_ffprobe(char *from_file, aliases_t *alias);
+char* a_generate_ffprobe_command(char *from_file, aliases_t *alias);
+char* a_match_json_file_with_scenario(aliases_t *alias);
+char* a_extract_json_to_string(char *tmp_json_file);
+char* a_fetch_json_string(char *json_string, char *marker);
+int a_fetch_json_number(char *json_string, char *marker);
 
-void o_detect_duplicates_start_versus_mkv_original(original_t *original);
-void o_detect_duplicates_start_versus_mp4_original(original_t *original);
-void o_detect_duplicates_start_versus_m2ts_original(original_t *original);
-void o_detect_duplicates_mkv_original_versus_mp4_original(original_t *original);
-void o_detect_duplicates_mp4_original_versus_mkv_original(original_t *original);
-void o_detect_duplicates(char *from_cf_parent_folder, char *to_cf_parent_folder, cf_node_t *cf_head);
-
-/* o_messages */
-void o_mes_init_original();
-
-#endif // O_INTERNAL_H
+#endif // P_INTERNAL_H

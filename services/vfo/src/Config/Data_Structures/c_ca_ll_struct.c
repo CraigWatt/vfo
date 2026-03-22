@@ -383,12 +383,12 @@ void ca_validate_alias_name_duplicates(ca_node_t *head) {
   }
 
   if(duplicate_found == true) {
-    printf("CONFIG FILE MAJOR ERROR: vfo found duplicate alias names in the config file CONFIG FILE MAJOR ERROR\n");
-    printf("Please make sure all of your ALIAS='names' have unique names!\n");
+    printf("CONFIG FILE MAJOR ERROR: vfo found duplicate profile names in the config file CONFIG FILE MAJOR ERROR\n");
+    printf("Please make sure all of your PROFILE='names' have unique names!\n");
     exit(EXIT_FAILURE);
   } 
   else {
-    printf("CONFIG FILE ALERT: All Alias Names are unique\n");
+    printf("CONFIG FILE ALERT: All profile names are unique\n");
   }
 }
 
@@ -406,7 +406,7 @@ ca_node_t* ca_get_a_node_from_alias_name(ca_node_t *head, char *alias_name) {
       temporary = temporary->next;
     }
   }
-  printf("DEV NOTE: MAJOR ERROR, ca_get_a_node_from_alias_name has failed\n");
+  printf("DEV NOTE: MAJOR ERROR, ca_get_a_node_from_profile_name has failed\n");
   exit(EXIT_FAILURE);
   return temporary;
 }

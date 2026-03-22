@@ -189,8 +189,16 @@ config_t* con_init(const char *config_dir, char **revised_argv, int revised_argc
   config->cf_head = con_extract_to_cf_ll(conf_string, cf_marker, pre_approved_vfo_cf_types, cf_size, config->cf_head);
 
   //not all must be valid
-  //custom alias ll //custom scenarios ll (inside alias nodes) -- extract conf_string to ca ll and within, cs ll
+  //custom profile ll //custom scenarios ll (inside profile nodes) -- extract conf_string to ca ll and within, cs ll
   char *ca_marker = "ALIAS=";
+  int alias_marker_count = con_get_marker_count(conf_string, "ALIAS=");
+  int profile_marker_count = con_get_marker_count(conf_string, "PROFILE=");
+  if(alias_marker_count > 0 && profile_marker_count > 0) {
+    printf("ERROR: config cannot mix canonical and deprecated profile markers. Please use PROFILE= only.\n");
+    exit(EXIT_FAILURE);
+  }
+  if(profile_marker_count > 0)
+    ca_marker = "PROFILE=";
   config->ca_head = con_extract_to_ca_ll(conf_string, ca_marker, config->ca_head);
 
   //discard now irrelevant memory.
@@ -202,7 +210,7 @@ config_t* con_init(const char *config_dir, char **revised_argv, int revised_argc
   /* assess uw words.  this is being done here BECAUSE ca nodes have to 
   be populated first before determining if a word*/
   bool activate_uw_work = false;
-  char *pre_alias_approved_words[] = {"vfo", "original", "source", "revert", "wipe", "all_aliases", "do_it_all", "run", "doctor", "wizard", "show", "status", "status-json", "status_json"};
+  char *pre_alias_approved_words[] = {"vfo", "mezzanine", "original", "source", "revert", "wipe", "profiles", "all_aliases", "do_it_all", "run", "doctor", "wizard", "show", "status", "status-json", "status_json"};
   int pre_array_length = (sizeof pre_alias_approved_words / sizeof(char*));
   for(int i = 0; i < revised_argc; i++) {
     bool pre_approved_word_found = false;
@@ -229,13 +237,13 @@ config_t* con_init(const char *config_dir, char **revised_argv, int revised_argc
       //does particular unknown word exist in ca?
       char *tmp_u_word = uw_get_a_unknown_word_from_count(config->uw_head, i);
       if(ca_alias_name_exits(config->ca_head, tmp_u_word) == true) {
-        // unknown_words contains a valid [alias word]
-        printf("%s is a valid alias\n", tmp_u_word);
+        // unknown_words contains a valid [profile word]
+        printf("%s is a valid profile\n", tmp_u_word);
       } else {
         //ERROR, vfo has scanned conf, and we still cannot detect what this word means
         //Please make sure either the word is not a typo
-        //and make sure the word matches an Alias defined in conf...
-        printf("%s is NOT a valid alias\n", tmp_u_word);
+        //and make sure the word matches a PROFILE defined in conf...
+        printf("%s is NOT a valid profile\n", tmp_u_word);
         unknown_word_error_occurred = true;
       } 
     }
@@ -285,17 +293,6 @@ ca_node_t* con_extract_to_ca_ll(char *conf_string, char *ca_marker, ca_node_t *c
     char *tmp_max_width_content = con_fetch_sole_var_content(conf_string, tmp_max_width_marker);
     char *tmp_max_height_content = con_fetch_sole_var_content(conf_string, tmp_max_height_marker);
 
-    printf("tmp_alias_location_content: %s\n", tmp_alias_location_content);
-    printf("tmp_alias_locations_content: %s\n", tmp_alias_locations_content);
-    printf("tmp_alias_location_max_usage_pct_content: %s\n", tmp_alias_location_max_usage_pct_content);
-    printf("tmp_crit_cod_name_content: %s\n", tmp_crit_cod_name_content);
-    printf("tmp_crit_bits_content: %s\n", tmp_crit_bits_content);
-    printf("tmp_crit_col_space_content: %s\n", tmp_crit_col_space_content);
-    printf("tmp_min_width_content: %s\n", tmp_min_width_content);
-    printf("tmp_min_height_content: %s\n", tmp_min_height_content);
-    printf("tmp_max_width_content: %s\n", tmp_max_width_content);
-    printf("tmp_max_height_content: %s\n", tmp_max_height_content);
-
     if(utils_string_is_empty_or_spaces(tmp_alias_locations_content) == false) {
       con_validate_location_csv(tmp_alias_locations_content, tmp_alias_locations_marker);
       char **alias_locations = NULL;
@@ -311,9 +308,9 @@ ca_node_t* con_extract_to_ca_ll(char *conf_string, char *ca_marker, ca_node_t *c
     } else {
       if(utils_does_folder_exist(tmp_alias_location_content) == false) {
         if(con_lenient_location_validation) {
-          printf("WARN: alias location does not exist: %s (continuing in lenient validation mode)\n", tmp_alias_location_content);
+          printf("WARN: profile location does not exist: %s (continuing in lenient validation mode)\n", tmp_alias_location_content);
         } else {
-          printf("ERROR: alias location does not exist: %s\n", tmp_alias_location_content);
+          printf("ERROR: profile location does not exist: %s\n", tmp_alias_location_content);
           exit(EXIT_FAILURE);
         }
       }
@@ -338,7 +335,7 @@ ca_node_t* con_extract_to_ca_ll(char *conf_string, char *ca_marker, ca_node_t *c
     // cs_ffmpeg_default_command_marker_count = con_get_marker_count(conf_string, tmp_alias_default_ffmpeg_command_marker);
 
     if(cs_scenario_marker_count != cs_ffmpeg_command_marker_count) {
-      printf("ERROR, number of *alias*_SCENARIO's does not match number of *alias*_FFMPEG_COMMAND's\n");
+      printf("ERROR: number of *PROFILE*_SCENARIO markers must match *PROFILE*_FFMPEG_COMMAND markers\n");
       exit(EXIT_FAILURE);
     }
 
@@ -628,21 +625,52 @@ char* con_fetch_sole_var_content(char *string_conf, char *marker) {
 }
 
 void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_var_content_t *svc) {
+  const char *mezzanine_location_marker = "MEZZANINE_LOCATION=";
+  const char *mezzanine_locations_marker = "MEZZANINE_LOCATIONS=";
+  const char *mezzanine_location_max_usage_pct_marker = "MEZZANINE_LOCATION_MAX_USAGE_PCT=";
+
   int original_location_count = con_get_marker_count(conf_string, svm->original_location);
   int original_locations_count = con_get_marker_count(conf_string, svm->original_locations);
+  int mezzanine_location_count = con_get_marker_count(conf_string, (char *)mezzanine_location_marker);
+  int mezzanine_locations_count = con_get_marker_count(conf_string, (char *)mezzanine_locations_marker);
+  int original_location_max_usage_pct_count = con_get_marker_count(conf_string, svm->original_location_max_usage_pct);
+  int mezzanine_location_max_usage_pct_count = con_get_marker_count(conf_string, (char *)mezzanine_location_max_usage_pct_marker);
+
   int source_location_count = con_get_marker_count(conf_string, svm->source_location);
   int source_locations_count = con_get_marker_count(conf_string, svm->source_locations);
 
-  if(original_location_count > 1 || original_locations_count > 1) {
-    printf("ERROR: ORIGINAL_LOCATION/ORIGINAL_LOCATIONS may only be defined once each.\n");
+  const char *primary_mezzanine_location_marker = mezzanine_location_count == 1
+                                                    ? mezzanine_location_marker
+                                                    : svm->original_location;
+  const char *primary_mezzanine_locations_marker = mezzanine_locations_count == 1
+                                                    ? mezzanine_locations_marker
+                                                    : svm->original_locations;
+  const char *primary_mezzanine_location_max_usage_pct_marker = mezzanine_location_max_usage_pct_count == 1
+                                                                  ? mezzanine_location_max_usage_pct_marker
+                                                                  : svm->original_location_max_usage_pct;
+  int primary_mezzanine_location_count = mezzanine_location_count == 1
+                                          ? mezzanine_location_count
+                                          : original_location_count;
+  int primary_mezzanine_locations_count = mezzanine_locations_count == 1
+                                           ? mezzanine_locations_count
+                                           : original_locations_count;
+
+  if(original_location_count > 1 || original_locations_count > 1
+      || mezzanine_location_count > 1 || mezzanine_locations_count > 1) {
+    printf("ERROR: MEZZANINE_LOCATION/MEZZANINE_LOCATIONS may only be defined once each.\n");
+    exit(EXIT_FAILURE);
+  }
+  if((mezzanine_location_count > 0 && original_location_count > 0)
+      || (mezzanine_locations_count > 0 && original_locations_count > 0)) {
+    printf("ERROR: config cannot mix canonical and deprecated mezzanine keys. Please use MEZZANINE_*.\n");
     exit(EXIT_FAILURE);
   }
   if(source_location_count > 1 || source_locations_count > 1) {
     printf("ERROR: SOURCE_LOCATION/SOURCE_LOCATIONS may only be defined once each.\n");
     exit(EXIT_FAILURE);
   }
-  if(original_location_count == 0 && original_locations_count == 0) {
-    printf("ERROR: config must include ORIGINAL_LOCATION or ORIGINAL_LOCATIONS.\n");
+  if(primary_mezzanine_location_count == 0 && primary_mezzanine_locations_count == 0) {
+    printf("ERROR: config must include MEZZANINE_LOCATION or MEZZANINE_LOCATIONS.\n");
     exit(EXIT_FAILURE);
   }
   if(source_location_count == 0 && source_locations_count == 0) {
@@ -655,8 +683,14 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   con_get_sole_marker_count(conf_string, svm->source_test_active_marker);
   con_get_sole_marker_count(conf_string, svm->source_test_trim_start_marker);
   con_get_sole_marker_count(conf_string, svm->source_test_trim_duration_marker);
-  if(con_get_marker_count(conf_string, svm->original_location_max_usage_pct) > 1) {
-    printf("ERROR: There should only be 1 %s in config file.\n", svm->original_location_max_usage_pct);
+  if(original_location_max_usage_pct_count > 1 || mezzanine_location_max_usage_pct_count > 1) {
+    printf("ERROR: There should only be 1 %s in config file.\n", primary_mezzanine_location_max_usage_pct_marker);
+    exit(EXIT_FAILURE);
+  }
+  if(original_location_max_usage_pct_count > 0 && mezzanine_location_max_usage_pct_count > 0) {
+    printf("ERROR: config cannot mix %s and %s.\n",
+           svm->original_location_max_usage_pct,
+           mezzanine_location_max_usage_pct_marker);
     exit(EXIT_FAILURE);
   }
   if(con_get_marker_count(conf_string, svm->source_location_max_usage_pct) > 1) {
@@ -665,8 +699,8 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   }
 
   /*fetch each sole_var_content from each sole_var_marker*/
-  if(original_location_count == 1)
-    svc->original_location = con_fetch_sole_var_content(conf_string, svm->original_location);
+  if(primary_mezzanine_location_count == 1)
+    svc->original_location = con_fetch_sole_var_content(conf_string, (char *)primary_mezzanine_location_marker);
   else {
     svc->original_location = malloc(1);
     svc->original_location[0] = '\0';
@@ -679,9 +713,9 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
     svc->source_location[0] = '\0';
   }
 
-  svc->original_locations = con_fetch_optional_sole_var_content(conf_string, svm->original_locations);
+  svc->original_locations = con_fetch_optional_sole_var_content(conf_string, (char *)primary_mezzanine_locations_marker);
   svc->source_locations = con_fetch_optional_sole_var_content(conf_string, svm->source_locations);
-  svc->original_location_max_usage_pct = con_fetch_optional_sole_var_content(conf_string, svm->original_location_max_usage_pct);
+  svc->original_location_max_usage_pct = con_fetch_optional_sole_var_content(conf_string, (char *)primary_mezzanine_location_max_usage_pct_marker);
   svc->source_location_max_usage_pct = con_fetch_optional_sole_var_content(conf_string, svm->source_location_max_usage_pct);
 
   if(utils_string_is_empty_or_spaces(svc->original_locations))
@@ -692,8 +726,8 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   if(utils_string_is_empty_or_spaces(svc->original_locations) == false) {
     char **locations = NULL;
     int location_count = con_split_semicolon_list(svc->original_locations, &locations);
-    con_validate_location_csv(svc->original_locations, svm->original_locations);
-    con_validate_usage_cap_csv(svc->original_location_max_usage_pct, svm->original_location_max_usage_pct, location_count);
+    con_validate_location_csv(svc->original_locations, (char *)primary_mezzanine_locations_marker);
+    con_validate_usage_cap_csv(svc->original_location_max_usage_pct, (char *)primary_mezzanine_location_max_usage_pct_marker, location_count);
     if(location_count > 0)
       svc->original_location = locations[0];
     for(int i = 1; i < location_count; i++)
@@ -719,9 +753,7 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   char *tmp_bool_word_source_test = con_fetch_sole_var_content(conf_string, svm->source_test_active_marker);
 
   char *tmp_source_test_trim_start = con_fetch_sole_var_content(conf_string, svm->source_test_trim_start_marker);
-  printf("tmp_source_test_trim_start is %s\n", tmp_source_test_trim_start);
   char *tmp_source_test_trim_duration = con_fetch_sole_var_content(conf_string, svm->source_test_trim_duration_marker);
-  printf("tmp_source_test_trim_duration is %s\n", tmp_source_test_trim_duration);
   /* HOW TO VERIFY ABOVE NOTES:*/
   /*  svc->original_location AND 
       svc->source_location
@@ -755,36 +787,25 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   //verify tmp_bool_word_source_test / svc->source_test
   tmp_bool_word_source_test = utils_lowercase_string(tmp_bool_word_source_test);
   if(strcmp(tmp_bool_word_source_test,"true") == 0 || strcmp(tmp_bool_word_source_test,"false") == 0) {
-    if(strcmp(tmp_bool_word_source_test,"true") == 0) {
+    if(strcmp(tmp_bool_word_source_test,"true") == 0)
       svc->source_test = true;
-      printf("source_test equals true!\n");
-    }
-    if(strcmp(tmp_bool_word_source_test,"false") == 0) {
+    if(strcmp(tmp_bool_word_source_test,"false") == 0)
       svc->source_test = false;
-      printf("source_test equals false!\n");
-    }
     svc->is_source_test_valid = true;
   }
 
   //only check trim start and duration if source_test is true
   if(svc->source_test == true) {
-    printf("do i RUN1?\n");
     //verify source_test_trim_start / svc->
     if(utils_string_is_empty_or_spaces(tmp_source_test_trim_start) == false) {
-      printf("do i RUN2?\n");
       if(utils_string_is_ffmpeg_timecode_compliant(tmp_source_test_trim_start) == true) {
-        printf("do i RUN3?\n");
         svc->source_test_trim_start = tmp_source_test_trim_start;
-        printf(svc->source_test_trim_start,"svc->source_test_trim_start is: %s");
          svc->is_source_test_start_valid = true;
       }
     }
     if(utils_string_is_empty_or_spaces(tmp_source_test_trim_duration) == false) {
-      printf("do i RUN4?\n");
       if(utils_string_is_ffmpeg_timecode_compliant(tmp_source_test_trim_duration) == true) {
-        printf("do i RUN5?\n");
         svc->source_test_trim_duration = tmp_source_test_trim_duration;
-        printf(svc->source_test_trim_duration,"svc->source_test_trim_duration is: %s");
          svc->is_source_test_duration_valid = true;
       }
     }
@@ -793,9 +814,9 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   //tell the user if something isn't valid
   if(svc->is_original_location_valid == false) {
     if(con_lenient_location_validation)
-      printf("WARN: the content of %s variable in config file points to a missing location (lenient validation mode)\n", svm->original_location);
+      printf("WARN: the content of MEZZANINE_LOCATION= variable in config file points to a missing location (lenient validation mode)\n");
     else
-      printf("ERROR: the content of %s variable in config file is invalid\n", svm->original_location);
+      printf("ERROR: the content of MEZZANINE_LOCATION= variable in config file is invalid\n");
   }
   if(svc->is_source_location_valid == false) {
     if(con_lenient_location_validation)
