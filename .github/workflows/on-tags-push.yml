@@ -5,6 +5,9 @@ on:
     tags:
       - "v*.*.*"
 
+permissions:
+  contents: write
+
 jobs:
   linux-build:
     name: 👷 Build files for packaging
@@ -13,7 +16,7 @@ jobs:
 
     steps:
       - name: ⬇️ Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: ❓Is brew installed
         run: brew -v
@@ -31,7 +34,7 @@ jobs:
         run: make ci
 
       - name: 💭 Cache application
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: vfo-build
         with:
           path: |
@@ -48,7 +51,7 @@ jobs:
     
     steps:
     - name: ⬇️ Checkout repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: ❓Is brew installed
       run: brew -v
@@ -66,7 +69,7 @@ jobs:
       run: python -v
 
     - name: 🤌💭 Fetch application cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       id: vfo-build
       with:
         path: |
@@ -86,7 +89,7 @@ jobs:
 
     - name: Run munkipkg 🧙‍♂️📦
       id: munkipkg
-      uses: joncrain/munkipkg-action@5a6c2008ded522b67396a78c06983e614cbe22ac
+      uses: joncrain/munkipkg-action@v1.5
       with:
         pkg_subdir: "infra/packaging/macos"
     
@@ -95,7 +98,7 @@ jobs:
     #     python infra/packaging/macos/munkipkg infra/packaging/macos/vfo_macOS_installer
 
     - name: 💭 Cache .pkg
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       id: macos-pkg
       with:
         path: |
@@ -120,10 +123,10 @@ jobs:
 
     steps:
     - name: ⬇️ Checkout repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: 🤌💭 fetch Application Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       id: vfo-build
       with:
         path: |
@@ -146,22 +149,36 @@ jobs:
       run: zip -r static_build.zip static_build
 
     - name: 🤌💭 fetch macOS .pkg Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       id: macos-pkg
       with:
         path: |
           ./infra/packaging/macos/build/*
         key: ${{ github.sha }}
   
+    - name: ❓ Is gh installed
+      run: gh --version
+
     - name: 👷📦 Release static builds & macOS pkg
-      uses: softprops/action-gh-release@v0.1.15
-#       if: startsWith(github.ref, 'refs/tags/')
-      with:
-        generate_release_notes: true
-        body_path: RELEASE.txt
-        files: |
-          ./infra/packaging/macos/build/*
-          static_build.zip
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_TAG: ${{ github.ref_name }}
+      run: |
+        set -euo pipefail
+        shopt -s nullglob
+
+        files=(./infra/packaging/macos/build/* static_build.zip)
+        if [ ${#files[@]} -eq 0 ]; then
+          echo "No release files found"
+          exit 1
+        fi
+
+        if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+          echo "Release ${RELEASE_TAG} already exists; uploading refreshed assets"
+          gh release upload "$RELEASE_TAG" "${files[@]}" --clobber
+        else
+          gh release create "$RELEASE_TAG" "${files[@]}" \
+            --generate-notes \
+            --notes-file RELEASE.txt
+        fi
   

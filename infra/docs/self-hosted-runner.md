@@ -17,7 +17,7 @@ Required runner labels:
 Ensure your open-source media pack is available on the runner machine at a stable path, for example:
 
 ```bash
-/Volumes/vfo-e2e-media
+/Volumes/vfo-e2e-media/vfo-runner-mezzanines
 ```
 
 You can use another path and pass it as `assets_dir` when triggering the workflow.
@@ -65,6 +65,10 @@ From the runner install directory:
 ```
 
 ## 5) Trigger full-media E2E
+
+The workflow runs automatically on `main` pushes using defaults.
+
+You can also run it manually from GitHub Actions:
 
 In GitHub Actions:
 

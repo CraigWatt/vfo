@@ -26,3 +26,8 @@ This supports both:
 
 - local real-media mode (`VFO_E2E_ASSET_MODE=local`, `VFO_E2E_ASSETS_DIR=/path/to/media`)
 - hosted CI smoke mode (`auto` fallback to generated fixtures)
+
+CI lane mapping:
+
+- `Validate (PR + main)`: hosted synthetic e2e smoke + unit tests (`make ci`)
+- `Full E2E (self-hosted media)`: full media-backed e2e on self-hosted runner (auto on `main` pushes, manual dispatch supported)
