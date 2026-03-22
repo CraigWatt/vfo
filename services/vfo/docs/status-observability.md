@@ -34,6 +34,7 @@ Snapshot command (`vfo status` / `vfo status-json`) includes:
 - `dependency.ffprobe`
 - `dependency.mkvmerge`
 - `dependency.dovi_tool` (optional dependency, usually `skipped` when missing)
+- `dependency.libvmaf` (required only when quality VMAF mode is enabled)
 - `storage.mezzanine[<n>]`
 - `storage.source[<n>]`
 - `profiles.detected`
@@ -43,6 +44,7 @@ Snapshot command (`vfo status` / `vfo status-json`) includes:
 - `stage.mezzanine_clean`
 - `stage.source`
 - `stage.profiles`
+- `stage.quality`
 - `stage.execute`
 
 Run command (`vfo run`) emits stage progress transitions for:
@@ -52,6 +54,8 @@ Run command (`vfo run`) emits stage progress transitions for:
 - `stage.mezzanine`
 - `stage.source`
 - `stage.profiles`
+- `stage.quality`
+- `profile.<profile_name>.quality`
 
 ## JSON Contract
 

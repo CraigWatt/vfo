@@ -26,6 +26,8 @@
 #include "c_internal.h"
 #include <errno.h>
 #include <ctype.h>
+#include <limits.h>
+#include <math.h>
 #include <strings.h>
 
 static bool con_lenient_location_validation = false;
@@ -188,6 +190,96 @@ static void con_parse_optional_bool_marker(char *raw_value,
 
   *target_valid = false;
   printf("ERROR: the content of %s variable in config file is invalid (expected true/false)\n", label);
+}
+
+static bool con_parse_non_negative_double(const char *value, double *parsed_out) {
+  char *end_ptr = NULL;
+  double parsed = 0.0;
+
+  if(value == NULL)
+    return false;
+
+  errno = 0;
+  parsed = strtod(value, &end_ptr);
+  if(errno != 0 || end_ptr == value || *end_ptr != '\0')
+    return false;
+  if(!isfinite(parsed) || parsed < 0.0)
+    return false;
+
+  *parsed_out = parsed;
+  return true;
+}
+
+static void con_parse_optional_non_negative_double_marker(char *raw_value,
+                                                          double default_value,
+                                                          double *target_value,
+                                                          bool *target_valid,
+                                                          const char *label) {
+  double parsed = 0.0;
+
+  if(utils_string_is_empty_or_spaces(raw_value)) {
+    *target_value = default_value;
+    *target_valid = true;
+    return;
+  }
+
+  if(con_parse_non_negative_double(raw_value, &parsed)) {
+    *target_value = parsed;
+    *target_valid = true;
+    return;
+  }
+
+  *target_valid = false;
+  printf("ERROR: the content of %s variable in config file is invalid (expected non-negative number)\n", label);
+}
+
+static void con_parse_optional_non_negative_int_marker(char *raw_value,
+                                                       int default_value,
+                                                       int *target_value,
+                                                       bool *target_valid,
+                                                       const char *label) {
+  char *end_ptr = NULL;
+  long parsed = 0;
+
+  if(utils_string_is_empty_or_spaces(raw_value)) {
+    *target_value = default_value;
+    *target_valid = true;
+    return;
+  }
+
+  errno = 0;
+  parsed = strtol(raw_value, &end_ptr, 10);
+  if(errno != 0 || end_ptr == raw_value || *end_ptr != '\0' || parsed < 0 || parsed > INT_MAX) {
+    *target_valid = false;
+    printf("ERROR: the content of %s variable in config file is invalid (expected non-negative integer)\n", label);
+    return;
+  }
+
+  *target_value = (int)parsed;
+  *target_valid = true;
+}
+
+static void con_parse_optional_reference_layer_marker(char *raw_value,
+                                                      char **target_value,
+                                                      bool *target_valid,
+                                                      const char *label) {
+  if(utils_string_is_empty_or_spaces(raw_value)) {
+    *target_value = "auto";
+    *target_valid = true;
+    return;
+  }
+
+  raw_value = utils_lowercase_string(raw_value);
+  if(strcmp(raw_value, "auto") == 0
+     || strcmp(raw_value, "source") == 0
+     || strcmp(raw_value, "mezzanine") == 0) {
+    *target_value = raw_value;
+    *target_valid = true;
+    return;
+  }
+
+  *target_valid = false;
+  printf("ERROR: the content of %s variable in config file is invalid (expected auto|source|mezzanine)\n", label);
 }
 
 config_t* con_init(const char *config_dir, char **revised_argv, int revised_argc) {
@@ -785,6 +877,14 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
   char *tmp_mezzanine_clean_apply_changes = con_fetch_optional_sole_var_content(conf_string, svm->mezzanine_clean_apply_changes_marker);
   char *tmp_mezzanine_clean_append_media_tags = con_fetch_optional_sole_var_content(conf_string, svm->mezzanine_clean_append_media_tags_marker);
   char *tmp_mezzanine_clean_strict_quality_gate = con_fetch_optional_sole_var_content(conf_string, svm->mezzanine_clean_strict_quality_gate_marker);
+  char *tmp_quality_check_enabled = con_fetch_optional_sole_var_content(conf_string, svm->quality_check_enabled_marker);
+  char *tmp_quality_check_include_vmaf = con_fetch_optional_sole_var_content(conf_string, svm->quality_check_include_vmaf_marker);
+  char *tmp_quality_check_strict_gate = con_fetch_optional_sole_var_content(conf_string, svm->quality_check_strict_gate_marker);
+  char *tmp_quality_check_reference_layer = con_fetch_optional_sole_var_content(conf_string, svm->quality_check_reference_layer_marker);
+  char *tmp_quality_check_min_psnr = con_fetch_optional_sole_var_content(conf_string, svm->quality_check_min_psnr_marker);
+  char *tmp_quality_check_min_ssim = con_fetch_optional_sole_var_content(conf_string, svm->quality_check_min_ssim_marker);
+  char *tmp_quality_check_min_vmaf = con_fetch_optional_sole_var_content(conf_string, svm->quality_check_min_vmaf_marker);
+  char *tmp_quality_check_max_files_per_profile = con_fetch_optional_sole_var_content(conf_string, svm->quality_check_max_files_per_profile_marker);
   /* HOW TO VERIFY ABOVE NOTES:*/
   /*  svc->original_location AND 
       svc->source_location
@@ -862,6 +962,45 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
                                  &svc->mezzanine_clean_strict_quality_gate,
                                  &svc->is_mezzanine_clean_strict_quality_gate_valid,
                                  svm->mezzanine_clean_strict_quality_gate_marker);
+  con_parse_optional_bool_marker(tmp_quality_check_enabled,
+                                 false,
+                                 &svc->quality_check_enabled,
+                                 &svc->is_quality_check_enabled_valid,
+                                 svm->quality_check_enabled_marker);
+  con_parse_optional_bool_marker(tmp_quality_check_include_vmaf,
+                                 false,
+                                 &svc->quality_check_include_vmaf,
+                                 &svc->is_quality_check_include_vmaf_valid,
+                                 svm->quality_check_include_vmaf_marker);
+  con_parse_optional_bool_marker(tmp_quality_check_strict_gate,
+                                 false,
+                                 &svc->quality_check_strict_gate,
+                                 &svc->is_quality_check_strict_gate_valid,
+                                 svm->quality_check_strict_gate_marker);
+  con_parse_optional_reference_layer_marker(tmp_quality_check_reference_layer,
+                                            &svc->quality_check_reference_layer,
+                                            &svc->is_quality_check_reference_layer_valid,
+                                            svm->quality_check_reference_layer_marker);
+  con_parse_optional_non_negative_double_marker(tmp_quality_check_min_psnr,
+                                                0.0,
+                                                &svc->quality_check_min_psnr,
+                                                &svc->is_quality_check_min_psnr_valid,
+                                                svm->quality_check_min_psnr_marker);
+  con_parse_optional_non_negative_double_marker(tmp_quality_check_min_ssim,
+                                                0.0,
+                                                &svc->quality_check_min_ssim,
+                                                &svc->is_quality_check_min_ssim_valid,
+                                                svm->quality_check_min_ssim_marker);
+  con_parse_optional_non_negative_double_marker(tmp_quality_check_min_vmaf,
+                                                0.0,
+                                                &svc->quality_check_min_vmaf,
+                                                &svc->is_quality_check_min_vmaf_valid,
+                                                svm->quality_check_min_vmaf_marker);
+  con_parse_optional_non_negative_int_marker(tmp_quality_check_max_files_per_profile,
+                                             0,
+                                             &svc->quality_check_max_files_per_profile,
+                                             &svc->is_quality_check_max_files_per_profile_valid,
+                                             svm->quality_check_max_files_per_profile_marker);
 
   //tell the user if something isn't valid
   if(svc->is_original_location_valid == false) {
@@ -886,6 +1025,22 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
     printf("ERROR: the content of %s variable in config file is invalid\n", svm->mezzanine_clean_append_media_tags_marker);
   if(svc->is_mezzanine_clean_strict_quality_gate_valid == false)
     printf("ERROR: the content of %s variable in config file is invalid\n", svm->mezzanine_clean_strict_quality_gate_marker);
+  if(svc->is_quality_check_enabled_valid == false)
+    printf("ERROR: the content of %s variable in config file is invalid\n", svm->quality_check_enabled_marker);
+  if(svc->is_quality_check_include_vmaf_valid == false)
+    printf("ERROR: the content of %s variable in config file is invalid\n", svm->quality_check_include_vmaf_marker);
+  if(svc->is_quality_check_strict_gate_valid == false)
+    printf("ERROR: the content of %s variable in config file is invalid\n", svm->quality_check_strict_gate_marker);
+  if(svc->is_quality_check_reference_layer_valid == false)
+    printf("ERROR: the content of %s variable in config file is invalid\n", svm->quality_check_reference_layer_marker);
+  if(svc->is_quality_check_min_psnr_valid == false)
+    printf("ERROR: the content of %s variable in config file is invalid\n", svm->quality_check_min_psnr_marker);
+  if(svc->is_quality_check_min_ssim_valid == false)
+    printf("ERROR: the content of %s variable in config file is invalid\n", svm->quality_check_min_ssim_marker);
+  if(svc->is_quality_check_min_vmaf_valid == false)
+    printf("ERROR: the content of %s variable in config file is invalid\n", svm->quality_check_min_vmaf_marker);
+  if(svc->is_quality_check_max_files_per_profile_valid == false)
+    printf("ERROR: the content of %s variable in config file is invalid\n", svm->quality_check_max_files_per_profile_marker);
 
   bool is_location_set_valid = svc->is_original_location_valid && svc->is_source_location_valid;
   bool is_non_location_valid = svc->is_keep_source_valid
@@ -893,7 +1048,15 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
                             && svc->is_mezzanine_clean_enabled_valid
                             && svc->is_mezzanine_clean_apply_changes_valid
                             && svc->is_mezzanine_clean_append_media_tags_valid
-                            && svc->is_mezzanine_clean_strict_quality_gate_valid;
+                            && svc->is_mezzanine_clean_strict_quality_gate_valid
+                            && svc->is_quality_check_enabled_valid
+                            && svc->is_quality_check_include_vmaf_valid
+                            && svc->is_quality_check_strict_gate_valid
+                            && svc->is_quality_check_reference_layer_valid
+                            && svc->is_quality_check_min_psnr_valid
+                            && svc->is_quality_check_min_ssim_valid
+                            && svc->is_quality_check_min_vmaf_valid
+                            && svc->is_quality_check_max_files_per_profile_valid;
   bool is_source_test_window_valid = (svc->source_test == false)
                                       || (svc->is_source_test_start_valid && svc->is_source_test_duration_valid);
 

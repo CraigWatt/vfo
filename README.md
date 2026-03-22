@@ -49,6 +49,11 @@ Optional hygiene stage (configurable):
 
 - Run `vfo mezzanine-clean` to audit or normalize mezzanine folder/file naming before encode stages.
 
+Optional quality scoring stage (configurable):
+
+- Run post-profile `PSNR`/`SSIM` checks (and optional `VMAF`) against the selected reference layer (`source`, `mezzanine`, or `auto`).
+- Surface per-profile scoring status in run observability output.
+
 ### Core concepts
 
 #### Mezzanine and source folders
@@ -207,7 +212,7 @@ A useful mental model is:
 - use `status` to view a component-level readiness summary before execution
 - use `status-json` in automation/tests when you need machine-readable status
 - use `mezzanine-clean` for optional mezzanine filename/folder hygiene and recommendations
-- use `run` for the default pipeline (mezzanine -> source if enabled -> profiles)
+- use `run` for the default pipeline (mezzanine -> source if enabled -> profiles -> optional quality scoring)
 
 ## Configuration guide
 
@@ -228,6 +233,7 @@ For device compatibility conformance checks, see:
 - `services/vfo/docs/device-conformance.md`
 - `tests/e2e/validate_device_conformance.sh`
 - `services/vfo/docs/mezzanine-clean.md`
+- `services/vfo/docs/quality-scoring.md`
 
 For engine readiness and observability status output, see:
 
@@ -266,6 +272,14 @@ Examples from the sample file include:
 - `MEZZANINE_CLEAN_APPLY_CHANGES`
 - `MEZZANINE_CLEAN_APPEND_MEDIA_TAGS`
 - `MEZZANINE_CLEAN_STRICT_QUALITY_GATE`
+- `QUALITY_CHECK_ENABLED`
+- `QUALITY_CHECK_INCLUDE_VMAF`
+- `QUALITY_CHECK_STRICT_GATE`
+- `QUALITY_CHECK_REFERENCE_LAYER`
+- `QUALITY_CHECK_MIN_PSNR`
+- `QUALITY_CHECK_MIN_SSIM`
+- `QUALITY_CHECK_MIN_VMAF`
+- `QUALITY_CHECK_MAX_FILES_PER_PROFILE`
 
 ### 3. Define custom folders
 

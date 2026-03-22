@@ -18,6 +18,15 @@ sole_var_markers_t* svm_create_new_struct() {
   result->mezzanine_clean_append_media_tags_marker = "MEZZANINE_CLEAN_APPEND_MEDIA_TAGS=";
   result->mezzanine_clean_strict_quality_gate_marker = "MEZZANINE_CLEAN_STRICT_QUALITY_GATE=";
 
+  result->quality_check_enabled_marker = "QUALITY_CHECK_ENABLED=";
+  result->quality_check_include_vmaf_marker = "QUALITY_CHECK_INCLUDE_VMAF=";
+  result->quality_check_strict_gate_marker = "QUALITY_CHECK_STRICT_GATE=";
+  result->quality_check_reference_layer_marker = "QUALITY_CHECK_REFERENCE_LAYER=";
+  result->quality_check_min_psnr_marker = "QUALITY_CHECK_MIN_PSNR=";
+  result->quality_check_min_ssim_marker = "QUALITY_CHECK_MIN_SSIM=";
+  result->quality_check_min_vmaf_marker = "QUALITY_CHECK_MIN_VMAF=";
+  result->quality_check_max_files_per_profile_marker = "QUALITY_CHECK_MAX_FILES_PER_PROFILE=";
+
   result->source_as_activate = "SOURCE_AS_ACTIVATE=";
   result->source_as_location = "SOURCE_AS_LOCATION=";
   result->keep_source_as = "KEEP_SOURCE_AS=";

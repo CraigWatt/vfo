@@ -116,6 +116,19 @@ static bool ih_check_command(const char *context, const char *command_name, bool
   return true;
 }
 
+static bool ih_ffmpeg_filter_available(const char *filter_name) {
+  char shell_command[512];
+
+  if(filter_name == NULL || filter_name[0] == '\0')
+    return false;
+
+  snprintf(shell_command,
+           sizeof(shell_command),
+           "ffmpeg -hide_banner -filters 2>/dev/null | grep -E -q '(^| )%s( |$)'",
+           filter_name);
+  return system(shell_command) == 0;
+}
+
 static bool ih_doctor_check_command(const char *command_name, bool required) {
   return ih_check_command("DOCTOR", command_name, required);
 }
@@ -185,6 +198,23 @@ static bool ih_run_doctor(config_t *config, const char *config_dir) {
   printf("DOCTOR INFO: MEZZANINE_CLEAN_APPLY_CHANGES=%s\n", config->svc->mezzanine_clean_apply_changes ? "true" : "false");
   printf("DOCTOR INFO: MEZZANINE_CLEAN_APPEND_MEDIA_TAGS=%s\n", config->svc->mezzanine_clean_append_media_tags ? "true" : "false");
   printf("DOCTOR INFO: MEZZANINE_CLEAN_STRICT_QUALITY_GATE=%s\n", config->svc->mezzanine_clean_strict_quality_gate ? "true" : "false");
+  printf("DOCTOR INFO: QUALITY_CHECK_ENABLED=%s\n", config->svc->quality_check_enabled ? "true" : "false");
+  printf("DOCTOR INFO: QUALITY_CHECK_INCLUDE_VMAF=%s\n", config->svc->quality_check_include_vmaf ? "true" : "false");
+  printf("DOCTOR INFO: QUALITY_CHECK_STRICT_GATE=%s\n", config->svc->quality_check_strict_gate ? "true" : "false");
+  printf("DOCTOR INFO: QUALITY_CHECK_REFERENCE_LAYER=%s\n", config->svc->quality_check_reference_layer);
+  printf("DOCTOR INFO: QUALITY_CHECK_MIN_PSNR=%.3f\n", config->svc->quality_check_min_psnr);
+  printf("DOCTOR INFO: QUALITY_CHECK_MIN_SSIM=%.6f\n", config->svc->quality_check_min_ssim);
+  printf("DOCTOR INFO: QUALITY_CHECK_MIN_VMAF=%.3f\n", config->svc->quality_check_min_vmaf);
+  printf("DOCTOR INFO: QUALITY_CHECK_MAX_FILES_PER_PROFILE=%i\n", config->svc->quality_check_max_files_per_profile);
+
+  if(config->svc->quality_check_enabled && config->svc->quality_check_include_vmaf) {
+    if(ih_ffmpeg_filter_available("libvmaf"))
+      printf("DOCTOR OK: ffmpeg libvmaf filter is available\n");
+    else {
+      printf("DOCTOR WARN: ffmpeg libvmaf filter is unavailable; VMAF scoring will be skipped\n");
+      healthy = false;
+    }
+  }
 
   ca_node_t *alias_profile = config->ca_head;
   while(alias_profile != NULL) {
@@ -358,6 +388,25 @@ static bool ih_run_status_snapshot(config_t *config, const char *config_dir, boo
   healthy = ih_status_check_command(report, "ffprobe", true) && healthy;
   healthy = ih_status_check_command(report, "mkvmerge", true) && healthy;
   healthy = ih_status_check_command(report, "dovi_tool", false) && healthy;
+  if(config->svc->quality_check_enabled && config->svc->quality_check_include_vmaf) {
+    if(ih_ffmpeg_filter_available("libvmaf")) {
+      status_report_update(report,
+                           "dependency.libvmaf",
+                           STATUS_STATE_COMPLETE,
+                           "ffmpeg libvmaf filter available");
+    } else {
+      status_report_update(report,
+                           "dependency.libvmaf",
+                           STATUS_STATE_ERROR,
+                           "ffmpeg libvmaf filter missing (QUALITY_CHECK_INCLUDE_VMAF=true)");
+      healthy = false;
+    }
+  } else {
+    status_report_update(report,
+                         "dependency.libvmaf",
+                         STATUS_STATE_SKIPPED,
+                         "VMAF scoring disabled");
+  }
 
   originals_healthy = ih_status_check_location_list(report,
                                                     "storage.mezzanine",
@@ -402,6 +451,17 @@ static bool ih_run_status_snapshot(config_t *config, const char *config_dir, boo
                        "stage.profiles",
                        profiles_healthy ? STATUS_STATE_COMPLETE : STATUS_STATE_ERROR,
                        profiles_healthy ? "ready to run profile stage" : "profile stage blocked by configuration errors");
+
+  if(config->svc->quality_check_enabled) {
+    status_report_update(report,
+                         "stage.quality",
+                         profiles_healthy ? STATUS_STATE_PENDING : STATUS_STATE_ERROR,
+                         profiles_healthy
+                           ? "quality scoring enabled (runs after profile stage)"
+                           : "quality scoring blocked by profile configuration errors");
+  } else {
+    status_report_update(report, "stage.quality", STATUS_STATE_SKIPPED, "QUALITY_CHECK_ENABLED=false");
+  }
 
   status_report_update(report, "stage.execute", STATUS_STATE_PENDING, "run `vfo run` to execute the pipeline");
 
@@ -657,9 +717,107 @@ static void ih_execute_source_stage_for_all_original_roots(config_t *config) {
   utils_free_string_array(original_roots, original_root_count);
 }
 
+static bool ih_execute_quality_scoring_stage(config_t *config, status_report_t *run_report) {
+  quality_scoring_options_t options;
+  quality_scoring_report_t report;
+  quality_profile_result_t *profile_cursor = NULL;
+  bool valid_reference_mode = false;
+  bool stage_ok = true;
+
+  if(config->svc->quality_check_enabled == false) {
+    if(run_report != NULL)
+      ih_status_update_with_log(run_report, "stage.quality", STATUS_STATE_SKIPPED, "QUALITY_CHECK_ENABLED=false");
+    return true;
+  }
+
+  quality_scoring_options_init(&options);
+  quality_scoring_report_init(&report);
+
+  options.enabled = true;
+  options.include_vmaf = config->svc->quality_check_include_vmaf;
+  options.strict_gate = config->svc->quality_check_strict_gate;
+  options.reference_mode = quality_reference_mode_from_string(config->svc->quality_check_reference_layer,
+                                                              &valid_reference_mode);
+  if(valid_reference_mode == false) {
+    printf("QUALITY ERROR: invalid QUALITY_CHECK_REFERENCE_LAYER value: %s\n",
+           config->svc->quality_check_reference_layer);
+    quality_scoring_report_free(&report);
+    if(run_report != NULL)
+      ih_status_update_with_log(run_report, "stage.quality", STATUS_STATE_ERROR, "invalid QUALITY_CHECK_REFERENCE_LAYER");
+    return false;
+  }
+
+  options.min_psnr = config->svc->quality_check_min_psnr;
+  options.min_ssim = config->svc->quality_check_min_ssim;
+  options.min_vmaf = config->svc->quality_check_min_vmaf;
+  options.max_files_per_profile = config->svc->quality_check_max_files_per_profile;
+
+  if(run_report != NULL)
+    ih_status_update_with_log(run_report, "stage.quality", STATUS_STATE_IN_PROGRESS, "running quality scoring stage");
+
+  stage_ok = quality_scoring_run(config->ca_head,
+                                 config->svc->source_location,
+                                 config->svc->original_location,
+                                 config->svc->keep_source,
+                                 &options,
+                                 &report);
+
+  profile_cursor = report.profiles;
+  while(profile_cursor != NULL) {
+    char component[320];
+    char detail[1024];
+    status_state_t state = STATUS_STATE_COMPLETE;
+
+    if(profile_cursor->metric_errors > 0 || profile_cursor->missing_reference > 0)
+      state = STATUS_STATE_ERROR;
+    else if(profile_cursor->files_failed_thresholds > 0)
+      state = config->svc->quality_check_strict_gate ? STATUS_STATE_ERROR : STATUS_STATE_SKIPPED;
+
+    snprintf(component, sizeof(component), "profile.%s.quality", profile_cursor->profile_name);
+    snprintf(detail,
+             sizeof(detail),
+             "scored=%i failed=%i missing_ref=%i metric_errors=%i avg_psnr=%.3f avg_ssim=%.6f avg_vmaf=%.3f",
+             profile_cursor->files_scored,
+             profile_cursor->files_failed_thresholds,
+             profile_cursor->missing_reference,
+             profile_cursor->metric_errors,
+             profile_cursor->avg_psnr,
+             profile_cursor->avg_ssim,
+             profile_cursor->avg_vmaf);
+
+    if(run_report != NULL)
+      ih_status_update_with_log(run_report, component, state, detail);
+
+    profile_cursor = profile_cursor->next;
+  }
+
+  if(run_report != NULL) {
+    char stage_detail[1024];
+    snprintf(stage_detail,
+             sizeof(stage_detail),
+             "profiles=%i scored=%i failed=%i missing_ref=%i metric_errors=%i avg_psnr=%.3f avg_ssim=%.6f avg_vmaf=%.3f",
+             report.profiles_scored,
+             report.files_scored,
+             report.files_failed_thresholds,
+             report.missing_reference,
+             report.metric_errors,
+             report.avg_psnr,
+             report.avg_ssim,
+             report.avg_vmaf);
+    ih_status_update_with_log(run_report,
+                              "stage.quality",
+                              stage_ok ? STATUS_STATE_COMPLETE : STATUS_STATE_ERROR,
+                              stage_detail);
+  }
+
+  quality_scoring_report_free(&report);
+  return stage_ok;
+}
+
 static bool ih_execute_default_run(config_t *config) {
   status_report_t *run_report = status_report_create();
   bool mezzanine_clean_ok = true;
+  bool quality_stage_ok = true;
 
   printf("RUN ALERT: initiating default pipeline\n");
   if(run_report != NULL)
@@ -709,6 +867,17 @@ static bool ih_execute_default_run(config_t *config) {
   ih_execute_all_profiles(config);
   if(run_report != NULL)
     ih_status_update_with_log(run_report, "stage.profiles", STATUS_STATE_COMPLETE, "profile stage completed");
+
+  quality_stage_ok = ih_execute_quality_scoring_stage(config, run_report);
+  if(quality_stage_ok == false) {
+    if(run_report != NULL) {
+      ih_status_update_with_log(run_report, "engine.run", STATUS_STATE_ERROR, "aborting run after quality stage failure");
+      status_report_print_text(run_report, stdout);
+      status_report_free(run_report);
+    }
+    printf("RUN ERROR: quality stage failed. Review QUALITY_CHECK_* settings and reported issues.\n");
+    return false;
+  }
 
   if(run_report != NULL) {
     ih_status_update_with_log(run_report, "engine.run", STATUS_STATE_COMPLETE, "default pipeline completed");
@@ -1038,6 +1207,14 @@ static int ih_run_wizard(const char *config_dir) {
   bool mezzanine_clean_apply_changes = false;
   bool mezzanine_clean_append_media_tags = true;
   bool mezzanine_clean_strict_quality_gate = false;
+  bool quality_check_enabled = false;
+  bool quality_check_include_vmaf = false;
+  bool quality_check_strict_gate = false;
+  char quality_check_reference_layer[IH_INPUT_BUFFER_SIZE];
+  char quality_check_min_psnr[IH_INPUT_BUFFER_SIZE];
+  char quality_check_min_ssim[IH_INPUT_BUFFER_SIZE];
+  char quality_check_min_vmaf[IH_INPUT_BUFFER_SIZE];
+  char quality_check_max_files_per_profile[IH_INPUT_BUFFER_SIZE];
 
   printf("WIZARD ALERT: guided setup for %s\n", IH_CONFIG_FILENAME);
   printf("WIZARD INFO: press Enter to accept defaults\n");
@@ -1088,6 +1265,64 @@ static int ih_run_wizard(const char *config_dir) {
     return EXIT_FAILURE;
   if(!ih_prompt_bool("Fail mezzanine-clean when warnings are found (strict gate)?", false, &mezzanine_clean_strict_quality_gate))
     return EXIT_FAILURE;
+
+  if(!ih_prompt_bool("Enable post-profile quality scoring (PSNR/SSIM)?", false, &quality_check_enabled))
+    return EXIT_FAILURE;
+  if(!ih_prompt_bool("Include VMAF in quality scoring (requires ffmpeg libvmaf)?", false, &quality_check_include_vmaf))
+    return EXIT_FAILURE;
+  if(!ih_prompt_bool("Fail run when quality checks fail (strict gate)?", false, &quality_check_strict_gate))
+    return EXIT_FAILURE;
+  if(!ih_prompt_line("Quality reference layer (auto|source|mezzanine)", "auto", quality_check_reference_layer, sizeof(quality_check_reference_layer), true))
+    return EXIT_FAILURE;
+  if(!ih_prompt_line("Quality minimum PSNR (0 disables threshold)", "0", quality_check_min_psnr, sizeof(quality_check_min_psnr), true))
+    return EXIT_FAILURE;
+  if(!ih_prompt_line("Quality minimum SSIM (0 disables threshold)", "0", quality_check_min_ssim, sizeof(quality_check_min_ssim), true))
+    return EXIT_FAILURE;
+  if(!ih_prompt_line("Quality minimum VMAF (0 disables threshold)", "0", quality_check_min_vmaf, sizeof(quality_check_min_vmaf), true))
+    return EXIT_FAILURE;
+  if(!ih_prompt_line("Quality max files per profile to score (0 means all)", "0", quality_check_max_files_per_profile, sizeof(quality_check_max_files_per_profile), true))
+    return EXIT_FAILURE;
+
+  if(strcasecmp(quality_check_reference_layer, "auto") != 0
+     && strcasecmp(quality_check_reference_layer, "source") != 0
+     && strcasecmp(quality_check_reference_layer, "mezzanine") != 0) {
+    printf("WIZARD ERROR: quality reference layer must be auto, source, or mezzanine\n");
+    return EXIT_FAILURE;
+  }
+  utils_lowercase_string(quality_check_reference_layer);
+
+  {
+    char *end_ptr = NULL;
+    double parsed_double = 0.0;
+    long parsed_int = 0;
+
+    parsed_double = strtod(quality_check_min_psnr, &end_ptr);
+    if(end_ptr == quality_check_min_psnr || *end_ptr != '\0' || parsed_double < 0.0) {
+      printf("WIZARD ERROR: Quality minimum PSNR must be a non-negative number\n");
+      return EXIT_FAILURE;
+    }
+
+    end_ptr = NULL;
+    parsed_double = strtod(quality_check_min_ssim, &end_ptr);
+    if(end_ptr == quality_check_min_ssim || *end_ptr != '\0' || parsed_double < 0.0) {
+      printf("WIZARD ERROR: Quality minimum SSIM must be a non-negative number\n");
+      return EXIT_FAILURE;
+    }
+
+    end_ptr = NULL;
+    parsed_double = strtod(quality_check_min_vmaf, &end_ptr);
+    if(end_ptr == quality_check_min_vmaf || *end_ptr != '\0' || parsed_double < 0.0) {
+      printf("WIZARD ERROR: Quality minimum VMAF must be a non-negative number\n");
+      return EXIT_FAILURE;
+    }
+
+    end_ptr = NULL;
+    parsed_int = strtol(quality_check_max_files_per_profile, &end_ptr, 10);
+    if(end_ptr == quality_check_max_files_per_profile || *end_ptr != '\0' || parsed_int < 0) {
+      printf("WIZARD ERROR: Quality max files per profile must be a non-negative integer\n");
+      return EXIT_FAILURE;
+    }
+  }
 
   if(!ih_prompt_line("First library folder name", "Movies", custom_folder_name, sizeof(custom_folder_name), true))
     return EXIT_FAILURE;
@@ -1176,6 +1411,14 @@ static int ih_run_wizard(const char *config_dir) {
   fprintf(config_file, "MEZZANINE_CLEAN_APPLY_CHANGES=\"%s\"\n", mezzanine_clean_apply_changes ? "true" : "false");
   fprintf(config_file, "MEZZANINE_CLEAN_APPEND_MEDIA_TAGS=\"%s\"\n", mezzanine_clean_append_media_tags ? "true" : "false");
   fprintf(config_file, "MEZZANINE_CLEAN_STRICT_QUALITY_GATE=\"%s\"\n\n", mezzanine_clean_strict_quality_gate ? "true" : "false");
+  fprintf(config_file, "QUALITY_CHECK_ENABLED=\"%s\"\n", quality_check_enabled ? "true" : "false");
+  fprintf(config_file, "QUALITY_CHECK_INCLUDE_VMAF=\"%s\"\n", quality_check_include_vmaf ? "true" : "false");
+  fprintf(config_file, "QUALITY_CHECK_STRICT_GATE=\"%s\"\n", quality_check_strict_gate ? "true" : "false");
+  fprintf(config_file, "QUALITY_CHECK_REFERENCE_LAYER=\"%s\"\n", quality_check_reference_layer);
+  fprintf(config_file, "QUALITY_CHECK_MIN_PSNR=\"%s\"\n", quality_check_min_psnr);
+  fprintf(config_file, "QUALITY_CHECK_MIN_SSIM=\"%s\"\n", quality_check_min_ssim);
+  fprintf(config_file, "QUALITY_CHECK_MIN_VMAF=\"%s\"\n", quality_check_min_vmaf);
+  fprintf(config_file, "QUALITY_CHECK_MAX_FILES_PER_PROFILE=\"%s\"\n\n", quality_check_max_files_per_profile);
   fprintf(config_file, "CUSTOM_FOLDER=\"%s,%s\"\n\n", custom_folder_name, custom_folder_type);
   fprintf(config_file, "PROFILE=\"%s\"\n", alias_name);
   fprintf(config_file, "%s_LOCATION=\"%s\"\n", alias_upper, alias_location);
@@ -1228,6 +1471,14 @@ static void ih_show_config(config_t *config, const char *config_dir) {
   printf("MEZZANINE_CLEAN_APPLY_CHANGES=%s\n", config->svc->mezzanine_clean_apply_changes ? "true" : "false");
   printf("MEZZANINE_CLEAN_APPEND_MEDIA_TAGS=%s\n", config->svc->mezzanine_clean_append_media_tags ? "true" : "false");
   printf("MEZZANINE_CLEAN_STRICT_QUALITY_GATE=%s\n", config->svc->mezzanine_clean_strict_quality_gate ? "true" : "false");
+  printf("QUALITY_CHECK_ENABLED=%s\n", config->svc->quality_check_enabled ? "true" : "false");
+  printf("QUALITY_CHECK_INCLUDE_VMAF=%s\n", config->svc->quality_check_include_vmaf ? "true" : "false");
+  printf("QUALITY_CHECK_STRICT_GATE=%s\n", config->svc->quality_check_strict_gate ? "true" : "false");
+  printf("QUALITY_CHECK_REFERENCE_LAYER=%s\n", config->svc->quality_check_reference_layer);
+  printf("QUALITY_CHECK_MIN_PSNR=%.3f\n", config->svc->quality_check_min_psnr);
+  printf("QUALITY_CHECK_MIN_SSIM=%.6f\n", config->svc->quality_check_min_ssim);
+  printf("QUALITY_CHECK_MIN_VMAF=%.3f\n", config->svc->quality_check_min_vmaf);
+  printf("QUALITY_CHECK_MAX_FILES_PER_PROFILE=%i\n", config->svc->quality_check_max_files_per_profile);
 
   printf("\n[custom_folders]\n");
   custom_folder = config->cf_head;
