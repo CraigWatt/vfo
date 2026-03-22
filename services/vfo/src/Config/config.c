@@ -36,6 +36,23 @@ void con_set_lenient_location_validation(bool enabled) {
   con_lenient_location_validation = enabled;
 }
 
+static bool con_marker_at_line_start(char *string_conf, int marker_index) {
+  int cursor = marker_index - 1;
+
+  if(marker_index <= 0)
+    return true;
+
+  while(cursor >= 0) {
+    if(string_conf[cursor] == '\n' || string_conf[cursor] == '\r')
+      return true;
+    if(isspace((unsigned char)string_conf[cursor]) == 0)
+      return false;
+    cursor--;
+  }
+
+  return true;
+}
+
 static char* con_fetch_optional_sole_var_content(char *string_conf, char *marker) {
   int marker_count = con_get_marker_count(string_conf, marker);
   if(marker_count == 0) {
@@ -624,6 +641,7 @@ char* con_fetch_custom_folder_var_content(char *string_conf, char *marker, int i
   int tmpCounter = 1;
 
   char *buffer = malloc(BUFSIZ);
+  buffer[0] = '\0';
 
   for (int i = 0; i < end; i++) {
     bool content_found = true;
@@ -633,6 +651,9 @@ char* con_fetch_custom_folder_var_content(char *string_conf, char *marker, int i
         break;
       }
     }
+    if(content_found && con_marker_at_line_start(string_conf, i) == false)
+      content_found = false;
+
     // when cursor has found and is at start of variable...
     if (content_found && tmpCounter == iteration) {
       //move cursor to end of found word...
@@ -686,6 +707,9 @@ bool con_detect_a_word(char *full_string, char *word) {
         break;
       }
     }
+    if(word_found && con_marker_at_line_start(full_string, i) == false)
+      word_found = false;
+
     if(word_found) {
       return true;
     }
@@ -699,6 +723,7 @@ char* con_fetch_sole_var_content(char *string_conf, char *marker) {
   int end = slen - wlen + 1;
 
   char *buffer = malloc(BUFSIZ);
+  buffer[0] = '\0';
 
   for (int i = 0; i < end; i++) {
     bool content_found = true;
@@ -708,6 +733,9 @@ char* con_fetch_sole_var_content(char *string_conf, char *marker) {
         break;
       }
     }
+    if(content_found && con_marker_at_line_start(string_conf, i) == false)
+      content_found = false;
+
     // when cursor has found and is at start of variable...
     if(content_found) {
       //move cursor to end of found word...
@@ -738,6 +766,7 @@ char* con_fetch_sole_var_content(char *string_conf, char *marker) {
         }
         if(second_quotes_found == true) break;
       }
+      break;
     }
   }
   return buffer;
@@ -1114,6 +1143,9 @@ int con_word_count(char *string_conf, char *word) {
         break;
       }
     }
+    if(word_found && con_marker_at_line_start(string_conf, i) == false)
+      word_found = false;
+
     if (word_found) count++;
   }
   return count;

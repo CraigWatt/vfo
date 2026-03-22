@@ -55,3 +55,26 @@ void test_con_init_config_dir_empty_str(void **state) {
   
   assert_int_equal(revised_argc, 1);
 }
+
+void test_con_word_count_ignores_partial_marker_matches(void **state) {
+  char conf[] =
+    "QUALITY_CHECK_MAX_FILES_PER_PROFILE=\"0\"\n"
+    "PROFILE=\"netflixy\"\n";
+  (void)state;
+
+  assert_int_equal(con_word_count(conf, "PROFILE="), 1);
+  assert_int_equal(con_word_count(conf, "QUALITY_CHECK_MAX_FILES_PER_PROFILE="), 1);
+}
+
+void test_con_fetch_profile_marker_ignores_quality_suffix_marker(void **state) {
+  char conf[] =
+    "QUALITY_CHECK_MAX_FILES_PER_PROFILE=\"0\"\n"
+    "PROFILE=\"netflixy_preserve_audio_main_subtitle_intent_1080p\"\n";
+  char *value = NULL;
+  (void)state;
+
+  value = con_fetch_custom_folder_var_content(conf, "PROFILE=", 1);
+  assert_non_null(value);
+  assert_string_equal(value, "netflixy_preserve_audio_main_subtitle_intent_1080p");
+  free(value);
+}

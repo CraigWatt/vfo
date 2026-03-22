@@ -32,5 +32,7 @@
 
 void test_con_init_config_dir_null_ptr(void **state);
 void test_con_init_config_dir_empty_str(void **state);
+void test_con_word_count_ignores_partial_marker_matches(void **state);
+void test_con_fetch_profile_marker_ignores_quality_suffix_marker(void **state);
 
 #endif // C_TESTS_H

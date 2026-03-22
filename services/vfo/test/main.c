@@ -61,6 +61,8 @@ int main(void) {
         /* Config */
         cmocka_unit_test(test_con_init_config_dir_null_ptr),
         cmocka_unit_test(test_con_init_config_dir_empty_str),
+        cmocka_unit_test(test_con_word_count_ignores_partial_marker_matches),
+        cmocka_unit_test(test_con_fetch_profile_marker_ignores_quality_suffix_marker),
         /* Mezzanine */
         cmocka_unit_test(test_o_original_null_ptr),
         /* Source */
