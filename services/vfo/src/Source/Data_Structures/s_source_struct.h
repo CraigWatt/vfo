@@ -39,6 +39,12 @@ struct source {
   char *root;
   char *content;
   char *unable_to_process;
+  char *locations;
+  char *location_max_usage_pct;
+  utils_location_pool_t *location_pool;
+  char **content_locations;
+  char **unable_to_process_locations;
+  int source_locations_count;
 
   char *mp4_extension;
 
@@ -57,8 +63,8 @@ typedef struct source source_t;
 source_t* source_create_new_struct(config_t *config);
 char* s_create_content(char *source_root);
 char* s_create_unable_to_process(char *source_root);
-char* s_get_mkv_original_if_it_exists();
-char* s_get_mp4_original_if_it_exists();
-char* s_get_m2ts_original_if_it_exists();
+char* s_get_mkv_original_if_it_exists(char *original_root);
+char* s_get_mp4_original_if_it_exists(char *original_root);
+char* s_get_m2ts_original_if_it_exists(char *original_root);
 
 #endif // S_SOURCE_STRUCT_H

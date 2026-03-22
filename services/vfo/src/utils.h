@@ -35,6 +35,14 @@
 
 #include "Config/Data_Structures/c_cf_ll_struct.h"
 
+struct utils_location_pool {
+  char **roots;
+  int *max_usage_pct;
+  int count;
+  unsigned long long reserve_bytes;
+};
+typedef struct utils_location_pool utils_location_pool_t;
+
 
 extern bool utils_does_folder_exist(char *location);
 extern void utils_create_folder(char *location);
@@ -96,5 +104,33 @@ extern void utils_create_error_encoding_file(char *location, char *candidate_nam
 extern bool utils_string_only_contains_number_characters(char *string);
 
 extern bool utils_string_is_ffmpeg_timecode_compliant(char *string);
+
+extern char** utils_split_semicolon_list(char *value, int *count);
+extern void utils_free_string_array(char **items, int count);
+extern utils_location_pool_t* utils_location_pool_create(char *primary_location,
+                                                         char *locations_list,
+                                                         char *max_usage_pct_list,
+                                                         int default_max_usage_pct,
+                                                         unsigned long long reserve_bytes);
+extern void utils_location_pool_free(utils_location_pool_t *pool);
+extern char* utils_location_pool_map_path(utils_location_pool_t *pool,
+                                          int location_index,
+                                          char *template_path,
+                                          char *template_root);
+extern bool utils_location_pool_find_existing_path(utils_location_pool_t *pool,
+                                                   char *template_path,
+                                                   char *template_root,
+                                                   char **existing_path_out);
+extern int utils_location_pool_select_root_index(utils_location_pool_t *pool,
+                                                 char *template_path,
+                                                 char *template_root,
+                                                 unsigned long long estimated_bytes,
+                                                 bool require_new_destination,
+                                                 bool *excluded_indexes);
+extern bool utils_get_path_space_bytes(char *path,
+                                       unsigned long long *total_bytes,
+                                       unsigned long long *free_bytes);
+extern unsigned long long utils_get_single_file_size_bytes(char *file_path);
+extern unsigned long long utils_fetch_single_file_size_bytes(char *folder);
 
 #endif // UTILS_H

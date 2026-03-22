@@ -27,6 +27,91 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static unsigned long long a_estimate_output_size_bytes(char *from_folder) {
+  unsigned long long input_size = utils_fetch_single_file_size_bytes(from_folder);
+  if(input_size == 0ULL)
+    return 2ULL * 1024ULL * 1024ULL * 1024ULL;
+  return input_size + (input_size / 10ULL);
+}
+
+static char* a_unable_to_process_for_index(aliases_t *alias, int index) {
+  return utils_location_pool_map_path(alias->alias_location_pool, index, alias->unable_to_process, alias->root);
+}
+
+static bool a_destination_exists_anywhere(aliases_t *alias, char *template_destination) {
+  return utils_location_pool_find_existing_path(alias->alias_location_pool,
+                                                template_destination,
+                                                alias->content,
+                                                NULL);
+}
+
+static bool a_encode_candidate_with_retry(aliases_t *alias,
+                                          char *from_folder,
+                                          char *to_template_folder,
+                                          char *to_tv_level_1_template,
+                                          char *to_tv_level_2_template) {
+  bool *excluded_indexes = calloc((size_t)alias->alias_location_pool->count, sizeof(bool));
+  unsigned long long estimated_output_bytes = a_estimate_output_size_bytes(from_folder);
+
+  for(int attempt = 0; attempt < alias->alias_location_pool->count; attempt++) {
+    int selected_index = utils_location_pool_select_root_index(alias->alias_location_pool,
+                                                               to_template_folder,
+                                                               alias->content,
+                                                               estimated_output_bytes,
+                                                               true,
+                                                               excluded_indexes);
+    char *to_folder = NULL;
+    char *to_tv_level_1 = NULL;
+    char *to_tv_level_2 = NULL;
+    char *unable_to_process = NULL;
+
+    if(selected_index < 0)
+      break;
+
+    to_folder = utils_location_pool_map_path(alias->alias_location_pool, selected_index, to_template_folder, alias->content);
+    unable_to_process = a_unable_to_process_for_index(alias, selected_index);
+
+    if(to_tv_level_1_template != NULL)
+      to_tv_level_1 = utils_location_pool_map_path(alias->alias_location_pool, selected_index, to_tv_level_1_template, alias->content);
+    if(to_tv_level_2_template != NULL)
+      to_tv_level_2 = utils_location_pool_map_path(alias->alias_location_pool, selected_index, to_tv_level_2_template, alias->content);
+
+    if(to_tv_level_1 != NULL && !utils_does_folder_exist(to_tv_level_1))
+      utils_create_folder(to_tv_level_1);
+    if(to_tv_level_2 != NULL && !utils_does_folder_exist(to_tv_level_2))
+      utils_create_folder(to_tv_level_2);
+    if(!utils_does_folder_exist(to_folder))
+      utils_create_folder(to_folder);
+
+    if(a_execute_ffmpeg_command(from_folder, to_folder, alias) == true) {
+      printf("ALIAS %s ALERT: ffmpeg command executed successfully.\n", alias->name);
+      free(excluded_indexes);
+      free(to_tv_level_1);
+      free(to_tv_level_2);
+      free(to_folder);
+      free(unable_to_process);
+      return true;
+    }
+
+    printf("ALIAS %s WARNING: ffmpeg command failed for destination %s\n", alias->name, to_folder);
+    if(unable_to_process != NULL)
+      utils_create_error_encoding_file(unable_to_process, from_folder);
+    if(utils_does_folder_exist(to_folder) && utils_is_folder_empty(to_folder) == false)
+      utils_danger_delete_contents_of_folder(to_folder);
+    if(utils_does_folder_exist(to_folder))
+      utils_delete_folder_if_it_is_empty(to_folder);
+
+    excluded_indexes[selected_index] = true;
+    free(to_tv_level_1);
+    free(to_tv_level_2);
+    free(to_folder);
+    free(unable_to_process);
+  }
+
+  free(excluded_indexes);
+  return false;
+}
+
 /* Source to Aliases Work */
 
 void a_source_to_aliases(aliases_t *aliases) {
@@ -63,17 +148,12 @@ void a_source_to_alias(aliases_t *alias) {
 
 void a_pre_encode_checks(aliases_t *alias) {
   printf("ALIAS %s ALERT: initiating 'pre-encode checks'\n", alias->name);
-  //does alias/content folder contain valid custom folders
-  utils_does_folder_contain_valid_custom_folders(alias->content, alias->cf_head);
-  //is alias/content folder missing any custom folders
-  utils_is_folder_missing_custom_folders(alias->content, alias->cf_head);
-  /*in future I would like to be able to SAY what folders are missing */
-  /* now we know all necessary folders contain necessary custom_folders */
-
-  /*but let's check to see if each custom_folder is adhering to their custom_folder_type*/
-  //are the alias/content folder custom_folders adhering to their types?
-  //using mp4_original flag as alias also only uses mp4 format FOR NOW!
-  utils_are_custom_folders_type_compliant(alias->content, "mp4_original", alias->cf_head);
+  for(int i = 0; i < alias->alias_locations_count; i++) {
+    char *content_root = alias->content_locations[i];
+    utils_does_folder_contain_valid_custom_folders(content_root, alias->cf_head);
+    utils_is_folder_missing_custom_folders(content_root, alias->cf_head);
+    utils_are_custom_folders_type_compliant(content_root, "mp4_original", alias->cf_head);
+  }
 
   // maybe necessary but not sure?
   // are_custom_folders_files_alias_compliant();
@@ -86,10 +166,15 @@ void a_pre_encode_checks(aliases_t *alias) {
 }
 
 void a_highlight_encode_candidates_to_user(aliases_t *alias) {
-  if(strcmp(alias->source_content, "") != 0) {
-    printf("ALIAS %s ALERT: found source/content\n", alias->name);
-    a_highlight_encode_candidates_from_source_content(alias);
+  char *original_source_content = alias->source_content;
+  for(int i = 0; i < alias->source_locations_count; i++) {
+    alias->source_content = alias->source_content_locations[i];
+    if(strcmp(alias->source_content, "") != 0) {
+      printf("ALIAS %s ALERT: found source/content at %s\n", alias->name, alias->source_content);
+      a_highlight_encode_candidates_from_source_content(alias);
+    }
   }
+  alias->source_content = original_source_content;
 }
 
 void a_highlight_encode_candidates_from_source_content(aliases_t *alias) {
@@ -102,9 +187,11 @@ void a_highlight_encode_candidates_from_source_content(aliases_t *alias) {
       if(tmp_f != NULL) {
         while(tmp_f != NULL) {
           //if to_folder does exist AND if from_folder does exist
-          if(utils_does_folder_exist(tmp_f->from_films_f_folder) && utils_does_folder_exist(tmp_f->to_films_f_folder))
+          if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
+             a_destination_exists_anywhere(alias, tmp_f->to_films_f_folder))
             already_present_in_alias_counter++;
-          else if(utils_does_folder_exist(tmp_f->from_films_f_folder) && !(utils_does_folder_exist(tmp_f->to_films_f_folder)))
+          else if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
+                  !(a_destination_exists_anywhere(alias, tmp_f->to_films_f_folder)))
             alias_encode_candidates_counter++;
           tmp_f = tmp_f->next;
         }
@@ -119,9 +206,11 @@ void a_highlight_encode_candidates_from_source_content(aliases_t *alias) {
               if(tmp_tv3 != NULL) {
                 while(tmp_tv3 != NULL) {
                   //if to_folder doesn't exist AND from_folder contains valid file
-                  if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) && utils_does_folder_exist(tmp_tv3->to_tv_f_folder))
+                  if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
+                     a_destination_exists_anywhere(alias, tmp_tv3->to_tv_f_folder))
                     already_present_in_alias_counter++;
-                  else if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) && !(utils_does_folder_exist(tmp_tv3->to_tv_f_folder)))
+                  else if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
+                          !(a_destination_exists_anywhere(alias, tmp_tv3->to_tv_f_folder)))
                     alias_encode_candidates_counter++;
                   tmp_tv3 = tmp_tv3->next;
                 }
@@ -142,8 +231,13 @@ void a_highlight_encode_candidates_from_source_content(aliases_t *alias) {
 }
 
 void a_encode_source_to_an_alias(aliases_t *alias) {
-  if(strcmp(alias->source_content, "") != 0)
-    s_encode_from_source_to_alias(alias);
+  char *original_source_content = alias->source_content;
+  for(int i = 0; i < alias->source_locations_count; i++) {
+    alias->source_content = alias->source_content_locations[i];
+    if(strcmp(alias->source_content, "") != 0)
+      s_encode_from_source_to_alias(alias);
+  }
+  alias->source_content = original_source_content;
 }
 
 void s_encode_from_source_to_alias(aliases_t *alias) {
@@ -153,27 +247,15 @@ void s_encode_from_source_to_alias(aliases_t *alias) {
       active_films_f_node_t *tmp_f = active_cf->active_films_f_head;
       if(tmp_f != NULL) {
         while(tmp_f != NULL) {
-          //if to_folder doesn't exist, 
-          if(!utils_does_folder_exist(tmp_f->to_films_f_folder)) {
-            //create the folder
-            utils_create_folder(tmp_f->to_films_f_folder);
-            //encode the video file
-            if(a_execute_ffmpeg_command(tmp_f->from_films_f_folder, tmp_f->to_films_f_folder, alias) == true) {
-              //command executed successfully
-              printf("ALIAS %s ALERT: ffmpeg command executed successfully.\n", alias->name);
-            }
-            else {
-              //command unsuccessful - need to generate a error txt file in source->unable_to_process
-              printf("ALIAS %s WARNING: ffmpeg command FAILED.  Printing error message to %s/unable_to_process\n", alias->name, alias->name);
-              printf("DEV: attempting to create error txt file in unable to process.\n");
+          bool destination_exists = a_destination_exists_anywhere(alias, tmp_f->to_films_f_folder);
+          if(!destination_exists) {
+            if(a_encode_candidate_with_retry(alias,
+                                             tmp_f->from_films_f_folder,
+                                             tmp_f->to_films_f_folder,
+                                             NULL,
+                                             NULL) == false) {
+              printf("ALIAS %s WARNING: all destination locations were exhausted for %s\n", alias->name, tmp_f->from_films_f_folder);
               utils_create_error_encoding_file(alias->unable_to_process, tmp_f->from_films_f_folder);
-              //attempt to remove failed encode scrap.
-              if(utils_is_folder_empty(tmp_f->to_films_f_folder) == false) {
-                utils_danger_delete_contents_of_folder(tmp_f->to_films_f_folder);
-                utils_delete_folder_if_it_is_empty(tmp_f->to_films_f_folder);
-              } 
-              else
-                utils_delete_folder_if_it_is_empty(tmp_f->to_films_f_folder);
             }
           }
           tmp_f = tmp_f->next;
@@ -188,31 +270,15 @@ void s_encode_from_source_to_alias(aliases_t *alias) {
               active_tv_f_node_t *tmp_tv3 = tmp_tv2->active_tv_f_head;
               if(tmp_tv3 != NULL) {
                 while(tmp_tv3 != NULL) {
-                  //if to_folder doesn't exist
-                  if(!utils_does_folder_exist(tmp_tv3->to_tv_f_folder)) {
-                    //create folder
-                    if(!utils_does_folder_exist(tmp_tv1->to_tv_f_folder))
-                      utils_create_folder(tmp_tv1->to_tv_f_folder);
-                    if(!utils_does_folder_exist(tmp_tv2->to_tv_f_folder))
-                      utils_create_folder(tmp_tv2->to_tv_f_folder);
-                    utils_create_folder(tmp_tv3->to_tv_f_folder);
-                    //encode the video file
-                    if(a_execute_ffmpeg_command(tmp_tv3->from_tv_f_folder, tmp_tv3->to_tv_f_folder, alias) == true) {
-                      //command executed successfully
-                      printf("ALIAS %s ALERT: ffmpeg command executed successfully.\n", alias->name);
-                    }
-                    else {
-                      //command unsuccessful - need to generate a error txt file in source->unable_to_process
-                      printf("ALIAS %s WARNING: ffmpeg command FAILED.  Printing error message to %s/unable_to_process\n", alias->name, alias->name);
-                      printf("DEV: attempting to create error txt file in unable to process.\n");
+                  bool destination_exists = a_destination_exists_anywhere(alias, tmp_tv3->to_tv_f_folder);
+                  if(!destination_exists) {
+                    if(a_encode_candidate_with_retry(alias,
+                                                     tmp_tv3->from_tv_f_folder,
+                                                     tmp_tv3->to_tv_f_folder,
+                                                     tmp_tv1->to_tv_f_folder,
+                                                     tmp_tv2->to_tv_f_folder) == false) {
+                      printf("ALIAS %s WARNING: all destination locations were exhausted for %s\n", alias->name, tmp_tv3->from_tv_f_folder);
                       utils_create_error_encoding_file(alias->unable_to_process, tmp_tv3->from_tv_f_folder);
-                      //attempt to remove failed encode scrap.
-                      if(utils_is_folder_empty(tmp_tv3->to_tv_f_folder) == false) {
-                        utils_danger_delete_contents_of_folder(tmp_tv3->to_tv_f_folder);
-                        utils_delete_folder_if_it_is_empty(tmp_tv3->to_tv_f_folder);
-                      } 
-                      else
-                        utils_delete_folder_if_it_is_empty(tmp_tv3->to_tv_f_folder);
                     }
                   }
                   tmp_tv3 = tmp_tv3->next;

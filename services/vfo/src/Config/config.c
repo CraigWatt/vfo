@@ -25,6 +25,133 @@
 #include "Data_Structures/c_cs_ll_struct.h"
 #include "c_internal.h"
 #include <errno.h>
+#include <ctype.h>
+
+static char* con_fetch_optional_sole_var_content(char *string_conf, char *marker) {
+  int marker_count = con_get_marker_count(string_conf, marker);
+  if(marker_count == 0) {
+    char *empty = malloc(1);
+    empty[0] = '\0';
+    return empty;
+  }
+  if(marker_count > 1) {
+    printf("ERROR: There should only be 1 %s in config file.\n", marker);
+    printf("vfo detected more than 1!\n");
+    exit(EXIT_FAILURE);
+  }
+  return con_fetch_sole_var_content(string_conf, marker);
+}
+
+static char* con_trim_copy(const char *value) {
+  size_t start = 0;
+  size_t end = 0;
+  char *trimmed = NULL;
+  size_t out_length = 0;
+
+  if(value == NULL) {
+    trimmed = malloc(1);
+    trimmed[0] = '\0';
+    return trimmed;
+  }
+
+  while(value[start] != '\0' && isspace((unsigned char)value[start])) {
+    start++;
+  }
+
+  end = strlen(value);
+  while(end > start && isspace((unsigned char)value[end - 1])) {
+    end--;
+  }
+
+  out_length = end - start;
+  trimmed = malloc(out_length + 1);
+  if(out_length > 0)
+    memcpy(trimmed, value + start, out_length);
+  trimmed[out_length] = '\0';
+  return trimmed;
+}
+
+static int con_split_semicolon_list(char *value, char ***items_out) {
+  int count = 0;
+  char *copied = NULL;
+  char *token = NULL;
+  char *save_ptr = NULL;
+  char **items = NULL;
+
+  *items_out = NULL;
+  if(value == NULL)
+    return 0;
+
+  copied = strdup(value);
+  token = strtok_r(copied, ";", &save_ptr);
+  while(token != NULL) {
+    char *trimmed = con_trim_copy(token);
+    if(trimmed[0] != '\0') {
+      items = realloc(items, sizeof(char*) * (size_t)(count + 1));
+      items[count] = trimmed;
+      count++;
+    } else {
+      free(trimmed);
+    }
+    token = strtok_r(NULL, ";", &save_ptr);
+  }
+
+  free(copied);
+  *items_out = items;
+  return count;
+}
+
+static void con_validate_location_csv(char *csv, char *label) {
+  char **locations = NULL;
+  int location_count = con_split_semicolon_list(csv, &locations);
+
+  if(location_count == 0) {
+    printf("ERROR: %s must include at least one location when provided.\n", label);
+    exit(EXIT_FAILURE);
+  }
+
+  for(int i = 0; i < location_count; i++) {
+    if(utils_does_folder_exist(locations[i]) == false) {
+      printf("ERROR: %s contains a location that does not exist: %s\n", label, locations[i]);
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  for(int i = 0; i < location_count; i++)
+    free(locations[i]);
+  free(locations);
+}
+
+static void con_validate_usage_cap_csv(char *csv, char *label, int expected_count) {
+  char **caps = NULL;
+  int cap_count = 0;
+
+  if(utils_string_is_empty_or_spaces(csv))
+    return;
+
+  cap_count = con_split_semicolon_list(csv, &caps);
+  if(cap_count != expected_count) {
+    printf("ERROR: %s count (%i) must match location count (%i)\n", label, cap_count, expected_count);
+    exit(EXIT_FAILURE);
+  }
+
+  for(int i = 0; i < cap_count; i++) {
+    if(utils_string_only_contains_number_characters(caps[i]) == false) {
+      printf("ERROR: %s contains a non-numeric cap value: %s\n", label, caps[i]);
+      exit(EXIT_FAILURE);
+    }
+
+    int cap = utils_convert_string_to_integer(caps[i]);
+    if(cap < 1 || cap > 100) {
+      printf("ERROR: %s cap values must be between 1 and 100: %s\n", label, caps[i]);
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  for(int i = 0; i < cap_count; i++)
+    free(caps[i]);
+  free(caps);
+}
 
 config_t* con_init(const char *config_dir, char **revised_argv, int revised_argc) {
   // config struct container
@@ -126,6 +253,8 @@ ca_node_t* con_extract_to_ca_ll(char *conf_string, char *ca_marker, ca_node_t *c
 
     //append to start of criteria markers alias...
     char *tmp_alias_location_marker = utils_combine_strings(alias_uppercase, "_LOCATION=");
+    char *tmp_alias_locations_marker = utils_combine_strings(alias_uppercase, "_LOCATIONS=");
+    char *tmp_alias_location_max_usage_pct_marker = utils_combine_strings(alias_uppercase, "_LOCATION_MAX_USAGE_PCT=");
     char *tmp_crit_cod_name_marker = utils_combine_strings(alias_uppercase, "_CRITERIA_CODEC_NAME=");
     char *tmp_crit_bits_marker = utils_combine_strings(alias_uppercase, "_CRITERIA_BITS=");
     char *tmp_crit_col_space_marker = utils_combine_strings(alias_uppercase, "_CRITERIA_COLOR_SPACE=");
@@ -136,6 +265,8 @@ ca_node_t* con_extract_to_ca_ll(char *conf_string, char *ca_marker, ca_node_t *c
 
     //now fetch the content of these markers
     char *tmp_alias_location_content = con_fetch_sole_var_content(conf_string, tmp_alias_location_marker);
+    char *tmp_alias_locations_content = con_fetch_optional_sole_var_content(conf_string, tmp_alias_locations_marker);
+    char *tmp_alias_location_max_usage_pct_content = con_fetch_optional_sole_var_content(conf_string, tmp_alias_location_max_usage_pct_marker);
     char *tmp_crit_cod_name_content = con_fetch_sole_var_content(conf_string, tmp_crit_cod_name_marker);
     char *tmp_crit_bits_content = con_fetch_sole_var_content(conf_string, tmp_crit_bits_marker);
     char *tmp_crit_col_space_content = con_fetch_sole_var_content(conf_string, tmp_crit_col_space_marker);
@@ -145,6 +276,8 @@ ca_node_t* con_extract_to_ca_ll(char *conf_string, char *ca_marker, ca_node_t *c
     char *tmp_max_height_content = con_fetch_sole_var_content(conf_string, tmp_max_height_marker);
 
     printf("tmp_alias_location_content: %s\n", tmp_alias_location_content);
+    printf("tmp_alias_locations_content: %s\n", tmp_alias_locations_content);
+    printf("tmp_alias_location_max_usage_pct_content: %s\n", tmp_alias_location_max_usage_pct_content);
     printf("tmp_crit_cod_name_content: %s\n", tmp_crit_cod_name_content);
     printf("tmp_crit_bits_content: %s\n", tmp_crit_bits_content);
     printf("tmp_crit_col_space_content: %s\n", tmp_crit_col_space_content);
@@ -152,6 +285,29 @@ ca_node_t* con_extract_to_ca_ll(char *conf_string, char *ca_marker, ca_node_t *c
     printf("tmp_min_height_content: %s\n", tmp_min_height_content);
     printf("tmp_max_width_content: %s\n", tmp_max_width_content);
     printf("tmp_max_height_content: %s\n", tmp_max_height_content);
+
+    if(utils_string_is_empty_or_spaces(tmp_alias_locations_content) == false) {
+      con_validate_location_csv(tmp_alias_locations_content, tmp_alias_locations_marker);
+      char **alias_locations = NULL;
+      int alias_location_count = con_split_semicolon_list(tmp_alias_locations_content, &alias_locations);
+      if(alias_location_count > 0)
+        tmp_alias_location_content = alias_locations[0];
+      con_validate_usage_cap_csv(tmp_alias_location_max_usage_pct_content,
+                                 tmp_alias_location_max_usage_pct_marker,
+                                 alias_location_count);
+      for(int x = 1; x < alias_location_count; x++)
+        free(alias_locations[x]);
+      free(alias_locations);
+    } else {
+      if(utils_does_folder_exist(tmp_alias_location_content) == false) {
+        printf("ERROR: alias location does not exist: %s\n", tmp_alias_location_content);
+        exit(EXIT_FAILURE);
+      }
+      tmp_alias_locations_content = tmp_alias_location_content;
+      con_validate_usage_cap_csv(tmp_alias_location_max_usage_pct_content,
+                                 tmp_alias_location_max_usage_pct_marker,
+                                 1);
+    }
 
     //asociate a link from linked list node to another linked list which is intended on storing ffmpeg & scenario configurations for a particular node alias
     char *tmp_alias_scenario_marker = utils_combine_strings(alias_uppercase, "_SCENARIO=");
@@ -184,6 +340,8 @@ ca_node_t* con_extract_to_ca_ll(char *conf_string, char *ca_marker, ca_node_t *c
     //add all of the above to ca_node
     ca_tmp = ca_create_new_node(tmpcontent,
                               tmp_alias_location_content, 
+                              tmp_alias_locations_content,
+                              tmp_alias_location_max_usage_pct_content,
                               tmp_crit_cod_name_content, 
                               tmp_crit_bits_content, 
                               tmp_crit_col_space_content,
@@ -456,19 +614,91 @@ char* con_fetch_sole_var_content(char *string_conf, char *marker) {
 }
 
 void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_var_content_t *svc) {
-  //each should only be present once in vfo_config.conf
-  con_get_sole_marker_count(conf_string, svm->original_location);
-  con_get_sole_marker_count(conf_string, svm->source_location);
+  int original_location_count = con_get_marker_count(conf_string, svm->original_location);
+  int original_locations_count = con_get_marker_count(conf_string, svm->original_locations);
+  int source_location_count = con_get_marker_count(conf_string, svm->source_location);
+  int source_locations_count = con_get_marker_count(conf_string, svm->source_locations);
+
+  if(original_location_count > 1 || original_locations_count > 1) {
+    printf("ERROR: ORIGINAL_LOCATION/ORIGINAL_LOCATIONS may only be defined once each.\n");
+    exit(EXIT_FAILURE);
+  }
+  if(source_location_count > 1 || source_locations_count > 1) {
+    printf("ERROR: SOURCE_LOCATION/SOURCE_LOCATIONS may only be defined once each.\n");
+    exit(EXIT_FAILURE);
+  }
+  if(original_location_count == 0 && original_locations_count == 0) {
+    printf("ERROR: config must include ORIGINAL_LOCATION or ORIGINAL_LOCATIONS.\n");
+    exit(EXIT_FAILURE);
+  }
+  if(source_location_count == 0 && source_locations_count == 0) {
+    printf("ERROR: config must include SOURCE_LOCATION or SOURCE_LOCATIONS.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  //each should only be present once in vfo_config.conf when provided
   con_get_sole_marker_count(conf_string, svm->keep_source);
   con_get_sole_marker_count(conf_string, svm->source_test_active_marker);
   con_get_sole_marker_count(conf_string, svm->source_test_trim_start_marker);
   con_get_sole_marker_count(conf_string, svm->source_test_trim_duration_marker);
+  if(con_get_marker_count(conf_string, svm->original_location_max_usage_pct) > 1) {
+    printf("ERROR: There should only be 1 %s in config file.\n", svm->original_location_max_usage_pct);
+    exit(EXIT_FAILURE);
+  }
+  if(con_get_marker_count(conf_string, svm->source_location_max_usage_pct) > 1) {
+    printf("ERROR: There should only be 1 %s in config file.\n", svm->source_location_max_usage_pct);
+    exit(EXIT_FAILURE);
+  }
 
   /*fetch each sole_var_content from each sole_var_marker*/
-  //fetch svc->original_location
-  svc->original_location = con_fetch_sole_var_content(conf_string, svm->original_location);
-  //fetch svc_source_location
-  svc->source_location = con_fetch_sole_var_content(conf_string, svm->source_location);
+  if(original_location_count == 1)
+    svc->original_location = con_fetch_sole_var_content(conf_string, svm->original_location);
+  else {
+    svc->original_location = malloc(1);
+    svc->original_location[0] = '\0';
+  }
+
+  if(source_location_count == 1)
+    svc->source_location = con_fetch_sole_var_content(conf_string, svm->source_location);
+  else {
+    svc->source_location = malloc(1);
+    svc->source_location[0] = '\0';
+  }
+
+  svc->original_locations = con_fetch_optional_sole_var_content(conf_string, svm->original_locations);
+  svc->source_locations = con_fetch_optional_sole_var_content(conf_string, svm->source_locations);
+  svc->original_location_max_usage_pct = con_fetch_optional_sole_var_content(conf_string, svm->original_location_max_usage_pct);
+  svc->source_location_max_usage_pct = con_fetch_optional_sole_var_content(conf_string, svm->source_location_max_usage_pct);
+
+  if(utils_string_is_empty_or_spaces(svc->original_locations))
+    svc->original_locations = svc->original_location;
+  if(utils_string_is_empty_or_spaces(svc->source_locations))
+    svc->source_locations = svc->source_location;
+
+  if(utils_string_is_empty_or_spaces(svc->original_locations) == false) {
+    char **locations = NULL;
+    int location_count = con_split_semicolon_list(svc->original_locations, &locations);
+    con_validate_location_csv(svc->original_locations, svm->original_locations);
+    con_validate_usage_cap_csv(svc->original_location_max_usage_pct, svm->original_location_max_usage_pct, location_count);
+    if(location_count > 0)
+      svc->original_location = locations[0];
+    for(int i = 1; i < location_count; i++)
+      free(locations[i]);
+    free(locations);
+  }
+
+  if(utils_string_is_empty_or_spaces(svc->source_locations) == false) {
+    char **locations = NULL;
+    int location_count = con_split_semicolon_list(svc->source_locations, &locations);
+    con_validate_location_csv(svc->source_locations, svm->source_locations);
+    con_validate_usage_cap_csv(svc->source_location_max_usage_pct, svm->source_location_max_usage_pct, location_count);
+    if(location_count > 0)
+      svc->source_location = locations[0];
+    for(int i = 1; i < location_count; i++)
+      free(locations[i]);
+    free(locations);
+  }
+
   //fetch char *tmp_bool_word
   char *tmp_bool_word = con_fetch_sole_var_content(conf_string, svm->keep_source);
 
@@ -492,11 +722,9 @@ void con_extract_to_sole_vars(char* conf_string, sole_var_markers_t *svm, sole_v
     2. never just be empty spaces
     3. has to be either TRUE or FALSE
     we can make use of utils_uppercase to help the user avoid issues here */
-  //verify svc->original_location
-  if(!(utils_string_is_empty_or_spaces(svc->original_location))) 
+  if(!(utils_string_is_empty_or_spaces(svc->original_location)))
     if(utils_does_folder_exist(svc->original_location))
       svc->is_original_location_valid = true;
-  //verify svc->source_location
   if(!(utils_string_is_empty_or_spaces(svc->source_location)))
     if(utils_does_folder_exist(svc->source_location))
       svc->is_source_location_valid = true;

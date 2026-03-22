@@ -42,6 +42,11 @@ Installed paths:
 3. `vfo doctor` to validate paths and required tools.
 4. `vfo run` to execute the default pipeline.
 
+### Multi-location storage routing
+- `ORIGINAL_LOCATIONS`, `SOURCE_LOCATIONS`, and `<PROFILE>_LOCATIONS` support semicolon-separated paths.
+- `ORIGINAL_LOCATION_MAX_USAGE_PCT`, `SOURCE_LOCATION_MAX_USAGE_PCT`, and `<PROFILE>_LOCATION_MAX_USAGE_PCT` set per-path usage caps.
+- vfo routes writes by projected utilization and free-space reserve, then retries on alternate locations when a destination fails.
+
 ### Troubleshooting
 - `required command missing: ffmpeg/ffprobe`:
   - `brew install ffmpeg`

@@ -27,7 +27,11 @@
 sole_var_content_t* svc_create_new_struct() {
   sole_var_content_t *result = malloc(sizeof(sole_var_content_t));
   result->original_location = "";
+  result->original_locations = "";
+  result->original_location_max_usage_pct = "";
   result->source_location = "";
+  result->source_locations = "";
+  result->source_location_max_usage_pct = "";
   result->keep_source = false;
   result->source_test = false;
   result->source_test_trim_start = "";

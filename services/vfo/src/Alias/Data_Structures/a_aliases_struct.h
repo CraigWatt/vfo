@@ -39,6 +39,12 @@ struct alias {
   char *root;
   char *content;
   char *unable_to_process;
+  char *locations;
+  char *location_max_usage_pct;
+  utils_location_pool_t *alias_location_pool;
+  char **content_locations;
+  char **unable_to_process_locations;
+  int alias_locations_count;
   bool keep_source;
 
   /*only required if keep_source = false*/
@@ -49,6 +55,9 @@ struct alias {
 
   char *source_root;
   char *source_content;
+  utils_location_pool_t *source_location_pool;
+  char **source_content_locations;
+  int source_locations_count;
 
   struct cf_node *cf_head;
 

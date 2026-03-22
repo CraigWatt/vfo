@@ -219,8 +219,20 @@ For device compatibility conformance checks, see:
 Start by updating the top-level locations:
 
 - `ORIGINAL_LOCATION`
+- `ORIGINAL_LOCATIONS` (semicolon-separated, optional but recommended for multi-drive)
+- `ORIGINAL_LOCATION_MAX_USAGE_PCT` (semicolon-separated caps aligned to `ORIGINAL_LOCATIONS`)
 - `SOURCE_LOCATION`
+- `SOURCE_LOCATIONS` (semicolon-separated, optional but recommended for multi-drive)
+- `SOURCE_LOCATION_MAX_USAGE_PCT` (semicolon-separated caps aligned to `SOURCE_LOCATIONS`)
 - `SOURCE_AS_LOCATION`
+
+For profile outputs, you can now also define:
+
+- `<PROFILE>_LOCATION`
+- `<PROFILE>_LOCATIONS`
+- `<PROFILE>_LOCATION_MAX_USAGE_PCT`
+
+When multiple locations are configured, `vfo` selects destinations by projected post-write utilization and available free space, honoring each location cap and keeping a reserve so near-full volumes are avoided.
 
 ### 2. Decide global behavior
 
@@ -247,6 +259,8 @@ A minimal profile pattern looks like this:
 ```text
 ALIAS="queen"
 QUEEN_LOCATION="/path/to/output"
+QUEEN_LOCATIONS="/path/to/output;/Volumes/Media-2/path/to/output"
+QUEEN_LOCATION_MAX_USAGE_PCT="90;95"
 QUEEN_CRITERIA_CODEC_NAME="h264"
 QUEEN_CRITERIA_COLOR_SPACE="bt709"
 QUEEN_CRITERIA_RESOLUTION_MIN_WIDTH="352"

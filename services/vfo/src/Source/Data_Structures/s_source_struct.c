@@ -28,12 +28,25 @@ source_t* source_create_new_struct(config_t *config) {
   source_t *result = malloc(sizeof(source_t));
   //point to relevant param config variables
 
-  //ALREADY VERIFIED (by config)
-  result->root = config->svc->source_location;
-  //VERIFIED
-  result->content = s_create_content(result->root);
-  //VERIFIED
-  result->unable_to_process = s_create_unable_to_process(result->root);
+  result->locations = config->svc->source_locations;
+  result->location_max_usage_pct = config->svc->source_location_max_usage_pct;
+  result->location_pool = utils_location_pool_create(config->svc->source_location,
+                                                     config->svc->source_locations,
+                                                     config->svc->source_location_max_usage_pct,
+                                                     95,
+                                                     40ULL * 1024ULL * 1024ULL * 1024ULL);
+  result->source_locations_count = result->location_pool->count;
+  result->content_locations = malloc(sizeof(char*) * (size_t)result->source_locations_count);
+  result->unable_to_process_locations = malloc(sizeof(char*) * (size_t)result->source_locations_count);
+
+  for(int i = 0; i < result->source_locations_count; i++) {
+    result->content_locations[i] = s_create_content(result->location_pool->roots[i]);
+    result->unable_to_process_locations[i] = s_create_unable_to_process(result->location_pool->roots[i]);
+  }
+
+  result->root = result->location_pool->roots[0];
+  result->content = result->content_locations[0];
+  result->unable_to_process = result->unable_to_process_locations[0];
 
   //VERIFIED
   result->original_mkv_original = s_get_mkv_original_if_it_exists(config->svc->original_location);
