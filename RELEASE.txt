@@ -29,6 +29,7 @@ Installed paths:
 - Action scripts: `/usr/local/bin/transcode_*_profile.sh`
 - Config directory: `/usr/local/bin/vfo_conf_folder`
 - Config file: `/usr/local/bin/vfo_conf_folder/vfo_config.conf`
+- Stock presets: `/usr/local/bin/vfo_conf_folder/presets/`
 
 ### macOS (advanced: static build zip)
 1. Download `static_build.zip` from assets and unzip it.
@@ -36,12 +37,14 @@ Installed paths:
 3. Create config directory and copy the default config:
    - `sudo mkdir -p /usr/local/bin/vfo_conf_folder`
    - `sudo cp static_build/vfo_conf_folder/vfo_config.conf /usr/local/bin/vfo_conf_folder/vfo_config.conf`
+   - `sudo cp -R static_build/vfo_conf_folder/presets /usr/local/bin/vfo_conf_folder/`
 4. Verify installation:
    - `vfo --version`
    - `vfo doctor`
 
 ### First-run workflow
 1. `vfo wizard` to generate or update config interactively.
+   - wizard now supports stock preset pack multi-select (`balanced_open_audio`, `device_targets_open_audio`, `netflixy_main_subtitle_intent`)
 2. `vfo show` to review active config values.
 3. `vfo doctor` to validate paths and required tools.
 4. `vfo status` (or `vfo status-json`) to confirm engine readiness.

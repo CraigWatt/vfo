@@ -35,6 +35,20 @@
 #define IH_INPUT_BUFFER_SIZE 4096
 #define IH_PREVIEW_LIMIT 140
 
+typedef struct ih_stock_preset_option {
+  const char *key;
+  const char *display_name;
+  const char *relative_path;
+} ih_stock_preset_option_t;
+
+static const ih_stock_preset_option_t IH_STOCK_PRESET_OPTIONS[] = {
+  {"balanced_open_audio", "Balanced Open Audio", "balanced_open_audio/vfo_config.preset.conf"},
+  {"device_targets_open_audio", "Device Targets Open Audio", "device_targets_open_audio/vfo_config.preset.conf"},
+  {"netflixy_main_subtitle_intent", "Netflixy Main Subtitle Intent", "netflixy_main_subtitle_intent/vfo_config.preset.conf"}
+};
+
+#define IH_STOCK_PRESET_COUNT ((int)(sizeof(IH_STOCK_PRESET_OPTIONS) / sizeof(IH_STOCK_PRESET_OPTIONS[0])))
+
 static int ih_cs_count(cs_node_t *cs_head);
 
 static bool ih_suppress_stdout_begin(int *saved_stdout_fd) {
@@ -1170,6 +1184,402 @@ static bool ih_create_config_dir_if_needed(const char *config_dir) {
   return false;
 }
 
+static bool ih_string_ends_with(const char *value, const char *suffix) {
+  size_t value_length = 0;
+  size_t suffix_length = 0;
+
+  if(value == NULL || suffix == NULL)
+    return false;
+
+  value_length = strlen(value);
+  suffix_length = strlen(suffix);
+  if(suffix_length > value_length)
+    return false;
+
+  return strcmp(value + value_length - suffix_length, suffix) == 0;
+}
+
+static bool ih_join_root_and_leaf(const char *root, const char *leaf, char *output, size_t output_size) {
+  char root_copy[IH_INPUT_BUFFER_SIZE];
+  size_t root_length = 0;
+  int written = 0;
+
+  if(root == NULL || output == NULL || output_size == 0)
+    return false;
+
+  ih_copy_string(root_copy, sizeof(root_copy), root);
+  ih_trim_spaces_in_place(root_copy);
+  if(root_copy[0] == '\0')
+    return false;
+
+  root_length = strlen(root_copy);
+  while(root_length > 0 && root_copy[root_length - 1] == '/') {
+    root_copy[root_length - 1] = '\0';
+    root_length--;
+  }
+
+  if(leaf == NULL || leaf[0] == '\0')
+    written = snprintf(output, output_size, "%s", root_copy);
+  else
+    written = snprintf(output, output_size, "%s/%s", root_copy, leaf);
+
+  if(written < 0 || (size_t)written >= output_size)
+    return false;
+
+  return true;
+}
+
+static void ih_extract_last_path_component(const char *path, char *output, size_t output_size) {
+  const char *last_slash = NULL;
+
+  if(output == NULL || output_size == 0)
+    return;
+
+  output[0] = '\0';
+  if(path == NULL)
+    return;
+
+  last_slash = strrchr(path, '/');
+  if(last_slash != NULL && last_slash[1] != '\0') {
+    ih_copy_string(output, output_size, last_slash + 1);
+    return;
+  }
+
+  ih_copy_string(output, output_size, path);
+}
+
+static bool ih_extract_assignment_key(const char *line, char *key, size_t key_size) {
+  const char *equals = NULL;
+  size_t copy_length = 0;
+
+  if(line == NULL || key == NULL || key_size == 0)
+    return false;
+
+  equals = strchr(line, '=');
+  if(equals == NULL || equals == line)
+    return false;
+
+  copy_length = (size_t)(equals - line);
+  if(copy_length >= key_size)
+    copy_length = key_size - 1;
+
+  memcpy(key, line, copy_length);
+  key[copy_length] = '\0';
+  ih_trim_spaces_in_place(key);
+
+  return key[0] != '\0';
+}
+
+static bool ih_extract_assignment_quoted_value(const char *line, char *value, size_t value_size) {
+  const char *first_quote = NULL;
+  const char *second_quote = NULL;
+  size_t copy_length = 0;
+
+  if(line == NULL || value == NULL || value_size == 0)
+    return false;
+
+  first_quote = strchr(line, '"');
+  if(first_quote == NULL)
+    return false;
+  first_quote++;
+
+  second_quote = strchr(first_quote, '"');
+  if(second_quote == NULL)
+    return false;
+
+  copy_length = (size_t)(second_quote - first_quote);
+  if(copy_length >= value_size)
+    copy_length = value_size - 1;
+
+  memcpy(value, first_quote, copy_length);
+  value[copy_length] = '\0';
+  return true;
+}
+
+static bool ih_build_profile_locations_for_leaf(const char *roots_csv,
+                                                const char *leaf,
+                                                char *output,
+                                                size_t output_size) {
+  int root_count = 0;
+  char **roots = NULL;
+  size_t used = 0;
+
+  if(roots_csv == NULL || output == NULL || output_size == 0)
+    return false;
+
+  output[0] = '\0';
+  roots = utils_split_semicolon_list((char *)roots_csv, &root_count);
+  if(root_count == 0) {
+    utils_free_string_array(roots, root_count);
+    return false;
+  }
+
+  for(int i = 0; i < root_count; i++) {
+    char mapped[IH_INPUT_BUFFER_SIZE];
+    int written = 0;
+
+    if(!ih_join_root_and_leaf(roots[i], leaf, mapped, sizeof(mapped))) {
+      utils_free_string_array(roots, root_count);
+      return false;
+    }
+
+    written = snprintf(output + used,
+                       output_size - used,
+                       "%s%s",
+                       i == 0 ? "" : ";",
+                       mapped);
+    if(written < 0 || (size_t)written >= (output_size - used)) {
+      utils_free_string_array(roots, root_count);
+      return false;
+    }
+    used += (size_t)written;
+  }
+
+  utils_free_string_array(roots, root_count);
+  return true;
+}
+
+static bool ih_rewrite_stock_preset_line(const char *line,
+                                         const char *profile_location,
+                                         const char *profile_locations,
+                                         const char *profile_location_caps,
+                                         char *output,
+                                         size_t output_size) {
+  char key[IH_INPUT_BUFFER_SIZE];
+  char value[IH_INPUT_BUFFER_SIZE];
+  char profile_leaf[IH_INPUT_BUFFER_SIZE];
+  char mapped_value[IH_INPUT_BUFFER_SIZE];
+  int written = 0;
+
+  if(line == NULL || output == NULL || output_size == 0)
+    return false;
+
+  if(!ih_extract_assignment_key(line, key, sizeof(key))) {
+    ih_copy_string(output, output_size, line);
+    return true;
+  }
+
+  if(ih_string_ends_with(key, "_LOCATION_MAX_USAGE_PCT")) {
+    written = snprintf(output, output_size, "%s=\"%s\"", key, profile_location_caps);
+    return written >= 0 && (size_t)written < output_size;
+  }
+
+  if(ih_string_ends_with(key, "_LOCATIONS")) {
+    if(!ih_extract_assignment_quoted_value(line, value, sizeof(value))) {
+      ih_copy_string(output, output_size, line);
+      return true;
+    }
+    ih_extract_last_path_component(value, profile_leaf, sizeof(profile_leaf));
+    if(!ih_build_profile_locations_for_leaf(profile_locations, profile_leaf, mapped_value, sizeof(mapped_value)))
+      return false;
+    written = snprintf(output, output_size, "%s=\"%s\"", key, mapped_value);
+    return written >= 0 && (size_t)written < output_size;
+  }
+
+  if(ih_string_ends_with(key, "_LOCATION")) {
+    if(!ih_extract_assignment_quoted_value(line, value, sizeof(value))) {
+      ih_copy_string(output, output_size, line);
+      return true;
+    }
+    ih_extract_last_path_component(value, profile_leaf, sizeof(profile_leaf));
+    if(!ih_join_root_and_leaf(profile_location, profile_leaf, mapped_value, sizeof(mapped_value)))
+      return false;
+    written = snprintf(output, output_size, "%s=\"%s\"", key, mapped_value);
+    return written >= 0 && (size_t)written < output_size;
+  }
+
+  ih_copy_string(output, output_size, line);
+  return true;
+}
+
+static bool ih_resolve_stock_preset_path(const char *config_dir,
+                                         const char *relative_path,
+                                         char *resolved_path,
+                                         size_t resolved_path_size) {
+  char candidate[IH_INPUT_BUFFER_SIZE];
+
+  if(relative_path == NULL || resolved_path == NULL || resolved_path_size == 0)
+    return false;
+
+  if(config_dir != NULL && config_dir[0] != '\0') {
+    snprintf(candidate, sizeof(candidate), "%s/presets/%s", config_dir, relative_path);
+    if(utils_does_file_exist(candidate)) {
+      ih_copy_string(resolved_path, resolved_path_size, candidate);
+      return true;
+    }
+  }
+
+  snprintf(candidate, sizeof(candidate), "services/vfo/presets/%s", relative_path);
+  if(utils_does_file_exist(candidate)) {
+    ih_copy_string(resolved_path, resolved_path_size, candidate);
+    return true;
+  }
+
+  snprintf(candidate, sizeof(candidate), "presets/%s", relative_path);
+  if(utils_does_file_exist(candidate)) {
+    ih_copy_string(resolved_path, resolved_path_size, candidate);
+    return true;
+  }
+
+  return false;
+}
+
+static void ih_print_stock_preset_menu(void) {
+  printf("WIZARD INFO: available stock preset packs:\n");
+  for(int i = 0; i < IH_STOCK_PRESET_COUNT; i++) {
+    printf("  %i) %s (%s)\n",
+           i + 1,
+           IH_STOCK_PRESET_OPTIONS[i].key,
+           IH_STOCK_PRESET_OPTIONS[i].display_name);
+  }
+  printf("  all) all preset packs\n");
+}
+
+static bool ih_parse_stock_preset_selection(const char *input, bool *selected, int *selected_count) {
+  char working[IH_INPUT_BUFFER_SIZE];
+  char *token = NULL;
+  char *save_ptr = NULL;
+
+  if(input == NULL || selected == NULL || selected_count == NULL)
+    return false;
+
+  for(int i = 0; i < IH_STOCK_PRESET_COUNT; i++) {
+    selected[i] = false;
+  }
+  *selected_count = 0;
+
+  ih_copy_string(working, sizeof(working), input);
+  ih_trim_spaces_in_place(working);
+  if(ih_is_blank(working))
+    return false;
+
+  for(size_t i = 0; working[i] != '\0'; i++) {
+    if(working[i] == ';')
+      working[i] = ',';
+  }
+
+  if(strcasecmp(working, "all") == 0) {
+    for(int i = 0; i < IH_STOCK_PRESET_COUNT; i++) {
+      selected[i] = true;
+    }
+    *selected_count = IH_STOCK_PRESET_COUNT;
+    return true;
+  }
+
+  token = strtok_r(working, ",", &save_ptr);
+  while(token != NULL) {
+    int selected_index = -1;
+
+    ih_trim_spaces_in_place(token);
+    if(token[0] == '\0') {
+      token = strtok_r(NULL, ",", &save_ptr);
+      continue;
+    }
+
+    if(utils_string_only_contains_number_characters(token)) {
+      int number = utils_convert_string_to_integer(token);
+      if(number >= 1 && number <= IH_STOCK_PRESET_COUNT)
+        selected_index = number - 1;
+      else
+        return false;
+    } else {
+      for(int i = 0; i < IH_STOCK_PRESET_COUNT; i++) {
+        if(strcasecmp(token, IH_STOCK_PRESET_OPTIONS[i].key) == 0) {
+          selected_index = i;
+          break;
+        }
+      }
+      if(selected_index < 0)
+        return false;
+    }
+
+    if(!selected[selected_index]) {
+      selected[selected_index] = true;
+      (*selected_count)++;
+    }
+
+    token = strtok_r(NULL, ",", &save_ptr);
+  }
+
+  return *selected_count > 0;
+}
+
+static bool ih_append_selected_stock_presets(FILE *config_file,
+                                             const char *config_dir,
+                                             const bool *selected,
+                                             const char *profile_location,
+                                             const char *profile_locations,
+                                             const char *profile_location_caps) {
+  char line_buffer[IH_INPUT_BUFFER_SIZE];
+  char output_line[IH_INPUT_BUFFER_SIZE];
+  char preset_path[IH_INPUT_BUFFER_SIZE];
+
+  if(config_file == NULL || selected == NULL)
+    return false;
+
+  for(int i = 0; i < IH_STOCK_PRESET_COUNT; i++) {
+    FILE *preset_file = NULL;
+    bool in_block_comment = false;
+
+    if(!selected[i])
+      continue;
+
+    if(!ih_resolve_stock_preset_path(config_dir,
+                                     IH_STOCK_PRESET_OPTIONS[i].relative_path,
+                                     preset_path,
+                                     sizeof(preset_path))) {
+      printf("WIZARD ERROR: could not resolve preset file for %s\n", IH_STOCK_PRESET_OPTIONS[i].key);
+      return false;
+    }
+
+    preset_file = fopen(preset_path, "r");
+    if(preset_file == NULL) {
+      printf("WIZARD ERROR: could not open preset file: %s\n", preset_path);
+      return false;
+    }
+
+    fprintf(config_file, "\n/* stock preset: %s */\n", IH_STOCK_PRESET_OPTIONS[i].key);
+    while(fgets(line_buffer, sizeof(line_buffer), preset_file) != NULL) {
+      ih_strip_newline(line_buffer);
+      ih_trim_spaces_in_place(line_buffer);
+
+      if(in_block_comment) {
+        if(strstr(line_buffer, "*/") != NULL)
+          in_block_comment = false;
+        continue;
+      }
+
+      if(line_buffer[0] == '\0')
+        continue;
+
+      if(strncmp(line_buffer, "/*", 2) == 0) {
+        if(strstr(line_buffer, "*/") == NULL)
+          in_block_comment = true;
+        continue;
+      }
+      if(strncmp(line_buffer, "//", 2) == 0 || line_buffer[0] == '*')
+        continue;
+
+      if(!ih_rewrite_stock_preset_line(line_buffer,
+                                       profile_location,
+                                       profile_locations,
+                                       profile_location_caps,
+                                       output_line,
+                                       sizeof(output_line))) {
+        fclose(preset_file);
+        printf("WIZARD ERROR: could not rewrite preset line for %s\n", IH_STOCK_PRESET_OPTIONS[i].key);
+        return false;
+      }
+
+      fprintf(config_file, "%s\n", output_line);
+    }
+
+    fclose(preset_file);
+  }
+
+  return true;
+}
+
 static int ih_run_wizard(const char *config_dir) {
   char original_location[IH_INPUT_BUFFER_SIZE];
   char original_locations[IH_INPUT_BUFFER_SIZE];
@@ -1215,6 +1625,15 @@ static int ih_run_wizard(const char *config_dir) {
   char quality_check_min_ssim[IH_INPUT_BUFFER_SIZE];
   char quality_check_min_vmaf[IH_INPUT_BUFFER_SIZE];
   char quality_check_max_files_per_profile[IH_INPUT_BUFFER_SIZE];
+  char profile_setup_mode[IH_INPUT_BUFFER_SIZE];
+  char stock_preset_selection[IH_INPUT_BUFFER_SIZE];
+  char stock_profile_location[IH_INPUT_BUFFER_SIZE];
+  char stock_profile_locations[IH_INPUT_BUFFER_SIZE];
+  char stock_profile_location_max_usage_pct[IH_INPUT_BUFFER_SIZE];
+  char default_stock_profile_caps[IH_INPUT_BUFFER_SIZE];
+  bool selected_stock_presets[IH_STOCK_PRESET_COUNT];
+  int selected_stock_preset_count = 0;
+  bool use_stock_presets = true;
 
   printf("WIZARD ALERT: guided setup for %s\n", IH_CONFIG_FILENAME);
   printf("WIZARD INFO: press Enter to accept defaults\n");
@@ -1335,47 +1754,84 @@ static int ih_run_wizard(const char *config_dir) {
     printf("WIZARD INFO: folder type must be 'films' or 'tv'\n");
   }
 
-  if(!ih_prompt_line("Profile name", "netflixy_open_audio_1080p", alias_name, sizeof(alias_name), true))
+  if(!ih_prompt_line("Profile setup mode (stock|custom)", "stock", profile_setup_mode, sizeof(profile_setup_mode), true))
     return EXIT_FAILURE;
-  ih_sanitize_alias_name(alias_name, sizeof(alias_name));
-  printf("WIZARD INFO: profile key set to '%s'\n", alias_name);
+  ih_trim_spaces_in_place(profile_setup_mode);
+  utils_lowercase_string(profile_setup_mode);
+  if(strcmp(profile_setup_mode, "stock") == 0
+     || strcmp(profile_setup_mode, "presets") == 0
+     || strcmp(profile_setup_mode, "preset") == 0) {
+    use_stock_presets = true;
+  } else if(strcmp(profile_setup_mode, "custom") == 0) {
+    use_stock_presets = false;
+  } else {
+    printf("WIZARD ERROR: profile setup mode must be stock or custom\n");
+    return EXIT_FAILURE;
+  }
 
-  snprintf(default_alias_location, sizeof(default_alias_location), "%s/%s", source_location, alias_name);
-  if(!ih_prompt_line("Profile output location", default_alias_location, alias_location, sizeof(alias_location), true))
-    return EXIT_FAILURE;
-  if(!ih_prompt_line("Profile output locations (semicolon list)", alias_location, alias_locations, sizeof(alias_locations), true))
-    return EXIT_FAILURE;
-  ih_build_default_cap_list(alias_locations, alias_location_max_usage_pct, sizeof(alias_location_max_usage_pct));
-  ih_copy_string(default_alias_caps, sizeof(default_alias_caps), alias_location_max_usage_pct);
-  if(!ih_prompt_line("Profile max usage pct list (semicolon, 1-100)", default_alias_caps, alias_location_max_usage_pct, sizeof(alias_location_max_usage_pct), true))
-    return EXIT_FAILURE;
-  if(!ih_first_location_from_list(alias_locations, alias_location, sizeof(alias_location)))
-    return EXIT_FAILURE;
+  if(use_stock_presets) {
+    ih_print_stock_preset_menu();
+    while(true) {
+      if(!ih_prompt_line("Select stock preset packs (comma list, names, or all)", "all", stock_preset_selection, sizeof(stock_preset_selection), true))
+        return EXIT_FAILURE;
+      if(ih_parse_stock_preset_selection(stock_preset_selection, selected_stock_presets, &selected_stock_preset_count))
+        break;
+      printf("WIZARD INFO: choose one or more presets, e.g. 1,3 or all\n");
+    }
 
-  if(!ih_prompt_line("Profile criteria codec", "h264", alias_crit_codec, sizeof(alias_crit_codec), true))
-    return EXIT_FAILURE;
-  if(!ih_prompt_line("Profile criteria bits", "8", alias_crit_bits, sizeof(alias_crit_bits), true))
-    return EXIT_FAILURE;
-  if(!ih_prompt_line("Profile criteria color space", "bt709", alias_crit_color_space, sizeof(alias_crit_color_space), true))
-    return EXIT_FAILURE;
-  if(!ih_prompt_line("Profile minimum width", "352", alias_crit_min_width, sizeof(alias_crit_min_width), true))
-    return EXIT_FAILURE;
-  if(!ih_prompt_line("Profile minimum height", "240", alias_crit_min_height, sizeof(alias_crit_min_height), true))
-    return EXIT_FAILURE;
-  if(!ih_prompt_line("Profile maximum width", "1920", alias_crit_max_width, sizeof(alias_crit_max_width), true))
-    return EXIT_FAILURE;
-  if(!ih_prompt_line("Profile maximum height", "1080", alias_crit_max_height, sizeof(alias_crit_max_height), true))
-    return EXIT_FAILURE;
+    if(!ih_prompt_line("Profiles output base location", "/Volumes/Media/profiles", stock_profile_location, sizeof(stock_profile_location), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profiles output base locations (semicolon list)", stock_profile_location, stock_profile_locations, sizeof(stock_profile_locations), true))
+      return EXIT_FAILURE;
+    ih_build_default_cap_list(stock_profile_locations, stock_profile_location_max_usage_pct, sizeof(stock_profile_location_max_usage_pct));
+    ih_copy_string(default_stock_profile_caps, sizeof(default_stock_profile_caps), stock_profile_location_max_usage_pct);
+    if(!ih_prompt_line("Profiles max usage pct list (semicolon, 1-100)", default_stock_profile_caps, stock_profile_location_max_usage_pct, sizeof(stock_profile_location_max_usage_pct), true))
+      return EXIT_FAILURE;
+    if(!ih_first_location_from_list(stock_profile_locations, stock_profile_location, sizeof(stock_profile_location)))
+      return EXIT_FAILURE;
+  } else {
+    if(!ih_prompt_line("Profile name", "netflixy_preserve_audio_main_subtitle_intent_1080p", alias_name, sizeof(alias_name), true))
+      return EXIT_FAILURE;
+    ih_sanitize_alias_name(alias_name, sizeof(alias_name));
+    printf("WIZARD INFO: profile key set to '%s'\n", alias_name);
 
-  if(!ih_prompt_line("Profile scenario", "ELSE", alias_scenario, sizeof(alias_scenario), true))
-    return EXIT_FAILURE;
+    snprintf(default_alias_location, sizeof(default_alias_location), "%s/%s", source_location, alias_name);
+    if(!ih_prompt_line("Profile output location", default_alias_location, alias_location, sizeof(alias_location), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile output locations (semicolon list)", alias_location, alias_locations, sizeof(alias_locations), true))
+      return EXIT_FAILURE;
+    ih_build_default_cap_list(alias_locations, alias_location_max_usage_pct, sizeof(alias_location_max_usage_pct));
+    ih_copy_string(default_alias_caps, sizeof(default_alias_caps), alias_location_max_usage_pct);
+    if(!ih_prompt_line("Profile max usage pct list (semicolon, 1-100)", default_alias_caps, alias_location_max_usage_pct, sizeof(alias_location_max_usage_pct), true))
+      return EXIT_FAILURE;
+    if(!ih_first_location_from_list(alias_locations, alias_location, sizeof(alias_location)))
+      return EXIT_FAILURE;
 
-  if(!ih_prompt_line("Profile ffmpeg command", "ffmpeg -nostdin -y -i $vfo_input -map 0:v:0 -map 0:a? -map 0:s? -c:v libx264 -preset medium -crf 19 -pix_fmt yuv420p -c:a copy -c:s copy -movflags +faststart $vfo_output", alias_ffmpeg_command, sizeof(alias_ffmpeg_command), true))
-    return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile criteria codec", "h264", alias_crit_codec, sizeof(alias_crit_codec), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile criteria bits", "8", alias_crit_bits, sizeof(alias_crit_bits), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile criteria color space", "bt709", alias_crit_color_space, sizeof(alias_crit_color_space), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile minimum width", "352", alias_crit_min_width, sizeof(alias_crit_min_width), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile minimum height", "240", alias_crit_min_height, sizeof(alias_crit_min_height), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile maximum width", "1920", alias_crit_max_width, sizeof(alias_crit_max_width), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile maximum height", "1080", alias_crit_max_height, sizeof(alias_crit_max_height), true))
+      return EXIT_FAILURE;
 
-  if(strstr(alias_ffmpeg_command, "$vfo_input") == NULL || strstr(alias_ffmpeg_command, "$vfo_output") == NULL) {
-    printf("WIZARD ERROR: ffmpeg command must include both $vfo_input and $vfo_output\n");
-    return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile scenario", "ELSE", alias_scenario, sizeof(alias_scenario), true))
+      return EXIT_FAILURE;
+
+    if(!ih_prompt_line("Profile ffmpeg command", "ffmpeg -nostdin -y -i $vfo_input -map 0:v:0 -map 0:a? -map 0:s? -c:v libx264 -preset medium -crf 19 -pix_fmt yuv420p -c:a copy -c:s copy -movflags +faststart $vfo_output", alias_ffmpeg_command, sizeof(alias_ffmpeg_command), true))
+      return EXIT_FAILURE;
+
+    if(strstr(alias_ffmpeg_command, "$vfo_input") == NULL || strstr(alias_ffmpeg_command, "$vfo_output") == NULL) {
+      printf("WIZARD ERROR: ffmpeg command must include both $vfo_input and $vfo_output\n");
+      return EXIT_FAILURE;
+    }
   }
 
   if(!ih_create_config_dir_if_needed(config_dir)) {
@@ -1392,9 +1848,6 @@ static int ih_run_wizard(const char *config_dir) {
     free(config_path);
     return EXIT_FAILURE;
   }
-
-  ih_copy_string(alias_upper, sizeof(alias_upper), alias_name);
-  ih_uppercase_in_place(alias_upper);
 
   fprintf(config_file, "/* vfo config generated by `vfo wizard` */\n\n");
   fprintf(config_file, "MEZZANINE_LOCATION=\"%s\"\n", original_location);
@@ -1420,23 +1873,45 @@ static int ih_run_wizard(const char *config_dir) {
   fprintf(config_file, "QUALITY_CHECK_MIN_VMAF=\"%s\"\n", quality_check_min_vmaf);
   fprintf(config_file, "QUALITY_CHECK_MAX_FILES_PER_PROFILE=\"%s\"\n\n", quality_check_max_files_per_profile);
   fprintf(config_file, "CUSTOM_FOLDER=\"%s,%s\"\n\n", custom_folder_name, custom_folder_type);
-  fprintf(config_file, "PROFILE=\"%s\"\n", alias_name);
-  fprintf(config_file, "%s_LOCATION=\"%s\"\n", alias_upper, alias_location);
-  fprintf(config_file, "%s_LOCATIONS=\"%s\"\n", alias_upper, alias_locations);
-  fprintf(config_file, "%s_LOCATION_MAX_USAGE_PCT=\"%s\"\n", alias_upper, alias_location_max_usage_pct);
-  fprintf(config_file, "%s_CRITERIA_CODEC_NAME=\"%s\"\n", alias_upper, alias_crit_codec);
-  fprintf(config_file, "%s_CRITERIA_BITS=\"%s\"\n", alias_upper, alias_crit_bits);
-  fprintf(config_file, "%s_CRITERIA_COLOR_SPACE=\"%s\"\n", alias_upper, alias_crit_color_space);
-  fprintf(config_file, "%s_CRITERIA_RESOLUTION_MIN_WIDTH=\"%s\"\n", alias_upper, alias_crit_min_width);
-  fprintf(config_file, "%s_CRITERIA_RESOLUTION_MIN_HEIGHT=\"%s\"\n", alias_upper, alias_crit_min_height);
-  fprintf(config_file, "%s_CRITERIA_RESOLUTION_MAX_WIDTH=\"%s\"\n", alias_upper, alias_crit_max_width);
-  fprintf(config_file, "%s_CRITERIA_RESOLUTION_MAX_HEIGHT=\"%s\"\n", alias_upper, alias_crit_max_height);
-  fprintf(config_file, "%s_SCENARIO=\"%s\"\n", alias_upper, alias_scenario);
-  fprintf(config_file, "%s_FFMPEG_COMMAND=\"%s\"\n", alias_upper, alias_ffmpeg_command);
+
+  if(use_stock_presets) {
+    if(!ih_append_selected_stock_presets(config_file,
+                                         config_dir,
+                                         selected_stock_presets,
+                                         stock_profile_location,
+                                         stock_profile_locations,
+                                         stock_profile_location_max_usage_pct)) {
+      fclose(config_file);
+      remove(config_path);
+      printf("WIZARD ERROR: failed to append selected stock presets\n");
+      free(config_path);
+      return EXIT_FAILURE;
+    }
+  } else {
+    ih_copy_string(alias_upper, sizeof(alias_upper), alias_name);
+    ih_uppercase_in_place(alias_upper);
+
+    fprintf(config_file, "PROFILE=\"%s\"\n", alias_name);
+    fprintf(config_file, "%s_LOCATION=\"%s\"\n", alias_upper, alias_location);
+    fprintf(config_file, "%s_LOCATIONS=\"%s\"\n", alias_upper, alias_locations);
+    fprintf(config_file, "%s_LOCATION_MAX_USAGE_PCT=\"%s\"\n", alias_upper, alias_location_max_usage_pct);
+    fprintf(config_file, "%s_CRITERIA_CODEC_NAME=\"%s\"\n", alias_upper, alias_crit_codec);
+    fprintf(config_file, "%s_CRITERIA_BITS=\"%s\"\n", alias_upper, alias_crit_bits);
+    fprintf(config_file, "%s_CRITERIA_COLOR_SPACE=\"%s\"\n", alias_upper, alias_crit_color_space);
+    fprintf(config_file, "%s_CRITERIA_RESOLUTION_MIN_WIDTH=\"%s\"\n", alias_upper, alias_crit_min_width);
+    fprintf(config_file, "%s_CRITERIA_RESOLUTION_MIN_HEIGHT=\"%s\"\n", alias_upper, alias_crit_min_height);
+    fprintf(config_file, "%s_CRITERIA_RESOLUTION_MAX_WIDTH=\"%s\"\n", alias_upper, alias_crit_max_width);
+    fprintf(config_file, "%s_CRITERIA_RESOLUTION_MAX_HEIGHT=\"%s\"\n", alias_upper, alias_crit_max_height);
+    fprintf(config_file, "%s_SCENARIO=\"%s\"\n", alias_upper, alias_scenario);
+    fprintf(config_file, "%s_FFMPEG_COMMAND=\"%s\"\n", alias_upper, alias_ffmpeg_command);
+  }
 
   fclose(config_file);
 
   printf("WIZARD ALERT: config written to %s\n", config_path);
+  if(use_stock_presets) {
+    printf("WIZARD INFO: selected stock preset packs: %i\n", selected_stock_preset_count);
+  }
   printf("WIZARD NEXT: run `vfo show`, then `vfo doctor`, then `vfo mezzanine-clean`, then `vfo run`\n");
 
   free(config_path);

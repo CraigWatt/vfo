@@ -208,13 +208,16 @@ clean_tests:
 install: $(OBJECTS)
 	sudo mkdir -p $(DESTDIR)$(PREFIX)/bin
 	sudo mkdir -p $(DESTDIR)$(PREFIX)/bin/vfo_conf_folder
+	sudo mkdir -p $(DESTDIR)$(PREFIX)/bin/vfo_conf_folder/presets
 	sudo cp -f bin/vfo $(DESTDIR)$(PREFIX)/bin
 	sudo cp -f src/vfo_config.conf $(DESTDIR)$(PREFIX)/bin/vfo_conf_folder
+	sudo cp -Rf presets/* $(DESTDIR)$(PREFIX)/bin/vfo_conf_folder/presets
 	sudo cp -f $(ACTION_SCRIPTS) $(DESTDIR)$(PREFIX)/bin
 	
 
 uninstall:
 	sudo rm -f $(DESTDIR)$(PREFIX)/bin/vfo
 	sudo rm -f $(DESTDIR)$(PREFIX)/bin/vfo_conf_folder/vfo_config.conf
+	sudo rm -rf $(DESTDIR)$(PREFIX)/bin/vfo_conf_folder/presets
 	sudo rm -f $(addprefix $(DESTDIR)$(PREFIX)/bin/,$(ACTION_SCRIPT_NAMES))
 	sudo rmdir $(DESTDIR)$(PREFIX)/bin/vfo_conf_folder

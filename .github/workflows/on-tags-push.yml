@@ -41,6 +41,7 @@ jobs:
             ./services/vfo/bin/vfo
             ./services/vfo/src/vfo_config.conf
             ./services/vfo/actions
+            ./services/vfo/presets
           key: ${{ github.sha }}
 
   apple-pkg:
@@ -77,6 +78,7 @@ jobs:
           ./services/vfo/bin/vfo
           ./services/vfo/src/vfo_config.conf
           ./services/vfo/actions
+          ./services/vfo/presets
         key: ${{ github.sha }}
 
     - name: ✍️ ReWrite version string in build-info.plist from tag
@@ -88,6 +90,8 @@ jobs:
         cp services/vfo/bin/vfo infra/packaging/macos/payload/bin
         cp services/vfo/actions/*.sh infra/packaging/macos/payload/bin
         cp services/vfo/src/vfo_config.conf infra/packaging/macos/payload/bin/vfo_conf_folder
+        mkdir -p infra/packaging/macos/payload/bin/vfo_conf_folder/presets
+        cp -R services/vfo/presets/* infra/packaging/macos/payload/bin/vfo_conf_folder/presets
 
 
     - name: Run munkipkg 🧙‍♂️📦
@@ -136,21 +140,25 @@ jobs:
             ./services/vfo/bin/vfo
             ./services/vfo/src/vfo_config.conf
             ./services/vfo/actions
+            ./services/vfo/presets
         key: ${{ github.sha }}
 
     - name: 🫳 Position application to static build folder
       run: |
         mkdir -p static_build/bin
         mkdir -p static_build/vfo_conf_folder
+        mkdir -p static_build/vfo_conf_folder/presets
         cp services/vfo/bin/vfo static_build/bin
         cp services/vfo/actions/*.sh static_build/bin
         cp services/vfo/src/vfo_config.conf static_build/vfo_conf_folder
+        cp -R services/vfo/presets/* static_build/vfo_conf_folder/presets
 
     - name: 💁‍♂️ Generate static_build/README.txt
       run: |
         cat > static_build/README.txt <<'EOF'
         Place `bin/vfo` and all `bin/transcode_*_profile.sh` scripts in your PATH (for example `/usr/local/bin`).
         Place `vfo_conf_folder/vfo_config.conf` at `/usr/local/bin/vfo_conf_folder/vfo_config.conf`.
+        Place preset pack files under `/usr/local/bin/vfo_conf_folder/presets/`.
         Then run:
           vfo --version
           vfo doctor

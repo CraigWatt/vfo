@@ -20,8 +20,10 @@ jobs:
       - name: 🫳 Prepare snapshot payload
         run: |
           mkdir -p snapshot_build
+          mkdir -p snapshot_build/presets
           cp services/vfo/bin/vfo snapshot_build
           cp services/vfo/src/vfo_config.conf snapshot_build
+          cp -R services/vfo/presets/* snapshot_build/presets
           echo "Snapshot build from main: $GITHUB_SHA" > snapshot_build/README.txt
 
       - name: ⬆️ Upload snapshot artifact
