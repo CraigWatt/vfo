@@ -1,3 +1,5 @@
 .tmp/
+.tmp_device_conformance/
+.tmp_dv_metadata/
 assets/open-source/*
 !assets/open-source/.gitkeep

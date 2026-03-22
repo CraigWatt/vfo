@@ -12,9 +12,11 @@ This directory contains tests that span more than one service or layer.
 
 - `tests/e2e/` for end-to-end test suites
 
-## Current E2E entrypoint
+## Current E2E entrypoints
 
 - `tests/e2e/run_profile_actions_e2e.sh`
+- `tests/e2e/run_device_conformance_e2e.sh`
+- `tests/e2e/run_dv_metadata_optional_e2e.sh`
 
 From repository root:
 
@@ -30,4 +32,10 @@ This supports both:
 CI lane mapping:
 
 - `Validate (PR + main)`: hosted synthetic e2e smoke + unit tests (`make ci`)
-- `Full E2E (self-hosted media)`: full media-backed e2e on self-hosted runner (auto on `main` pushes, manual dispatch supported)
+- `Full E2E (self-hosted media)`: full media-backed e2e on self-hosted runner (auto on same-repo PRs to `main` + `main` pushes, manual dispatch supported)
+
+Current `make e2e` scope:
+
+- profile action correctness checks
+- device conformance predictive checks
+- optional DV metadata retention checks (auto-skip unless `VFO_E2E_DV_P7_ASSET` is configured)

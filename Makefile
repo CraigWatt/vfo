@@ -12,6 +12,8 @@ tests:
 
 e2e:
 	bash tests/e2e/run_profile_actions_e2e.sh
+	bash tests/e2e/run_device_conformance_e2e.sh
+	bash tests/e2e/run_dv_metadata_optional_e2e.sh
 
 ci: all tests e2e
 

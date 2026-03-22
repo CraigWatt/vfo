@@ -8,6 +8,8 @@ Support profile workflows such as:
 
 - 4K HEVC mezzanine -> optimized streaming output
 - 1080p mezzanine -> optimized streaming output
+- 1080p H.264 device-compatibility outputs
+- 4K HEVC with best-effort Dolby Vision metadata retention
 - host-aware execution (Apple Silicon hardware encode when available, software fallback otherwise)
 
 ## Phase 1 (available now, no parser change)
