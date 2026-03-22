@@ -1,12 +1,15 @@
 name: 🧪 Full E2E (self-hosted media)
 
 on:
+  push:
+    branches:
+      - "main"
   workflow_dispatch:
     inputs:
       assets_dir:
         description: "Absolute path on self-hosted runner to open-source media folder"
         required: false
-        default: "/Volumes/vfo-e2e-media"
+        default: "/Volumes/vfo-e2e-media/vfo-runner-mezzanines"
       clip_duration:
         description: "Fixture clip duration in seconds (higher = slower, more representative)"
         required: false
@@ -24,10 +27,45 @@ jobs:
     name: Full media-backed E2E
     runs-on: [self-hosted, macOS, vfo-media]
     timeout-minutes: 120
+    env:
+      DEFAULT_ASSETS_DIR: /Volumes/vfo-e2e-media/vfo-runner-mezzanines
+      DEFAULT_CLIP_DURATION: "6"
+      DEFAULT_MAX_SEEDS: "4"
 
     steps:
       - name: ⬇️ Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+      - name: 🧭 Resolve run parameters
+        id: params
+        env:
+          EVENT_ASSETS_DIR: ${{ github.event.inputs.assets_dir }}
+          EVENT_CLIP_DURATION: ${{ github.event.inputs.clip_duration }}
+          EVENT_MAX_SEEDS: ${{ github.event.inputs.max_seeds }}
+        run: |
+          set -euo pipefail
+
+          assets_dir="${EVENT_ASSETS_DIR:-}"
+          clip_duration="${EVENT_CLIP_DURATION:-}"
+          max_seeds="${EVENT_MAX_SEEDS:-}"
+
+          if [ -z "$assets_dir" ]; then
+            assets_dir="$DEFAULT_ASSETS_DIR"
+          fi
+          if [ -z "$clip_duration" ]; then
+            clip_duration="$DEFAULT_CLIP_DURATION"
+          fi
+          if [ -z "$max_seeds" ]; then
+            max_seeds="$DEFAULT_MAX_SEEDS"
+          fi
+
+          echo "assets_dir=$assets_dir" >> "$GITHUB_OUTPUT"
+          echo "clip_duration=$clip_duration" >> "$GITHUB_OUTPUT"
+          echo "max_seeds=$max_seeds" >> "$GITHUB_OUTPUT"
+
+          echo "Resolved assets_dir=$assets_dir"
+          echo "Resolved clip_duration=$clip_duration"
+          echo "Resolved max_seeds=$max_seeds"
 
       - name: 🧰 Verify runner dependencies
         run: |
@@ -38,22 +76,22 @@ jobs:
 
       - name: 🔍 Verify local media path exists
         run: |
-          test -d "${{ inputs.assets_dir }}" || {
-            echo "Media path not found: ${{ inputs.assets_dir }}"
+          test -d "${{ steps.params.outputs.assets_dir }}" || {
+            echo "Media path not found: ${{ steps.params.outputs.assets_dir }}"
             exit 1
           }
 
       - name: 🏗️ Build + unit + full e2e (local media mode)
         env:
           VFO_E2E_ASSET_MODE: local
-          VFO_E2E_ASSETS_DIR: ${{ inputs.assets_dir }}
-          VFO_E2E_CLIP_DURATION: ${{ inputs.clip_duration }}
-          VFO_E2E_MAX_SEEDS: ${{ inputs.max_seeds }}
+          VFO_E2E_ASSETS_DIR: ${{ steps.params.outputs.assets_dir }}
+          VFO_E2E_CLIP_DURATION: ${{ steps.params.outputs.clip_duration }}
+          VFO_E2E_MAX_SEEDS: ${{ steps.params.outputs.max_seeds }}
         run: make ci
 
       - name: ⬆️ Upload e2e debug artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: self-hosted-e2e-${{ github.sha }}
           path: tests/e2e/.tmp/

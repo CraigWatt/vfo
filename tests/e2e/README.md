@@ -58,6 +58,11 @@ It targets runner labels:
 - `macOS`
 - `vfo-media`
 
+This workflow now runs in two ways:
+
+- automatically on `main` pushes (uses workflow defaults)
+- manually via `workflow_dispatch` (override inputs as needed)
+
 Trigger manually in Actions and provide:
 
 - `assets_dir`: absolute path on the runner machine where your open-source media is mounted

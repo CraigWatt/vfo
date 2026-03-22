@@ -13,7 +13,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: verify brew is installed
         run: brew -v
@@ -27,12 +27,15 @@ jobs:
             brew install ffmpeg
           fi
 
-      - name: build + unit + e2e smoke
+      - name: build + unit + hosted synthetic e2e smoke
+        env:
+          VFO_E2E_ASSET_MODE: synthetic
+          VFO_E2E_MAX_SEEDS: "1"
         run: make ci
 
       - name: upload e2e debug artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-debug-${{ github.sha }}
           path: tests/e2e/.tmp/

@@ -101,11 +101,11 @@ vfo uses three delivery lanes:
 
 CI/CD test integration:
 
-- Validation workflow (`PR + main`) runs `make ci` (`build + unit tests + e2e smoke`).
-- Tag release workflows also run `make ci` before packaging/release.
-- Hosted runners use synthetic e2e fixtures by default.
-- For full real-media e2e, run locally (or on self-hosted runners) with your local open-source asset path.
-- Manual full-media runner lane is available via `.github/workflows/on-self-hosted-e2e.yml`.
+- Validation workflow (`PR + main`) runs `make ci` with hosted synthetic e2e (`VFO_E2E_ASSET_MODE=synthetic`, `VFO_E2E_MAX_SEEDS=1`).
+- Tag release workflows (beta + stable) also run `make ci` on hosted runners before packaging/release.
+- Full media-backed e2e runs on the self-hosted runner workflow `.github/workflows/on-self-hosted-e2e.yml`.
+- The self-hosted full-media workflow runs automatically on `main` pushes and can also be triggered manually with custom `assets_dir`, `clip_duration`, and `max_seeds`.
+- Use local run mode (`VFO_E2E_ASSET_MODE=local`) when you want to validate against your own mounted media library.
 
 ### Option 2: build from source
 
