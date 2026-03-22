@@ -37,6 +37,8 @@ struct arguments {
   bool source_detected;
   bool run_detected;
   bool doctor_detected;
+  bool wizard_detected;
+  bool show_detected;
   bool alias_queue_detected;
   bool all_aliases_detected;
   bool do_it_all_detected;

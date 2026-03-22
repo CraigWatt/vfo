@@ -23,6 +23,16 @@
  */
 
 #include "ih_internal.h"
+#include <ctype.h>
+#include <errno.h>
+#include <limits.h>
+#include <strings.h>
+#include <sys/stat.h>
+
+#define IH_DEFAULT_CONFIG_DIR "/usr/local/bin/vfo_conf_folder"
+#define IH_CONFIG_FILENAME "vfo_config.conf"
+#define IH_INPUT_BUFFER_SIZE 4096
+#define IH_PREVIEW_LIMIT 140
 
 static bool ih_command_exists(const char *command_name) {
   char shell_command[256];
@@ -45,7 +55,7 @@ static bool ih_doctor_check_command(const char *command_name, bool required) {
 }
 
 static bool ih_doctor_check_path(const char *label, const char *path, bool required) {
-  bool exists = utils_does_folder_exist(path);
+  bool exists = utils_does_folder_exist((char *)path);
   if(exists) {
     printf("DOCTOR OK: %s exists: %s\n", label, path);
     return true;
@@ -126,11 +136,441 @@ static void ih_execute_default_run(config_t *config) {
   printf("RUN ALERT: default pipeline completed successfully\n");
 }
 
+static void ih_copy_string(char *destination, size_t destination_size, const char *source) {
+  if(destination == NULL || destination_size == 0)
+    return;
+
+  if(source == NULL) {
+    destination[0] = '\0';
+    return;
+  }
+
+  snprintf(destination, destination_size, "%s", source);
+}
+
+static void ih_strip_newline(char *value) {
+  size_t length = 0;
+  if(value == NULL)
+    return;
+
+  length = strlen(value);
+  while(length > 0 && (value[length - 1] == '\n' || value[length - 1] == '\r')) {
+    value[length - 1] = '\0';
+    length--;
+  }
+}
+
+static bool ih_is_blank(const char *value) {
+  size_t i = 0;
+  if(value == NULL)
+    return true;
+
+  if(value[0] == '\0')
+    return true;
+
+  for(i = 0; value[i] != '\0'; i++) {
+    if(!isspace((unsigned char)value[i]))
+      return false;
+  }
+
+  return true;
+}
+
+static void ih_trim_spaces_in_place(char *value) {
+  size_t start = 0;
+  size_t end = 0;
+  size_t i = 0;
+
+  if(value == NULL)
+    return;
+
+  if(value[0] == '\0')
+    return;
+
+  while(value[start] != '\0' && isspace((unsigned char)value[start])) {
+    start++;
+  }
+
+  end = strlen(value);
+  while(end > start && isspace((unsigned char)value[end - 1])) {
+    end--;
+  }
+
+  if(start > 0) {
+    for(i = start; i < end; i++) {
+      value[i - start] = value[i];
+    }
+    value[end - start] = '\0';
+  } else {
+    value[end] = '\0';
+  }
+}
+
+static bool ih_prompt_line(const char *prompt,
+                           const char *default_value,
+                           char *buffer,
+                           size_t buffer_size,
+                           bool required) {
+  while(true) {
+    if(default_value != NULL && default_value[0] != '\0')
+      printf("%s [%s]: ", prompt, default_value);
+    else
+      printf("%s: ", prompt);
+
+    if(fgets(buffer, (int)buffer_size, stdin) == NULL) {
+      printf("\nWIZARD ERROR: input stream ended unexpectedly\n");
+      return false;
+    }
+
+    ih_strip_newline(buffer);
+    ih_trim_spaces_in_place(buffer);
+
+    if(ih_is_blank(buffer) && default_value != NULL && default_value[0] != '\0')
+      ih_copy_string(buffer, buffer_size, default_value);
+
+    if(required && ih_is_blank(buffer)) {
+      printf("WIZARD INFO: value required\n");
+      continue;
+    }
+
+    return true;
+  }
+}
+
+static bool ih_prompt_bool(const char *prompt, bool default_value, bool *result) {
+  char input[IH_INPUT_BUFFER_SIZE];
+  const char *default_word = default_value ? "true" : "false";
+
+  while(true) {
+    if(!ih_prompt_line(prompt, default_word, input, sizeof(input), true))
+      return false;
+
+    if(strcasecmp(input, "true") == 0 || strcasecmp(input, "t") == 0 ||
+       strcasecmp(input, "yes") == 0 || strcasecmp(input, "y") == 0 ||
+       strcmp(input, "1") == 0) {
+      *result = true;
+      return true;
+    }
+
+    if(strcasecmp(input, "false") == 0 || strcasecmp(input, "f") == 0 ||
+       strcasecmp(input, "no") == 0 || strcasecmp(input, "n") == 0 ||
+       strcmp(input, "0") == 0) {
+      *result = false;
+      return true;
+    }
+
+    printf("WIZARD INFO: please answer true/false, yes/no, y/n, or 1/0\n");
+  }
+}
+
+static bool ih_prompt_timecode(const char *prompt, const char *default_value, char *output, size_t output_size) {
+  while(true) {
+    if(!ih_prompt_line(prompt, default_value, output, output_size, true))
+      return false;
+
+    if(utils_string_is_ffmpeg_timecode_compliant(output))
+      return true;
+
+    printf("WIZARD INFO: invalid timecode. Example: 00:00:20\n");
+  }
+}
+
+static void ih_sanitize_alias_name(char *alias_name, size_t alias_name_size) {
+  size_t i = 0;
+  size_t write_index = 0;
+  char sanitized[IH_INPUT_BUFFER_SIZE];
+
+  if(alias_name == NULL || alias_name_size == 0)
+    return;
+
+  for(i = 0; alias_name[i] != '\0' && write_index < sizeof(sanitized) - 1; i++) {
+    unsigned char character = (unsigned char)alias_name[i];
+    if(isalnum(character)) {
+      sanitized[write_index++] = (char)tolower(character);
+      continue;
+    }
+
+    if(character == '_' || character == '-' || isspace(character) || character == '.') {
+      if(write_index == 0 || sanitized[write_index - 1] == '_')
+        continue;
+      sanitized[write_index++] = '_';
+      continue;
+    }
+  }
+
+  while(write_index > 0 && sanitized[write_index - 1] == '_') {
+    write_index--;
+  }
+
+  sanitized[write_index] = '\0';
+
+  if(write_index == 0)
+    ih_copy_string(sanitized, sizeof(sanitized), "default_profile");
+
+  ih_copy_string(alias_name, alias_name_size, sanitized);
+}
+
+static void ih_uppercase_in_place(char *value) {
+  size_t i = 0;
+
+  if(value == NULL)
+    return;
+
+  for(i = 0; value[i] != '\0'; i++) {
+    value[i] = (char)toupper((unsigned char)value[i]);
+  }
+}
+
+static int ih_cs_count(cs_node_t *cs_head) {
+  int count = 0;
+  cs_node_t *temporary = cs_head;
+  while(temporary != NULL) {
+    count++;
+    temporary = temporary->next;
+  }
+  return count;
+}
+
+static void ih_print_preview(const char *label, const char *value) {
+  char preview[IH_PREVIEW_LIMIT + 1];
+  size_t length = 0;
+
+  if(value == NULL || value[0] == '\0') {
+    printf("%s<empty>\n", label);
+    return;
+  }
+
+  length = strlen(value);
+  if(length <= IH_PREVIEW_LIMIT) {
+    printf("%s%s\n", label, value);
+    return;
+  }
+
+  snprintf(preview, sizeof(preview), "%.*s", IH_PREVIEW_LIMIT, value);
+  printf("%s%s...\n", label, preview);
+}
+
+static bool ih_create_config_dir_if_needed(const char *config_dir) {
+  if(utils_does_folder_exist((char *)config_dir))
+    return true;
+
+  if(mkdir(config_dir, 0755) == 0)
+    return true;
+
+  if(errno == EEXIST)
+    return true;
+
+  return false;
+}
+
+static int ih_run_wizard(const char *config_dir) {
+  char original_location[IH_INPUT_BUFFER_SIZE];
+  char source_location[IH_INPUT_BUFFER_SIZE];
+  char source_test_trim_start[IH_INPUT_BUFFER_SIZE];
+  char source_test_trim_duration[IH_INPUT_BUFFER_SIZE];
+  char custom_folder_name[IH_INPUT_BUFFER_SIZE];
+  char custom_folder_type[IH_INPUT_BUFFER_SIZE];
+  char alias_name[IH_INPUT_BUFFER_SIZE];
+  char alias_upper[IH_INPUT_BUFFER_SIZE];
+  char alias_location[IH_INPUT_BUFFER_SIZE];
+  char alias_crit_codec[IH_INPUT_BUFFER_SIZE];
+  char alias_crit_bits[IH_INPUT_BUFFER_SIZE];
+  char alias_crit_color_space[IH_INPUT_BUFFER_SIZE];
+  char alias_crit_min_width[IH_INPUT_BUFFER_SIZE];
+  char alias_crit_min_height[IH_INPUT_BUFFER_SIZE];
+  char alias_crit_max_width[IH_INPUT_BUFFER_SIZE];
+  char alias_crit_max_height[IH_INPUT_BUFFER_SIZE];
+  char alias_scenario[IH_INPUT_BUFFER_SIZE];
+  char alias_ffmpeg_command[IH_INPUT_BUFFER_SIZE];
+  char default_alias_location[IH_INPUT_BUFFER_SIZE];
+  char *config_path = NULL;
+  FILE *config_file = NULL;
+  bool keep_source = true;
+  bool source_test_active = false;
+
+  printf("WIZARD ALERT: guided setup for %s\n", IH_CONFIG_FILENAME);
+  printf("WIZARD INFO: press Enter to accept defaults\n");
+
+  if(!ih_prompt_line("Original location", "/Volumes/Media/original", original_location, sizeof(original_location), true))
+    return EXIT_FAILURE;
+
+  if(!ih_prompt_line("Source location", "/Volumes/Media/source", source_location, sizeof(source_location), true))
+    return EXIT_FAILURE;
+
+  if(!ih_prompt_bool("Keep source outputs?", true, &keep_source))
+    return EXIT_FAILURE;
+
+  if(!ih_prompt_bool("Enable source test clipping?", false, &source_test_active))
+    return EXIT_FAILURE;
+
+  if(source_test_active) {
+    if(!ih_prompt_timecode("Source test trim start", "00:00:20", source_test_trim_start, sizeof(source_test_trim_start)))
+      return EXIT_FAILURE;
+    if(!ih_prompt_timecode("Source test trim duration", "00:01:00", source_test_trim_duration, sizeof(source_test_trim_duration)))
+      return EXIT_FAILURE;
+  } else {
+    ih_copy_string(source_test_trim_start, sizeof(source_test_trim_start), "00:00:20");
+    ih_copy_string(source_test_trim_duration, sizeof(source_test_trim_duration), "00:01:00");
+  }
+
+  if(!ih_prompt_line("First library folder name", "Movies", custom_folder_name, sizeof(custom_folder_name), true))
+    return EXIT_FAILURE;
+
+  while(true) {
+    if(!ih_prompt_line("First library folder type (films|tv)", "films", custom_folder_type, sizeof(custom_folder_type), true))
+      return EXIT_FAILURE;
+    if(strcasecmp(custom_folder_type, "films") == 0 || strcasecmp(custom_folder_type, "tv") == 0)
+      break;
+    printf("WIZARD INFO: folder type must be 'films' or 'tv'\n");
+  }
+
+  if(!ih_prompt_line("Profile name", "netflixy_open_audio_1080p", alias_name, sizeof(alias_name), true))
+    return EXIT_FAILURE;
+  ih_sanitize_alias_name(alias_name, sizeof(alias_name));
+  printf("WIZARD INFO: profile key set to '%s'\n", alias_name);
+
+  snprintf(default_alias_location, sizeof(default_alias_location), "%s/%s", source_location, alias_name);
+  if(!ih_prompt_line("Profile output location", default_alias_location, alias_location, sizeof(alias_location), true))
+    return EXIT_FAILURE;
+
+  if(!ih_prompt_line("Profile criteria codec", "h264", alias_crit_codec, sizeof(alias_crit_codec), true))
+    return EXIT_FAILURE;
+  if(!ih_prompt_line("Profile criteria bits", "8", alias_crit_bits, sizeof(alias_crit_bits), true))
+    return EXIT_FAILURE;
+  if(!ih_prompt_line("Profile criteria color space", "bt709", alias_crit_color_space, sizeof(alias_crit_color_space), true))
+    return EXIT_FAILURE;
+  if(!ih_prompt_line("Profile minimum width", "352", alias_crit_min_width, sizeof(alias_crit_min_width), true))
+    return EXIT_FAILURE;
+  if(!ih_prompt_line("Profile minimum height", "240", alias_crit_min_height, sizeof(alias_crit_min_height), true))
+    return EXIT_FAILURE;
+  if(!ih_prompt_line("Profile maximum width", "1920", alias_crit_max_width, sizeof(alias_crit_max_width), true))
+    return EXIT_FAILURE;
+  if(!ih_prompt_line("Profile maximum height", "1080", alias_crit_max_height, sizeof(alias_crit_max_height), true))
+    return EXIT_FAILURE;
+
+  if(!ih_prompt_line("Profile scenario", "ELSE", alias_scenario, sizeof(alias_scenario), true))
+    return EXIT_FAILURE;
+
+  if(!ih_prompt_line("Profile ffmpeg command", "ffmpeg -nostdin -y -i $vfo_input -map 0:v:0 -map 0:a? -map 0:s? -c:v libx264 -preset medium -crf 19 -pix_fmt yuv420p -c:a copy -c:s copy -movflags +faststart $vfo_output", alias_ffmpeg_command, sizeof(alias_ffmpeg_command), true))
+    return EXIT_FAILURE;
+
+  if(strstr(alias_ffmpeg_command, "$vfo_input") == NULL || strstr(alias_ffmpeg_command, "$vfo_output") == NULL) {
+    printf("WIZARD ERROR: ffmpeg command must include both $vfo_input and $vfo_output\n");
+    return EXIT_FAILURE;
+  }
+
+  if(!ih_create_config_dir_if_needed(config_dir)) {
+    printf("WIZARD ERROR: could not create config directory: %s\n", config_dir);
+    printf("WIZARD INFO: if this path requires elevated permissions, run wizard with sudo\n");
+    return EXIT_FAILURE;
+  }
+
+  config_path = utils_combine_to_full_path(config_dir, IH_CONFIG_FILENAME);
+  config_file = fopen(config_path, "w");
+  if(config_file == NULL) {
+    printf("WIZARD ERROR: could not write config file: %s\n", config_path);
+    printf("WIZARD INFO: if this path requires elevated permissions, run wizard with sudo\n");
+    free(config_path);
+    return EXIT_FAILURE;
+  }
+
+  ih_copy_string(alias_upper, sizeof(alias_upper), alias_name);
+  ih_uppercase_in_place(alias_upper);
+
+  fprintf(config_file, "/* vfo config generated by `vfo wizard` */\n\n");
+  fprintf(config_file, "ORIGINAL_LOCATION=\"%s\"\n", original_location);
+  fprintf(config_file, "SOURCE_LOCATION=\"%s\"\n", source_location);
+  fprintf(config_file, "KEEP_SOURCE=\"%s\"\n\n", keep_source ? "true" : "false");
+  fprintf(config_file, "SOURCE_TEST_ACTIVE=\"%s\"\n", source_test_active ? "true" : "false");
+  fprintf(config_file, "SOURCE_TEST_TRIM_START=\"%s\"\n", source_test_trim_start);
+  fprintf(config_file, "SOURCE_TEST_TRIM_DURATION=\"%s\"\n\n", source_test_trim_duration);
+  fprintf(config_file, "CUSTOM_FOLDER=\"%s,%s\"\n\n", custom_folder_name, custom_folder_type);
+  fprintf(config_file, "ALIAS=\"%s\"\n", alias_name);
+  fprintf(config_file, "%s_LOCATION=\"%s\"\n", alias_upper, alias_location);
+  fprintf(config_file, "%s_CRITERIA_CODEC_NAME=\"%s\"\n", alias_upper, alias_crit_codec);
+  fprintf(config_file, "%s_CRITERIA_BITS=\"%s\"\n", alias_upper, alias_crit_bits);
+  fprintf(config_file, "%s_CRITERIA_COLOR_SPACE=\"%s\"\n", alias_upper, alias_crit_color_space);
+  fprintf(config_file, "%s_CRITERIA_RESOLUTION_MIN_WIDTH=\"%s\"\n", alias_upper, alias_crit_min_width);
+  fprintf(config_file, "%s_CRITERIA_RESOLUTION_MIN_HEIGHT=\"%s\"\n", alias_upper, alias_crit_min_height);
+  fprintf(config_file, "%s_CRITERIA_RESOLUTION_MAX_WIDTH=\"%s\"\n", alias_upper, alias_crit_max_width);
+  fprintf(config_file, "%s_CRITERIA_RESOLUTION_MAX_HEIGHT=\"%s\"\n", alias_upper, alias_crit_max_height);
+  fprintf(config_file, "%s_SCENARIO=\"%s\"\n", alias_upper, alias_scenario);
+  fprintf(config_file, "%s_FFMPEG_COMMAND=\"%s\"\n", alias_upper, alias_ffmpeg_command);
+
+  fclose(config_file);
+
+  printf("WIZARD ALERT: config written to %s\n", config_path);
+  printf("WIZARD NEXT: run `vfo show`, then `vfo doctor`, then `vfo run`\n");
+
+  free(config_path);
+  return EXIT_SUCCESS;
+}
+
+static void ih_show_config(config_t *config, const char *config_dir) {
+  int profile_count = 0;
+  char *config_path = utils_combine_to_full_path(config_dir, IH_CONFIG_FILENAME);
+  cf_node_t *custom_folder = NULL;
+  ca_node_t *profile = NULL;
+
+  printf("SHOW ALERT: active config file: %s\n", config_path);
+  free(config_path);
+
+  printf("\n[global]\n");
+  printf("ORIGINAL_LOCATION=%s\n", config->svc->original_location);
+  printf("SOURCE_LOCATION=%s\n", config->svc->source_location);
+  printf("KEEP_SOURCE=%s\n", config->svc->keep_source ? "true" : "false");
+  printf("SOURCE_TEST_ACTIVE=%s\n", config->svc->source_test ? "true" : "false");
+  if(config->svc->source_test) {
+    printf("SOURCE_TEST_TRIM_START=%s\n", config->svc->source_test_trim_start);
+    printf("SOURCE_TEST_TRIM_DURATION=%s\n", config->svc->source_test_trim_duration);
+  }
+
+  printf("\n[custom_folders]\n");
+  custom_folder = config->cf_head;
+  if(custom_folder == NULL) {
+    printf("none\n");
+  } else {
+    while(custom_folder != NULL) {
+      printf("- %s (%s)\n", custom_folder->folder_name, custom_folder->folder_type);
+      custom_folder = custom_folder->next;
+    }
+  }
+
+  profile_count = ca_get_count(config->ca_head);
+  printf("\n[profiles] count=%i\n", profile_count);
+  if(profile_count == 0) {
+    printf("none\n");
+    return;
+  }
+
+  profile = config->ca_head;
+  while(profile != NULL) {
+    int scenario_count = ih_cs_count(profile->cs_head);
+    printf("\nprofile=%s\n", profile->alias_name);
+    printf("  location=%s\n", profile->alias_location);
+    printf("  criteria codec=%s bits=%s color_space=%s min=%sx%s max=%sx%s\n",
+           profile->alias_crit_codec,
+           profile->alias_crit_bits,
+           profile->alias_crit_color_space,
+           profile->alias_crit_min_width,
+           profile->alias_crit_min_height,
+           profile->alias_crit_max_width,
+           profile->alias_crit_max_height);
+    printf("  scenario_count=%i\n", scenario_count);
+    if(profile->cs_head != NULL) {
+      ih_print_preview("  first_scenario=", profile->cs_head->scenario_string);
+      ih_print_preview("  first_command=", profile->cs_head->ffmpeg_command);
+    }
+    profile = profile->next;
+  }
+}
+
 #ifndef TESTING
 int main (int argc, char **argv) {  
   /*immediately revise argc & argv if duplicate words are found in command ---------------*/
   int revised_argc= 0;
   char **revised_argv = utils_remove_duplicates_in_array_of_strings(argv, argc, &revised_argc);
+  const char *config_dir = IH_DEFAULT_CONFIG_DIR;
   /*DONE----------------------------------------------------------------------------------*/
   input_handler_t *ih = input_handler_create_new_struct();
   /* add any captured options to options struct*/
@@ -164,6 +604,10 @@ int main (int argc, char **argv) {
     printf("ERROR: You cannot execute revert command without the original command\n");
     exit(EXIT_FAILURE);
   }
+
+  if(ih->arguments->wizard_detected == true) {
+    return ih_run_wizard(config_dir);
+  }
   // if(ih->arguments->do_it_all_detected && any other arguments present) {
   //   printf("Error, do_it_all cannot be executed along side your other commands\n");
   //   printf("do_it_all cannot work in conjuction with other vfo commands.\n");
@@ -176,10 +620,16 @@ int main (int argc, char **argv) {
   // }
 
   /* initiate config data extraction and validation */
-  const char *config_dir = "/usr/local/bin/vfo_conf_folder";
   //extract config file data and unknown words from user input, to config struct
   config_t *config = con_init(config_dir, revised_argv, revised_argc);
   //does argv contain an unknown word << this is actually validated by the con_init, because if an arg doesn't match config pre defined words AND doesn't define an alias mentioned in the config file, we have found an unknown word and the program will stop
+
+  if(ih->arguments->show_detected == true) {
+    ih_show_config(config, config_dir);
+    free(config);
+    config = NULL;
+    return EXIT_SUCCESS;
+  }
 
   /*now that we have config, let's now CONTINUE TO HANDLE errors that we can at this stage*/
   //error check 'source' AND config.keep_source = false
@@ -210,6 +660,8 @@ int main (int argc, char **argv) {
   printf("ih->arguments->source_detected: %i\n", ih->arguments->source_detected);
   printf("ih->arguments->run_detected: %i\n", ih->arguments->run_detected);
   printf("ih->arguments->doctor_detected: %i\n", ih->arguments->doctor_detected);
+  printf("ih->arguments->wizard_detected: %i\n", ih->arguments->wizard_detected);
+  printf("ih->arguments->show_detected: %i\n", ih->arguments->show_detected);
   printf("ih->arguments->wipe_detected: %i\n", ih->arguments->wipe_detected);
   printf("ih->arguments->alias_queue_detected: %i\n", ih->arguments->alias_queue_detected);
   printf("ih->arguments->all_aliases_detected: %i\n", ih->arguments->all_aliases_detected);
