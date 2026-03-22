@@ -40,18 +40,43 @@ static bool ih_command_exists(const char *command_name) {
   return system(shell_command) == 0;
 }
 
-static bool ih_doctor_check_command(const char *command_name, bool required) {
+static const char* ih_command_install_hint(const char *command_name) {
+  if(strcmp(command_name, "ffmpeg") == 0 || strcmp(command_name, "ffprobe") == 0)
+    return "macOS install hint: brew install ffmpeg";
+
+  if(strcmp(command_name, "mkvmerge") == 0)
+    return "macOS install hint: brew install mkvtoolnix";
+
+  if(strcmp(command_name, "dovi_tool") == 0)
+    return "macOS install hint: brew install dovi_tool";
+
+  return NULL;
+}
+
+static bool ih_check_command(const char *context, const char *command_name, bool required) {
   bool exists = ih_command_exists(command_name);
+  const char *hint = ih_command_install_hint(command_name);
+
   if(exists) {
-    printf("DOCTOR OK: command available: %s\n", command_name);
+    printf("%s OK: command available: %s\n", context, command_name);
     return true;
   }
+
   if(required) {
-    printf("DOCTOR ERROR: required command missing: %s\n", command_name);
+    printf("%s ERROR: required command missing: %s\n", context, command_name);
+    if(hint != NULL)
+      printf("%s INFO: %s\n", context, hint);
     return false;
   }
-  printf("DOCTOR WARN: optional command missing: %s\n", command_name);
+
+  printf("%s WARN: optional command missing: %s\n", context, command_name);
+  if(hint != NULL)
+    printf("%s INFO: %s\n", context, hint);
   return true;
+}
+
+static bool ih_doctor_check_command(const char *command_name, bool required) {
+  return ih_check_command("DOCTOR", command_name, required);
 }
 
 static bool ih_doctor_check_path(const char *label, const char *path, bool required) {
@@ -98,6 +123,49 @@ static bool ih_run_doctor(config_t *config, const char *config_dir) {
     return true;
   }
   printf("DOCTOR ALERT: checks completed with errors\n");
+  return false;
+}
+
+static bool ih_run_runtime_dependency_precheck() {
+  bool healthy = true;
+
+  printf("PRECHECK ALERT: validating required commands before execution\n");
+  healthy = ih_check_command("PRECHECK", "ffmpeg", true) && healthy;
+  healthy = ih_check_command("PRECHECK", "ffprobe", true) && healthy;
+  healthy = ih_check_command("PRECHECK", "mkvmerge", true) && healthy;
+  healthy = ih_check_command("PRECHECK", "dovi_tool", false) && healthy;
+
+  if(healthy) {
+    printf("PRECHECK ALERT: dependency checks passed\n");
+    return true;
+  }
+
+  printf("PRECHECK ALERT: dependency checks failed\n");
+  printf("PRECHECK INFO: run `vfo doctor` for full diagnostics after installing missing commands\n");
+  return false;
+}
+
+static bool ih_pipeline_work_requested(arguments_t *arguments, config_t *config) {
+  bool alias_targets_requested = uw_get_count(config->uw_head) > 0;
+
+  if(arguments->run_detected)
+    return true;
+
+  if(arguments->original_detected && arguments->revert_detected == false)
+    return true;
+
+  if(arguments->source_detected && arguments->wipe_detected == false)
+    return true;
+
+  if(arguments->all_aliases_detected && arguments->wipe_detected == false)
+    return true;
+
+  if(arguments->do_it_all_detected && arguments->wipe_detected == false)
+    return true;
+
+  if(alias_targets_requested && arguments->wipe_detected == false)
+    return true;
+
   return false;
 }
 
@@ -629,6 +697,14 @@ int main (int argc, char **argv) {
     free(config);
     config = NULL;
     return EXIT_SUCCESS;
+  }
+
+  if(ih_pipeline_work_requested(ih->arguments, config) == true) {
+    if(ih_run_runtime_dependency_precheck() == false) {
+      free(config);
+      config = NULL;
+      return EXIT_FAILURE;
+    }
   }
 
   /*now that we have config, let's now CONTINUE TO HANDLE errors that we can at this stage*/
