@@ -83,7 +83,7 @@ In GitHub Actions:
 2. Click `Run workflow`
 3. Set `assets_dir` to your mounted media path
 4. Optionally set `max_seeds` (for example `4`)
-5. Optionally set `dv_p7_asset` and `dv_require_retention=1` when you want strict DV metadata checks
+5. Optionally set `dv_p7_asset`, `dv_require_retention=1`, and `dv_require_p81=1` when you want strict DV metadata + P7->8.1 checks
 6. Run
 
 The workflow executes `make ci` with:
@@ -98,3 +98,4 @@ Optional DV metadata lane:
 
 - set `VFO_E2E_DV_P7_ASSET` on the runner environment to enable the optional DV metadata test
 - if unset, the DV lane auto-skips successfully
+- set `VFO_E2E_DV_REQUIRE_P81=1` to fail when a profile 7 input does not convert to profile 8.x

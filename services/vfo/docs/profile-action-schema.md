@@ -10,7 +10,7 @@ Support profile workflows such as:
 - 1080p mezzanine -> optimized streaming output
 - 1080p H.264 device-compatibility outputs
 - explicit HDR->SDR conversion actions for SDR-only targets
-- 4K HEVC with best-effort Dolby Vision metadata retention
+- 4K HEVC with Dolby Vision metadata retention and explicit profile 7 -> 8.1 conversion
 - host-aware execution (Apple Silicon hardware encode when available, software fallback otherwise)
 
 ## Phase 1 (available now, no parser change)

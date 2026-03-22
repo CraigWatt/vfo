@@ -9,11 +9,15 @@ set -euo pipefail
 # Behavior:
 # - If source signals Dolby Vision side data and dovi_tool is available:
 #   attempt RPU extraction and injection into encoded HEVC output.
+# - If source DV profile is 7, convert metadata to profile 8.1 before injection.
 # - If any DV step fails, gracefully falls back to HDR10-compatible HEVC output.
 # - Preserves audio/subtitle streams with stream copy.
 #
 # Optional env:
 # - VFO_DV_REQUIRE_DOVI=1 : fail if source is DV but DV retention cannot be completed.
+# - VFO_DV_CONVERT_P7_TO_81=1 : convert DV profile 7 metadata to 8.1 (default: 1).
+# - VFO_DV_P7_TO_81_MODE=2 : dovi_tool conversion mode for profile 7 -> 8.1 (2 or 5).
+# - VFO_DV_REQUIRE_P7_TO_81=1 : fail if source is profile 7 but conversion to 8.1 fails.
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
@@ -37,6 +41,9 @@ BUFSIZE_K="${BUFSIZE_K:-40000}"
 CRF_4K="${CRF_4K:-18}"
 CPU_PRESET="${CPU_PRESET:-slow}"
 VFO_DV_REQUIRE_DOVI="${VFO_DV_REQUIRE_DOVI:-0}"
+VFO_DV_CONVERT_P7_TO_81="${VFO_DV_CONVERT_P7_TO_81:-1}"
+VFO_DV_P7_TO_81_MODE="${VFO_DV_P7_TO_81_MODE:-2}"
+VFO_DV_REQUIRE_P7_TO_81="${VFO_DV_REQUIRE_P7_TO_81:-1}"
 MP4_TIMESCALE="${MP4_TIMESCALE:-24000}"
 
 has_videotoolbox_encoder() {
@@ -47,6 +54,15 @@ has_dovi_side_data() {
   ffprobe -v error -select_streams v:0 \
     -show_entries stream_side_data \
     -of default=nw=1 "$1" 2>/dev/null | grep -qi "dovi"
+}
+
+get_dovi_profile() {
+  local src="$1"
+  local profile=""
+  profile="$(ffprobe -v error -select_streams v:0 \
+    -show_entries stream_side_data \
+    -of default=nw=1 "$src" 2>/dev/null | awk -F= '/^dv_profile=/{print $2; exit}' | tr -d ' \t\r\n' || true)"
+  printf '%s' "$profile"
 }
 
 get_fps() {
@@ -121,19 +137,37 @@ fi
 
 new_video="$enc_mp4"
 source_is_dv=0
+source_dv_profile=""
+p7_to_81_requested=0
+p7_to_81_applied=0
 
 if has_dovi_side_data "$INPUT"; then
   source_is_dv=1
+  source_dv_profile="$(get_dovi_profile "$INPUT")"
 fi
 
 if [ "$source_is_dv" -eq 1 ] && command -v dovi_tool >/dev/null 2>&1; then
+  if [ "$VFO_DV_P7_TO_81_MODE" != "2" ] && [ "$VFO_DV_P7_TO_81_MODE" != "5" ]; then
+    echo "Invalid VFO_DV_P7_TO_81_MODE='${VFO_DV_P7_TO_81_MODE}' (allowed: 2 or 5)"
+    exit 1
+  fi
+
   ffmpeg -hide_banner -nostdin -y \
     -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
     -i "$INPUT" \
     -map 0:v:0 -c:v copy -bsf:v hevc_mp4toannexb -f hevc \
     "$src_hevc" >/dev/null 2>&1 || true
 
-  if [ -s "$src_hevc" ] && dovi_tool extract-rpu -i "$src_hevc" -o "$rpu_bin" >/dev/null 2>&1; then
+  if [ "$source_dv_profile" = "7" ] && [ "$VFO_DV_CONVERT_P7_TO_81" = "1" ]; then
+    p7_to_81_requested=1
+    if [ -s "$src_hevc" ] && dovi_tool -m "$VFO_DV_P7_TO_81_MODE" extract-rpu -i "$src_hevc" -o "$rpu_bin" >/dev/null 2>&1; then
+      p7_to_81_applied=1
+    fi
+  elif [ -s "$src_hevc" ] && dovi_tool extract-rpu -i "$src_hevc" -o "$rpu_bin" >/dev/null 2>&1; then
+    p7_to_81_applied=1
+  fi
+
+  if [ "$p7_to_81_applied" -eq 1 ]; then
     ffmpeg -hide_banner -nostdin -y \
       -i "$enc_mp4" \
       -map 0:v:0 -c:v copy -bsf:v hevc_mp4toannexb -f hevc \
@@ -146,10 +180,24 @@ if [ "$source_is_dv" -eq 1 ] && command -v dovi_tool >/dev/null 2>&1; then
         -video_track_timescale "$MP4_TIMESCALE" \
         "$dv_mp4" >/dev/null 2>&1 \
         && ffprobe -v error "$dv_mp4" >/dev/null 2>&1; then
-        new_video="$dv_mp4"
+        if [ "$p7_to_81_requested" -eq 1 ]; then
+          output_dv_profile="$(get_dovi_profile "$dv_mp4")"
+          if [ "$output_dv_profile" = "8" ]; then
+            new_video="$dv_mp4"
+          else
+            p7_to_81_applied=0
+          fi
+        else
+          new_video="$dv_mp4"
+        fi
       fi
     fi
   fi
+fi
+
+if [ "$p7_to_81_requested" -eq 1 ] && [ "$VFO_DV_REQUIRE_P7_TO_81" = "1" ] && [ "$new_video" != "$dv_mp4" ]; then
+  echo "Source contains Dolby Vision profile 7 but profile 8.1 conversion failed (VFO_DV_REQUIRE_P7_TO_81=1)"
+  exit 1
 fi
 
 if [ "$source_is_dv" -eq 1 ] && [ "$VFO_DV_REQUIRE_DOVI" = "1" ] && [ "$new_video" != "$dv_mp4" ]; then

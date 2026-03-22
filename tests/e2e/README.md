@@ -14,7 +14,7 @@ This directory contains end-to-end tests for profile action scripts under:
   - Chromecast with Google TV HD / 4K
   - Apple TV HD / Apple TV 4K
   - SDR-target checks run against explicit HDR->SDR H.264 action output
-- optional Dolby Vision metadata retention check (skip when no DV P7 fixture is configured)
+- optional Dolby Vision metadata retention + P7->8.1 conversion check (skip when no DV P7 fixture is configured)
 - Assertions for:
   - output is readable by `ffprobe`
   - video codec is HEVC
@@ -54,6 +54,7 @@ make e2e
 - `VFO_E2E_KEEP_TMP=1`: keep `tests/e2e/.tmp/` for debugging
 - `VFO_E2E_DV_P7_ASSET`: optional absolute path to a private DV P7/P8 mezzanine for metadata-retention tests
 - `VFO_E2E_DV_REQUIRE_RETENTION=1`: fail if DV side data is not retained when DV test is active
+- `VFO_E2E_DV_REQUIRE_P81=1`: fail if input profile 7 is not converted to profile 8.x
 - `VFO_E2E_DV_CLIP_DURATION`: clip length for optional DV test (default: `8`)
 
 ## GitHub Actions (Self-Hosted Media Runner)
@@ -80,6 +81,7 @@ Trigger manually in Actions and provide:
 - `max_seeds`: optional count of media assets to exercise in one run (default: `4`)
 - `dv_p7_asset`: optional absolute path to local DV P7/P8 fixture on the runner
 - `dv_require_retention`: set `1` to fail if DV side data is not retained when fixture is present
+- `dv_require_p81`: set `1` to fail if profile 7 is not converted to profile 8.x
 
 Notes:
 

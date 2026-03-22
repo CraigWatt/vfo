@@ -26,6 +26,10 @@ on:
         description: "Set 1 to fail if DV side data is not retained when DV fixture is provided"
         required: false
         default: "0"
+      dv_require_p81:
+        description: "Set 1 to fail if DV profile 7 is not converted to profile 8.x"
+        required: false
+        default: "1"
 
 permissions:
   contents: read
@@ -41,6 +45,7 @@ jobs:
       DEFAULT_MAX_SEEDS: "4"
       DEFAULT_DV_P7_ASSET: ""
       DEFAULT_DV_REQUIRE_RETENTION: "0"
+      DEFAULT_DV_REQUIRE_P81: "1"
 
     steps:
       - name: ⬇️ Checkout repo
@@ -54,6 +59,7 @@ jobs:
           EVENT_MAX_SEEDS: ${{ github.event.inputs.max_seeds }}
           EVENT_DV_P7_ASSET: ${{ github.event.inputs.dv_p7_asset }}
           EVENT_DV_REQUIRE_RETENTION: ${{ github.event.inputs.dv_require_retention }}
+          EVENT_DV_REQUIRE_P81: ${{ github.event.inputs.dv_require_p81 }}
         run: |
           set -euo pipefail
 
@@ -62,6 +68,7 @@ jobs:
           max_seeds="${EVENT_MAX_SEEDS:-}"
           dv_p7_asset="${EVENT_DV_P7_ASSET:-}"
           dv_require_retention="${EVENT_DV_REQUIRE_RETENTION:-}"
+          dv_require_p81="${EVENT_DV_REQUIRE_P81:-}"
 
           if [ -z "$assets_dir" ]; then
             assets_dir="$DEFAULT_ASSETS_DIR"
@@ -78,18 +85,23 @@ jobs:
           if [ -z "$dv_require_retention" ]; then
             dv_require_retention="$DEFAULT_DV_REQUIRE_RETENTION"
           fi
+          if [ -z "$dv_require_p81" ]; then
+            dv_require_p81="$DEFAULT_DV_REQUIRE_P81"
+          fi
 
           echo "assets_dir=$assets_dir" >> "$GITHUB_OUTPUT"
           echo "clip_duration=$clip_duration" >> "$GITHUB_OUTPUT"
           echo "max_seeds=$max_seeds" >> "$GITHUB_OUTPUT"
           echo "dv_p7_asset=$dv_p7_asset" >> "$GITHUB_OUTPUT"
           echo "dv_require_retention=$dv_require_retention" >> "$GITHUB_OUTPUT"
+          echo "dv_require_p81=$dv_require_p81" >> "$GITHUB_OUTPUT"
 
           echo "Resolved assets_dir=$assets_dir"
           echo "Resolved clip_duration=$clip_duration"
           echo "Resolved max_seeds=$max_seeds"
           echo "Resolved dv_p7_asset=${dv_p7_asset:-<unset>}"
           echo "Resolved dv_require_retention=$dv_require_retention"
+          echo "Resolved dv_require_p81=$dv_require_p81"
 
       - name: 🧰 Verify runner dependencies
         run: |
@@ -113,6 +125,7 @@ jobs:
           VFO_E2E_MAX_SEEDS: ${{ steps.params.outputs.max_seeds }}
           VFO_E2E_DV_P7_ASSET: ${{ steps.params.outputs.dv_p7_asset }}
           VFO_E2E_DV_REQUIRE_RETENTION: ${{ steps.params.outputs.dv_require_retention }}
+          VFO_E2E_DV_REQUIRE_P81: ${{ steps.params.outputs.dv_require_p81 }}
         run: make ci
 
       - name: ⬆️ Upload e2e debug artifacts
