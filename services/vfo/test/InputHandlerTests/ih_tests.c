@@ -123,3 +123,40 @@ void test_ih_arguments_parser_detects_status_commands(void **state) {
 
   free(arguments);
 }
+
+void test_ih_arguments_parser_detects_mezzanine_clean_commands(void **state) {
+  arguments_t *arguments = NULL;
+  char *argv[] = {"vfo", "mezzanine-clean", "mezzanine_clean"};
+  int argc = 3;
+  (void)state;
+
+  arguments = arguments_create_new_struct();
+  assert_non_null(arguments);
+
+  ih_arguments_parser(argc, argv, arguments);
+  assert_true(arguments->mezzanine_clean_detected);
+
+  free(arguments);
+}
+
+void test_quality_reference_mode_parser_accepts_valid_values(void **state) {
+  bool valid = false;
+  (void)state;
+
+  assert_int_equal(quality_reference_mode_from_string("auto", &valid), QUALITY_REFERENCE_AUTO);
+  assert_true(valid);
+
+  assert_int_equal(quality_reference_mode_from_string("source", &valid), QUALITY_REFERENCE_SOURCE);
+  assert_true(valid);
+
+  assert_int_equal(quality_reference_mode_from_string("mezzanine", &valid), QUALITY_REFERENCE_MEZZANINE);
+  assert_true(valid);
+}
+
+void test_quality_reference_mode_parser_rejects_invalid_values(void **state) {
+  bool valid = true;
+  (void)state;
+
+  assert_int_equal(quality_reference_mode_from_string("invalid_mode", &valid), QUALITY_REFERENCE_AUTO);
+  assert_false(valid);
+}

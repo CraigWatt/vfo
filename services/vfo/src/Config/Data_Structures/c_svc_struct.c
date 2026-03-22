@@ -36,6 +36,19 @@ sole_var_content_t* svc_create_new_struct() {
   result->source_test = false;
   result->source_test_trim_start = "";
   result->source_test_trim_duration = "";
+  result->mezzanine_clean_enabled = false;
+  result->mezzanine_clean_apply_changes = false;
+  result->mezzanine_clean_append_media_tags = true;
+  result->mezzanine_clean_strict_quality_gate = false;
+
+  result->quality_check_enabled = false;
+  result->quality_check_include_vmaf = false;
+  result->quality_check_strict_gate = false;
+  result->quality_check_reference_layer = "auto";
+  result->quality_check_min_psnr = 0.0;
+  result->quality_check_min_ssim = 0.0;
+  result->quality_check_min_vmaf = 0.0;
+  result->quality_check_max_files_per_profile = 0;
 
 
 
@@ -47,6 +60,18 @@ sole_var_content_t* svc_create_new_struct() {
   result->is_source_test_valid = false;
   result->is_source_test_start_valid = false;
   result->is_source_test_duration_valid = false;
+  result->is_mezzanine_clean_enabled_valid = false;
+  result->is_mezzanine_clean_apply_changes_valid = false;
+  result->is_mezzanine_clean_append_media_tags_valid = false;
+  result->is_mezzanine_clean_strict_quality_gate_valid = false;
+  result->is_quality_check_enabled_valid = false;
+  result->is_quality_check_include_vmaf_valid = false;
+  result->is_quality_check_strict_gate_valid = false;
+  result->is_quality_check_reference_layer_valid = false;
+  result->is_quality_check_min_psnr_valid = false;
+  result->is_quality_check_min_ssim_valid = false;
+  result->is_quality_check_min_vmaf_valid = false;
+  result->is_quality_check_max_files_per_profile_valid = false;
   result->is_entire_svc_valid = false;
   return result;
 }

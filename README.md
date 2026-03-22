@@ -45,6 +45,15 @@ At a high level, `vfo` works like this:
 5. Run the FFmpeg command attached to the first matching scenario.
 6. Write output into the profile destination while keeping the source folder layout.
 
+Optional hygiene stage (configurable):
+
+- Run `vfo mezzanine-clean` to audit or normalize mezzanine folder/file naming before encode stages.
+
+Optional quality scoring stage (configurable):
+
+- Run post-profile `PSNR`/`SSIM` checks (and optional `VMAF`) against the selected reference layer (`source`, `mezzanine`, or `auto`).
+- Surface per-profile scoring status in run observability output.
+
 ### Core concepts
 
 #### Mezzanine and source folders
@@ -146,8 +155,9 @@ It also copies stock profile-action scripts (`transcode_*_profile.sh`) into `/us
 5. Define at least one profile (`PROFILE=`) and one scenario.
 6. Run `vfo doctor` to validate environment + config.
 7. Run `vfo status` for a high-level readiness snapshot.
-8. Run `vfo run` for the default end-to-end pipeline.
-9. Run `vfo` with individual stage commands or a specific profile name when needed.
+8. Run `vfo mezzanine-clean` to preview mezzanine hygiene changes (or apply if enabled).
+9. Run `vfo run` for the default end-to-end pipeline.
+10. Run `vfo` with individual stage commands or a specific profile name when needed.
 
 Example starter flow:
 
@@ -159,6 +169,7 @@ vfo --help
 vfo doctor
 vfo status
 vfo status-json
+vfo mezzanine-clean
 vfo run
 vfo profiles
 ```
@@ -187,6 +198,7 @@ vfo [argument] || [options]
 - `status`
 - `status-json`
 - `run`
+- `mezzanine-clean`
 - `profiles`
 - `wipe`
 - any profile name defined in `vfo_config.conf` (via `PROFILE=`)
@@ -199,7 +211,8 @@ A useful mental model is:
 - use `doctor` before first run (or after machine/config changes)
 - use `status` to view a component-level readiness summary before execution
 - use `status-json` in automation/tests when you need machine-readable status
-- use `run` for the default pipeline (mezzanine -> source if enabled -> profiles)
+- use `mezzanine-clean` for optional mezzanine filename/folder hygiene and recommendations
+- use `run` for the default pipeline (mezzanine -> source if enabled -> profiles -> optional quality scoring)
 
 ## Configuration guide
 
@@ -219,6 +232,8 @@ For device compatibility conformance checks, see:
 
 - `services/vfo/docs/device-conformance.md`
 - `tests/e2e/validate_device_conformance.sh`
+- `services/vfo/docs/mezzanine-clean.md`
+- `services/vfo/docs/quality-scoring.md`
 
 For engine readiness and observability status output, see:
 
@@ -253,6 +268,18 @@ Examples from the sample file include:
 - `SOURCE_TEST_TRIM_START`
 - `SOURCE_TEST_TRIM_DURATION`
 - `SOURCE_AS_ACTIVATE`
+- `MEZZANINE_CLEAN_ENABLED`
+- `MEZZANINE_CLEAN_APPLY_CHANGES`
+- `MEZZANINE_CLEAN_APPEND_MEDIA_TAGS`
+- `MEZZANINE_CLEAN_STRICT_QUALITY_GATE`
+- `QUALITY_CHECK_ENABLED`
+- `QUALITY_CHECK_INCLUDE_VMAF`
+- `QUALITY_CHECK_STRICT_GATE`
+- `QUALITY_CHECK_REFERENCE_LAYER`
+- `QUALITY_CHECK_MIN_PSNR`
+- `QUALITY_CHECK_MIN_SSIM`
+- `QUALITY_CHECK_MIN_VMAF`
+- `QUALITY_CHECK_MAX_FILES_PER_PROFILE`
 
 ### 3. Define custom folders
 

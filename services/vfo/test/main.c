@@ -49,6 +49,9 @@ int main(void) {
         cmocka_unit_test(test_status_report_update_overwrites_existing_component),
         cmocka_unit_test(test_status_report_print_json_contract),
         cmocka_unit_test(test_ih_arguments_parser_detects_status_commands),
+        cmocka_unit_test(test_ih_arguments_parser_detects_mezzanine_clean_commands),
+        cmocka_unit_test(test_quality_reference_mode_parser_accepts_valid_values),
+        cmocka_unit_test(test_quality_reference_mode_parser_rejects_invalid_values),
 
         /* Utils */
         cmocka_unit_test(test_utils_does_folder_exist_null_ptr),

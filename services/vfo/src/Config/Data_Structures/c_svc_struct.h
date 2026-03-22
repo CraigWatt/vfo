@@ -44,6 +44,20 @@ struct sole_var_content {
   char *source_test_trim_start;
   char *source_test_trim_duration;
 
+  bool mezzanine_clean_enabled;
+  bool mezzanine_clean_apply_changes;
+  bool mezzanine_clean_append_media_tags;
+  bool mezzanine_clean_strict_quality_gate;
+
+  bool quality_check_enabled;
+  bool quality_check_include_vmaf;
+  bool quality_check_strict_gate;
+  char *quality_check_reference_layer;
+  double quality_check_min_psnr;
+  double quality_check_min_ssim;
+  double quality_check_min_vmaf;
+  int quality_check_max_files_per_profile;
+
   bool is_original_location_valid;
   bool is_source_location_valid;
   bool is_source_as_location_valid;
@@ -52,6 +66,20 @@ struct sole_var_content {
   bool is_source_test_valid;
   bool is_source_test_start_valid;
   bool is_source_test_duration_valid;
+
+  bool is_mezzanine_clean_enabled_valid;
+  bool is_mezzanine_clean_apply_changes_valid;
+  bool is_mezzanine_clean_append_media_tags_valid;
+  bool is_mezzanine_clean_strict_quality_gate_valid;
+
+  bool is_quality_check_enabled_valid;
+  bool is_quality_check_include_vmaf_valid;
+  bool is_quality_check_strict_gate_valid;
+  bool is_quality_check_reference_layer_valid;
+  bool is_quality_check_min_psnr_valid;
+  bool is_quality_check_min_ssim_valid;
+  bool is_quality_check_min_vmaf_valid;
+  bool is_quality_check_max_files_per_profile_valid;
 
   bool is_entire_svc_valid;
 };

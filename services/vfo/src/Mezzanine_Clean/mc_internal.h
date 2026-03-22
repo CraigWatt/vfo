@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Craig Watt
+ * Copyright (c) 2026 Craig Watt
  *
  * Contact: craig@webrefine.co.uk
  *
@@ -22,21 +22,20 @@
  * THE SOFTWARE.
  */
 
-#ifndef IH_TESTS_H
-#define IH_TESTS_H
+#ifndef MC_INTERNAL_H
+#define MC_INTERNAL_H
 
-#include "../t_internal.h"
+#include "../mezzanine_clean.h"
+#include "../utils.h"
 
-#include "../../src/InputHandler/Data_Structures/ih_arguments_struct.h"
-#include "../../src/quality_scoring.h"
-#include "../../src/Status/status_engine.h"
+#include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-void test_status_report_update_and_summary(void **state);
-void test_status_report_update_overwrites_existing_component(void **state);
-void test_status_report_print_json_contract(void **state);
-void test_ih_arguments_parser_detects_status_commands(void **state);
-void test_ih_arguments_parser_detects_mezzanine_clean_commands(void **state);
-void test_quality_reference_mode_parser_accepts_valid_values(void **state);
-void test_quality_reference_mode_parser_rejects_invalid_values(void **state);
-
-#endif // IH_TESTS_H
+#endif // MC_INTERNAL_H

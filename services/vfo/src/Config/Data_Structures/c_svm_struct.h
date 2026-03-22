@@ -17,6 +17,20 @@ struct sole_var_markers {
   char* source_test_trim_start_marker;
   char* source_test_trim_duration_marker;
 
+  char* mezzanine_clean_enabled_marker;
+  char* mezzanine_clean_apply_changes_marker;
+  char* mezzanine_clean_append_media_tags_marker;
+  char* mezzanine_clean_strict_quality_gate_marker;
+
+  char* quality_check_enabled_marker;
+  char* quality_check_include_vmaf_marker;
+  char* quality_check_strict_gate_marker;
+  char* quality_check_reference_layer_marker;
+  char* quality_check_min_psnr_marker;
+  char* quality_check_min_ssim_marker;
+  char* quality_check_min_vmaf_marker;
+  char* quality_check_max_files_per_profile_marker;
+
   char* source_as_activate;
   char* source_as_location;
   char* keep_source_as;

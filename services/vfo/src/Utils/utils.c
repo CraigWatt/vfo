@@ -632,7 +632,7 @@ void utils_found_a_rogue_file(char *file_name, char *folder) {
 }
 
 bool utils_is_string_a_reserved_word(char *string) {
-  char *reserved_words[] = {"mezzanine", "original", "source", "revert", "wipe", "profiles", "all_aliases", "do_it_all", "profile", "alias", "status", "status-json", "status_json"};
+  char *reserved_words[] = {"mezzanine", "original", "source", "revert", "wipe", "profiles", "all_aliases", "do_it_all", "run", "doctor", "wizard", "show", "mezzanine-clean", "mezzanine_clean", "profile", "alias", "status", "status-json", "status_json"};
   int reserved_words_array_length = (sizeof reserved_words / sizeof(char*));
   
   bool match_found = false;

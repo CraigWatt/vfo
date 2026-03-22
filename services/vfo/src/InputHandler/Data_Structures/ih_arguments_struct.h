@@ -41,6 +41,7 @@ struct arguments {
   bool status_json_detected;
   bool wizard_detected;
   bool show_detected;
+  bool mezzanine_clean_detected;
   bool alias_queue_detected;
   bool all_aliases_detected;
   bool do_it_all_detected;
