@@ -347,7 +347,6 @@ Testing convention:
 Naming conventions and terminology policy:
 
 - canonical policy: `AGENT.md`
-- compatibility alias: `AGENTS.md`
 - latest audit snapshot: `infra/docs/naming-conventions-audit.md`
 
 ### Build commands

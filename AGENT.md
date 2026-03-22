@@ -2,8 +2,7 @@
 
 Canonical repository conventions for human contributors and coding agents.
 
-`AGENT.md` is the primary policy file.
-`AGENTS.md` is kept as a compatibility alias for tooling that auto-loads that filename.
+`AGENT.md` is the single source of truth for repository naming and terminology policy.
 
 ## Scope
 
@@ -27,7 +26,6 @@ This policy defines naming conventions for:
   - `LICENSE`
   - `RELEASE.txt`
   - `AGENT.md`
-  - `AGENTS.md` (compatibility alias)
   - `Makefile`
 
 ### 2) C Modules and Symbols
