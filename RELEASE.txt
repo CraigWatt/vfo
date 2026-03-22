@@ -23,15 +23,16 @@ vfo now checks required dependencies before pipeline execution and clearly repor
 
 Installed paths:
 - Binary: `/usr/local/bin/vfo`
+- Action scripts: `/usr/local/bin/transcode_*_profile.sh`
 - Config directory: `/usr/local/bin/vfo_conf_folder`
 - Config file: `/usr/local/bin/vfo_conf_folder/vfo_config.conf`
 
 ### macOS (advanced: static build zip)
 1. Download `static_build.zip` from assets and unzip it.
-2. Move `vfo` to `/usr/local/bin`.
+2. Move `static_build/bin/vfo` and all `static_build/bin/transcode_*_profile.sh` scripts to `/usr/local/bin`.
 3. Create config directory and copy the default config:
    - `sudo mkdir -p /usr/local/bin/vfo_conf_folder`
-   - `sudo cp vfo_config.conf /usr/local/bin/vfo_conf_folder/vfo_config.conf`
+   - `sudo cp static_build/vfo_conf_folder/vfo_config.conf /usr/local/bin/vfo_conf_folder/vfo_config.conf`
 4. Verify installation:
    - `vfo --version`
    - `vfo doctor`

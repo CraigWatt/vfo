@@ -87,7 +87,7 @@ When a scenario matches, `vfo` runs the FFmpeg command tied to that scenario.
 The repository's release notes describe two macOS-oriented installation paths:
 
 1. Install the `.pkg` release asset.
-2. Download the static build zip and copy the binary plus config file into your PATH.
+2. Download the static build zip and copy the bundled `bin/` commands plus config file.
 
 Release notes: [RELEASE.txt](./RELEASE.txt)
 
@@ -137,14 +137,13 @@ make install
 ```
 
 By default this copies the binary under `/usr/local/bin` and copies `services/vfo/src/vfo_config.conf` into `/usr/local/bin/vfo_conf_folder`.
-
-> **Important:** the current config-loading messages in the source code still tell users that `vfo_config.conf` must live directly in `/usr/local/bin`. If you use `make install`, verify where your config file ends up and move or link it as needed for your environment.
+It also copies stock profile-action scripts (`transcode_*_profile.sh`) into `/usr/local/bin`.
 
 ## Quick start
 
-1. Install FFmpeg.
+1. Install FFmpeg and MKVToolNix (`mkvmerge`).
 2. Build or download `vfo`.
-3. Copy `services/vfo/src/vfo_config.conf` to the location your installation expects.
+3. Ensure `vfo_config.conf` exists at `/usr/local/bin/vfo_conf_folder/vfo_config.conf`.
 4. Edit the config file so the folder paths match your machine.
 5. Define at least one profile (`ALIAS=` today) and one scenario.
 6. Run `vfo doctor` to validate environment + config.
@@ -154,8 +153,9 @@ By default this copies the binary under `/usr/local/bin` and copies `services/vf
 Example starter flow:
 
 ```bash
-cp services/vfo/src/vfo_config.conf /usr/local/bin/vfo_config.conf
-$EDITOR /usr/local/bin/vfo_config.conf
+sudo mkdir -p /usr/local/bin/vfo_conf_folder
+sudo cp services/vfo/src/vfo_config.conf /usr/local/bin/vfo_conf_folder/vfo_config.conf
+$EDITOR /usr/local/bin/vfo_conf_folder/vfo_config.conf
 vfo --help
 vfo doctor
 vfo run

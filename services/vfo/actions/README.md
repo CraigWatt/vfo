@@ -2,6 +2,11 @@
 
 These scripts are intended to be called from profile scenario commands in `vfo_config.conf`.
 
+Installed defaults:
+
+- `make install` copies these scripts to `/usr/local/bin`
+- macOS `.pkg` releases also install them to `/usr/local/bin`
+
 ## Action Contract
 
 Each action accepts:
@@ -53,5 +58,7 @@ Set `VFO_ENCODER_MODE` to:
 
 ## Important notes
 
-- Use absolute script paths in `*_FFMPEG_COMMAND` entries to avoid path ambiguity.
+- Prefer command-name usage in config, for example:
+  - `PROFILE_FFMPEG_COMMAND="transcode_hevc_4k_profile.sh $vfo_input $vfo_output"`
+- Absolute paths still work when you need custom script locations.
 - `transcode_hevc_4k_dv_profile.sh` is a best-effort DV baseline; for advanced mux/timestamp constraints, extend it with your dedicated workflow.

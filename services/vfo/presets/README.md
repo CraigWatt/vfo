@@ -11,8 +11,9 @@ Current preset packs:
 
 1. Open your installed config file (for example `/usr/local/bin/vfo_conf_folder/vfo_config.conf`).
 2. Copy the profile block from a preset file into your config.
-3. Update output paths and action script paths for your environment.
-4. Run `vfo doctor`, then `vfo run`.
+3. Update output paths for your environment.
+4. Keep script command names as-is if you installed via `.pkg` or `make install`.
+5. Run `vfo doctor`, then `vfo run`.
 
 For predictive playback checks after encoding, use:
 
