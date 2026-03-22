@@ -66,7 +66,14 @@ From the runner install directory:
 
 ## 5) Trigger full-media E2E
 
-The workflow runs automatically on `main` pushes using defaults.
+The workflow runs automatically on:
+
+- same-repo PRs targeting `main`
+- `main` pushes
+
+using defaults.
+
+For safety, fork-origin pull requests are skipped to avoid running untrusted code on a self-hosted machine.
 
 You can also run it manually from GitHub Actions:
 

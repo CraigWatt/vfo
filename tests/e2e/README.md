@@ -60,7 +60,7 @@ It targets runner labels:
 
 This workflow now runs in two ways:
 
-- automatically on `main` pushes (uses workflow defaults)
+- automatically on same-repo PRs to `main` and on `main` pushes (uses workflow defaults)
 - manually via `workflow_dispatch` (override inputs as needed)
 
 Trigger manually in Actions and provide:

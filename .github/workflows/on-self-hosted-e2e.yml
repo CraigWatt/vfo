@@ -1,6 +1,9 @@
 name: 🧪 Full E2E (self-hosted media)
 
 on:
+  pull_request:
+    branches:
+      - "main"
   push:
     branches:
       - "main"
@@ -25,6 +28,8 @@ permissions:
 jobs:
   full-e2e:
     name: Full media-backed E2E
+    # Do not run untrusted fork PR code on a self-hosted runner.
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: [self-hosted, macOS, vfo-media]
     timeout-minutes: 120
     env:
@@ -67,9 +72,15 @@ jobs:
           echo "Resolved clip_duration=$clip_duration"
           echo "Resolved max_seeds=$max_seeds"
 
-      - name: 🧰 Verify runner dependencies
+      - name: 🧰 Install/verify runner dependencies
         run: |
-          command -v ffmpeg >/dev/null 2>&1 || { echo "Missing dependency: ffmpeg"; exit 1; }
+          command -v brew >/dev/null 2>&1 || { echo "Missing dependency manager: brew"; exit 1; }
+          if ! brew list cmocka >/dev/null 2>&1; then
+            brew install cmocka
+          fi
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            brew install ffmpeg
+          fi
           command -v ffprobe >/dev/null 2>&1 || { echo "Missing dependency: ffprobe"; exit 1; }
           command -v gcc >/dev/null 2>&1 || { echo "Missing dependency: gcc"; exit 1; }
           command -v make >/dev/null 2>&1 || { echo "Missing dependency: make"; exit 1; }

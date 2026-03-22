@@ -30,4 +30,4 @@ This supports both:
 CI lane mapping:
 
 - `Validate (PR + main)`: hosted synthetic e2e smoke + unit tests (`make ci`)
-- `Full E2E (self-hosted media)`: full media-backed e2e on self-hosted runner (auto on `main` pushes, manual dispatch supported)
+- `Full E2E (self-hosted media)`: full media-backed e2e on self-hosted runner (auto on same-repo PRs to `main` + `main` pushes, manual dispatch supported)
