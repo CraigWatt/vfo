@@ -34,5 +34,6 @@ void test_utils_does_folder_exist_null_ptr(void **state);
 void test_utils_does_folder_exist_empty_str(void **state);
 void test_utils_split_semicolon_list_trims_and_counts(void **state);
 void test_utils_location_pool_create_and_map_path(void **state);
+void test_utils_create_folder_creates_accessible_directory(void **state);
 
 #endif // U_TESTS_H
