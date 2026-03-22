@@ -51,6 +51,7 @@ void ih_mes_usage () {
   fprintf(stdout, "%s original    # mezzanine preparation stage\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s source      # normalized source stage\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s all_aliases # run all delivery profiles (legacy term: aliases)\n\n", __PROGRAM_NAME__);
+  fprintf(stdout, "%s <profile_name> # run one delivery profile by name (legacy runtime term: alias)\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s --version\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s --help\n\n", __PROGRAM_NAME__);
 }
@@ -97,12 +98,10 @@ void ih_mes_arguments() {
                     "\t\texecutes mezzanine preparation stage only\n\n");
     fprintf(stdout, GRAY "\tsource\n" NO_COLOR
                     "\t\texecutes normalized source stage only\n\n");
-    fprintf(stdout, GRAY "\tjoker\n" NO_COLOR
-                    "\t\texecutes joker program only\n\n");
-    fprintf(stdout, GRAY "\tcustom_alias\n" NO_COLOR
-                    "\t\texecutes a specific delivery profile (legacy: alias)\n\n");
+    fprintf(stdout, GRAY "\t<profile_name>\n" NO_COLOR
+                    "\t\texecutes a specific delivery profile by name (legacy: alias)\n\n");
     fprintf(stdout, GRAY "\tdo_it_all\n" NO_COLOR
-                    "\t\texecutes full default pipeline: mezzanine -> source -> profiles\n\n");
+                    "\t\texecutes full default pipeline: mezzanine -> source -> profiles (legacy command)\n\n");
 }
 
 /*

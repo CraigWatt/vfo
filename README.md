@@ -344,6 +344,12 @@ Testing convention:
 - Infra validation tests live in `infra/test/`.
 - Cross-service end-to-end tests live in `tests/e2e/`.
 
+Naming conventions and terminology policy:
+
+- canonical policy: `AGENT.md`
+- compatibility alias: `AGENTS.md`
+- latest audit snapshot: `infra/docs/naming-conventions-audit.md`
+
 ### Build commands
 
 ```bash
