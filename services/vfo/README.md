@@ -49,3 +49,4 @@ Cross-cutting E2E tests live under `tests/e2e/` and are run from repository root
 Status schema/details are documented in `docs/status-observability.md`.
 Mezzanine hygiene behavior is documented in `docs/mezzanine-clean.md`.
 Quality scoring behavior is documented in `docs/quality-scoring.md`.
+Workflow progression map is documented in `docs/workflow-engine-progression.md`.

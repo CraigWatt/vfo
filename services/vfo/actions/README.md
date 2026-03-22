@@ -46,9 +46,14 @@ Device-target templates:
   - normalizes output signaling to BT.709
   - uses `h264_videotoolbox` when available, `libx264` fallback
 - `transcode_hevc_4k_dv_profile.sh`
-  - best-effort Dolby Vision retention path with `dovi_tool`
+  - Dolby Vision retention path with `dovi_tool`
+  - when input is DV profile 7, converts metadata to profile 8.1 before injection
   - gracefully falls back to HDR10-compatible output if DV retention fails
   - supports strict mode via `VFO_DV_REQUIRE_DOVI=1`
+  - supports profile 7 conversion controls:
+    - `VFO_DV_CONVERT_P7_TO_81=1` (default)
+    - `VFO_DV_P7_TO_81_MODE=2|5` (default: `2`)
+    - `VFO_DV_REQUIRE_P7_TO_81=1` (default)
 - `transcode_hevc_4k_main_subtitle_preserve_profile.sh`
 - `transcode_hevc_1080_main_subtitle_preserve_profile.sh`
   - preserves all audio streams
@@ -71,4 +76,4 @@ Set `VFO_ENCODER_MODE` to:
 - Prefer command-name usage in config, for example:
   - `PROFILE_FFMPEG_COMMAND="transcode_hevc_4k_profile.sh $vfo_input $vfo_output"`
 - Absolute paths still work when you need custom script locations.
-- `transcode_hevc_4k_dv_profile.sh` is a best-effort DV baseline; for advanced mux/timestamp constraints, extend it with your dedicated workflow.
+- `transcode_hevc_4k_dv_profile.sh` now enforces profile 7 -> 8.1 conversion by default; for advanced mux/timestamp constraints, extend it with your dedicated workflow.

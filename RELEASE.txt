@@ -72,6 +72,11 @@ Installed paths:
 - `QUALITY_CHECK_MIN_VMAF`: minimum VMAF threshold (`0` disables threshold).
 - `QUALITY_CHECK_MAX_FILES_PER_PROFILE`: sample cap per profile (`0` means all files).
 
+### Optional Dolby Vision profile conversion controls
+- `VFO_DV_CONVERT_P7_TO_81`: in `transcode_hevc_4k_dv_profile.sh`, convert DV profile 7 metadata to profile 8.1 (`1` default).
+- `VFO_DV_P7_TO_81_MODE`: conversion mode passed to `dovi_tool` (`2` default, `5` supported).
+- `VFO_DV_REQUIRE_P7_TO_81`: fail when profile 7 input cannot be converted to profile 8.x (`1` default).
+
 ### Troubleshooting
 - `required command missing: ffmpeg/ffprobe`:
   - `brew install ffmpeg`
