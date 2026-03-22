@@ -1159,7 +1159,7 @@ char* con_find_config_file(const char *config_dir, const char *config_filename, 
 
 void con_does_config_file_exist(char *location) {
   if(!utils_does_file_exist(location)) {  
-    c_mes_find_config_file_fail();
+    c_mes_find_config_file_fail(location);
     exit(EXIT_FAILURE);
   }
 }

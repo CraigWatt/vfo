@@ -32,11 +32,18 @@ void c_mes_find_config_file_success() {
   fprintf(stdout, "mes_find_config_file_success FOUND\n");
 }
 
-void c_mes_find_config_file_fail() {
-  fprintf(stdout, "mes_find_config_file_fail NOT FOUND\n"
+void c_mes_find_config_file_fail(const char *expected_path) {
+  const char *path_to_print = expected_path;
+
+  if(path_to_print == NULL || path_to_print[0] == '\0')
+    path_to_print = "<unknown>";
+
+  fprintf(stdout,
+          "mes_find_config_file_fail NOT FOUND\n"
           "vfo_config.conf file is essential for vfo to run\n"
-          "Expected path: /usr/local/bin/vfo_conf_folder/vfo_config.conf\n"
-          "Run `vfo wizard` to create it interactively.\n");
+          "Expected path: %s\n"
+          "Run `vfo wizard` to create it interactively.\n",
+          path_to_print);
 }
 
 void c_mes_init_access_config_variable() {
