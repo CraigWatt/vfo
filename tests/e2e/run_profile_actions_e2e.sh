@@ -14,6 +14,8 @@ KEEP_TMP="${VFO_E2E_KEEP_TMP:-0}"
 
 ACTION_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_profile.sh"
 ACTION_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_profile.sh"
+ACTION_MAIN_SUB_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_main_subtitle_preserve_profile.sh"
+ACTION_MAIN_SUB_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_main_subtitle_preserve_profile.sh"
 
 log() {
   printf '[e2e] %s\n' "$*"
@@ -143,6 +145,61 @@ probe_audio_count() {
     -of csv=p=0 "$1" | wc -l | tr -d ' '
 }
 
+probe_subtitle_count() {
+  ffprobe -v error -select_streams s \
+    -show_entries stream=index \
+    -of csv=p=0 "$1" | wc -l | tr -d ' '
+}
+
+create_subtitle_fixture() {
+  local input="$1"
+  local output="$2"
+  local mode="$3" # forced|forced_non_english|default
+  local subtitle_file="${TMP_DIR}/subtitle_${mode}.srt"
+  local subtitle_title=""
+  local subtitle_disposition=""
+  local subtitle_language="eng"
+
+  case "$mode" in
+    forced)
+      subtitle_title="English Forced"
+      subtitle_disposition="forced"
+      ;;
+    forced_non_english)
+      subtitle_title="Spanish Forced"
+      subtitle_disposition="forced"
+      subtitle_language="spa"
+      ;;
+    default)
+      subtitle_title="English Main"
+      subtitle_disposition="default"
+      ;;
+    *)
+      fail "Unsupported subtitle fixture mode: ${mode}"
+      ;;
+  esac
+
+  cat > "$subtitle_file" <<EOF
+1
+00:00:00,200 --> 00:00:01,200
+foreign dialogue
+
+2
+00:00:01,250 --> 00:00:01,900
+main subtitle lane
+EOF
+
+  ffmpeg -hide_banner -nostdin -y \
+    -i "$input" \
+    -f srt -i "$subtitle_file" \
+    -map 0:v:0 -map 0:a? -map 1:0 \
+    -c:v copy -c:a copy -c:s srt \
+    -metadata:s:s:0 language="$subtitle_language" \
+    -metadata:s:s:0 title="$subtitle_title" \
+    -disposition:s:0 "$subtitle_disposition" \
+    "$output" >/dev/null 2>&1
+}
+
 run_action_assertions() {
   local action_name="$1"
   local action_script="$2"
@@ -187,17 +244,90 @@ run_action_assertions() {
   log "${action_name} passed (codec=${codec}, height=${height}, audio_streams=${output_audio_count})"
 }
 
+run_main_subtitle_action_assertions() {
+  local action_name="$1"
+  local action_script="$2"
+  local input="$3"
+  local requested_output="$4"
+  local max_height="$5"
+  local expected_container="$6" # mp4|mkv
+  local expected_subtitle_count="$7"
+  local include_default_main_sub="${8:-0}"
+  local expected_output="$requested_output"
+
+  [ -x "$action_script" ] || fail "Action script is not executable: $action_script"
+  [ -s "$input" ] || fail "Input fixture missing: $input"
+
+  if [ "$expected_container" = "mkv" ]; then
+    expected_output="${requested_output%.*}.mkv"
+  elif [ "$expected_container" != "mp4" ]; then
+    fail "Unsupported expected container '${expected_container}' for ${action_name}"
+  fi
+
+  rm -f "$requested_output" "${requested_output%.*}.mkv"
+
+  local input_audio_count
+  local output_audio_count
+  local output_subtitle_count
+  local codec
+  local height
+
+  input_audio_count="$(probe_audio_count "$input")"
+
+  env \
+    VFO_ENCODER_MODE=cpu \
+    VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT="$include_default_main_sub" \
+    CPU_PRESET=ultrafast \
+    CRF_4K=30 \
+    CRF_1080=30 \
+    AVG_K=4000 \
+    MAXRATE_K=6000 \
+    BUFSIZE_K=12000 \
+    AVG_K_1080=2500 \
+    MAXRATE_K_1080=3500 \
+    BUFSIZE_K_1080=7000 \
+    bash "$action_script" "$input" "$requested_output"
+
+  [ -s "$expected_output" ] || fail "Output file missing: $expected_output"
+  ffprobe -v error "$expected_output" >/dev/null 2>&1 || fail "ffprobe cannot read output: $expected_output"
+
+  codec="$(probe_video_codec "$expected_output")"
+  height="$(probe_video_height "$expected_output")"
+  output_audio_count="$(probe_audio_count "$expected_output")"
+  output_subtitle_count="$(probe_subtitle_count "$expected_output")"
+
+  assert_equals "$codec" "hevc" "${action_name} should output HEVC"
+  assert_int_lte "$height" "$max_height" "${action_name} output exceeds max height"
+  assert_equals "$output_audio_count" "$input_audio_count" "${action_name} changed audio stream count"
+  assert_equals "$output_subtitle_count" "$expected_subtitle_count" "${action_name} subtitle stream count mismatch"
+
+  log "${action_name} passed (codec=${codec}, height=${height}, audio_streams=${output_audio_count}, subtitle_streams=${output_subtitle_count}, container=${expected_container})"
+}
+
 run_seed_from_input() {
   local seed_index="$1"
   local seed_asset="$2"
   local fixture_1080="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080.mkv"
   local fixture_2160="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160.mkv"
+  local fixture_1080_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_forced_sub.mkv"
+  local fixture_2160_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160_forced_sub.mkv"
+  local fixture_1080_default_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_default_sub.mkv"
+  local fixture_1080_forced_non_english_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_forced_non_english_sub.mkv"
   local output_1080="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_output.mkv"
   local output_4k="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_output.mkv"
+  local output_1080_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_main_sub.mp4"
+  local output_4k_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_main_sub.mp4"
+  local output_1080_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_off.mp4"
+  local output_1080_default_sub_on="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_on.mp4"
+  local output_1080_forced_non_english_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_forced_non_english_sub.mp4"
 
   log "Using local open-source asset seed #${seed_index}: ${seed_asset}"
   create_fixture_from_input "$seed_asset" 1920 1080 "$fixture_1080"
   create_fixture_from_input "$seed_asset" 3840 2160 "$fixture_2160"
+  create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_sub" forced
+  create_subtitle_fixture "$fixture_2160" "$fixture_2160_forced_sub" forced
+  create_subtitle_fixture "$fixture_1080" "$fixture_1080_default_sub" default
+  create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_non_english_sub" forced_non_english
 
   run_action_assertions \
     "hevc_1080_profile_action(seed_${seed_index})" \
@@ -212,18 +342,81 @@ run_seed_from_input() {
     "$fixture_2160" \
     "$output_4k" \
     2160
+
+  run_main_subtitle_action_assertions \
+    "hevc_1080_main_subtitle_forced(seed_${seed_index})" \
+    "$ACTION_MAIN_SUB_1080" \
+    "$fixture_1080_forced_sub" \
+    "$output_1080_main_sub" \
+    1080 \
+    mkv \
+    1 \
+    0
+
+  run_main_subtitle_action_assertions \
+    "hevc_4k_main_subtitle_forced(seed_${seed_index})" \
+    "$ACTION_MAIN_SUB_4K" \
+    "$fixture_2160_forced_sub" \
+    "$output_4k_main_sub" \
+    2160 \
+    mkv \
+    1 \
+    0
+
+  run_main_subtitle_action_assertions \
+    "hevc_1080_main_subtitle_default_off(seed_${seed_index})" \
+    "$ACTION_MAIN_SUB_1080" \
+    "$fixture_1080_default_sub" \
+    "$output_1080_default_sub_off" \
+    1080 \
+    mp4 \
+    0 \
+    0
+
+  run_main_subtitle_action_assertions \
+    "hevc_1080_main_subtitle_default_on(seed_${seed_index})" \
+    "$ACTION_MAIN_SUB_1080" \
+    "$fixture_1080_default_sub" \
+    "$output_1080_default_sub_on" \
+    1080 \
+    mkv \
+    1 \
+    1
+
+  run_main_subtitle_action_assertions \
+    "hevc_1080_main_subtitle_forced_non_english_skip(seed_${seed_index})" \
+    "$ACTION_MAIN_SUB_1080" \
+    "$fixture_1080_forced_non_english_sub" \
+    "$output_1080_forced_non_english_sub" \
+    1080 \
+    mp4 \
+    0 \
+    0
 }
 
 run_seed_synthetic() {
   local seed_index="$1"
   local fixture_1080="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080.mkv"
   local fixture_2160="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160.mkv"
+  local fixture_1080_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_forced_sub.mkv"
+  local fixture_2160_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160_forced_sub.mkv"
+  local fixture_1080_default_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_default_sub.mkv"
+  local fixture_1080_forced_non_english_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_forced_non_english_sub.mkv"
   local output_1080="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_output.mkv"
   local output_4k="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_output.mkv"
+  local output_1080_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_main_sub.mp4"
+  local output_4k_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_main_sub.mp4"
+  local output_1080_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_off.mp4"
+  local output_1080_default_sub_on="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_on.mp4"
+  local output_1080_forced_non_english_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_forced_non_english_sub.mp4"
 
   log "Using synthetic fixtures for seed #${seed_index} (no local assets required)"
   create_synthetic_fixture 1920 1080 "$fixture_1080"
   create_synthetic_fixture 3840 2160 "$fixture_2160"
+  create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_sub" forced
+  create_subtitle_fixture "$fixture_2160" "$fixture_2160_forced_sub" forced
+  create_subtitle_fixture "$fixture_1080" "$fixture_1080_default_sub" default
+  create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_non_english_sub" forced_non_english
 
   run_action_assertions \
     "hevc_1080_profile_action(seed_${seed_index})" \
@@ -238,6 +431,56 @@ run_seed_synthetic() {
     "$fixture_2160" \
     "$output_4k" \
     2160
+
+  run_main_subtitle_action_assertions \
+    "hevc_1080_main_subtitle_forced(seed_${seed_index})" \
+    "$ACTION_MAIN_SUB_1080" \
+    "$fixture_1080_forced_sub" \
+    "$output_1080_main_sub" \
+    1080 \
+    mkv \
+    1 \
+    0
+
+  run_main_subtitle_action_assertions \
+    "hevc_4k_main_subtitle_forced(seed_${seed_index})" \
+    "$ACTION_MAIN_SUB_4K" \
+    "$fixture_2160_forced_sub" \
+    "$output_4k_main_sub" \
+    2160 \
+    mkv \
+    1 \
+    0
+
+  run_main_subtitle_action_assertions \
+    "hevc_1080_main_subtitle_default_off(seed_${seed_index})" \
+    "$ACTION_MAIN_SUB_1080" \
+    "$fixture_1080_default_sub" \
+    "$output_1080_default_sub_off" \
+    1080 \
+    mp4 \
+    0 \
+    0
+
+  run_main_subtitle_action_assertions \
+    "hevc_1080_main_subtitle_default_on(seed_${seed_index})" \
+    "$ACTION_MAIN_SUB_1080" \
+    "$fixture_1080_default_sub" \
+    "$output_1080_default_sub_on" \
+    1080 \
+    mkv \
+    1 \
+    1
+
+  run_main_subtitle_action_assertions \
+    "hevc_1080_main_subtitle_forced_non_english_skip(seed_${seed_index})" \
+    "$ACTION_MAIN_SUB_1080" \
+    "$fixture_1080_forced_non_english_sub" \
+    "$output_1080_forced_non_english_sub" \
+    1080 \
+    mp4 \
+    0 \
+    0
 }
 
 run_local_asset_suite() {
@@ -274,6 +517,8 @@ main() {
   require_command ffprobe
   [ -f "$ACTION_4K" ] || fail "Missing action script: $ACTION_4K"
   [ -f "$ACTION_1080" ] || fail "Missing action script: $ACTION_1080"
+  [ -f "$ACTION_MAIN_SUB_4K" ] || fail "Missing action script: $ACTION_MAIN_SUB_4K"
+  [ -f "$ACTION_MAIN_SUB_1080" ] || fail "Missing action script: $ACTION_MAIN_SUB_1080"
 
   rm -rf "$TMP_DIR"
   mkdir -p "$FIXTURES_DIR" "$OUTPUTS_DIR"

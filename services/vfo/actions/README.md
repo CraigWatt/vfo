@@ -23,6 +23,8 @@ vfo provides these through scenario command placeholders:
 
 - `transcode_hevc_4k_profile.sh`
 - `transcode_hevc_1080_profile.sh`
+- `transcode_hevc_4k_main_subtitle_preserve_profile.sh`
+- `transcode_hevc_1080_main_subtitle_preserve_profile.sh`
 - `transcode_h264_1080_profile.sh`
 - `transcode_h264_1080_hdr_to_sdr_profile.sh`
 - `transcode_hevc_4k_dv_profile.sh`
@@ -47,6 +49,14 @@ Device-target templates:
   - best-effort Dolby Vision retention path with `dovi_tool`
   - gracefully falls back to HDR10-compatible output if DV retention fails
   - supports strict mode via `VFO_DV_REQUIRE_DOVI=1`
+- `transcode_hevc_4k_main_subtitle_preserve_profile.sh`
+- `transcode_hevc_1080_main_subtitle_preserve_profile.sh`
+  - preserves all audio streams
+  - selects one "main subtitle" using english-speaker heuristics:
+    forced english -> forced untagged/unknown -> optional default english
+  - explicitly skips non-english forced tracks
+  - emits MKV when a main subtitle is selected, otherwise faststart MP4
+  - optional env: `VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT=1`
 
 ## Hardware selection override
 
