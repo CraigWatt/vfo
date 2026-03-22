@@ -91,7 +91,7 @@ extern sole_var_content_t get_config_essential_variable_content_struct_byval();
 //c_messages
 void c_mes_init_find_config_file();
 void c_mes_find_config_file_success();
-void c_mes_find_config_file_fail();
+void c_mes_find_config_file_fail(const char *expected_path);
 void c_mes_init_access_config_variable();
 void c_mes_extract_to_string();
 void c_mes_init_extract_to_variables();

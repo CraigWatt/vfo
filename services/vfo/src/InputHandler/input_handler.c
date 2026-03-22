@@ -30,7 +30,8 @@
 #include <strings.h>
 #include <sys/stat.h>
 
-#define IH_DEFAULT_CONFIG_DIR "/usr/local/bin/vfo_conf_folder"
+#define IH_LEGACY_CONFIG_DIR "/usr/local/bin/vfo_conf_folder"
+#define IH_CONFIG_DIR_ENV "VFO_CONFIG_DIR"
 #define IH_CONFIG_FILENAME "vfo_config.conf"
 #define IH_INPUT_BUFFER_SIZE 4096
 #define IH_PREVIEW_LIMIT 140
@@ -972,6 +973,105 @@ static void ih_trim_spaces_in_place(char *value) {
   }
 }
 
+static bool ih_path_has_config_file(const char *config_dir) {
+  char *config_path = NULL;
+  bool exists = false;
+
+  if(config_dir == NULL || config_dir[0] == '\0')
+    return false;
+
+  config_path = utils_combine_to_full_path(config_dir, IH_CONFIG_FILENAME);
+  exists = utils_does_file_exist(config_path);
+  free(config_path);
+  return exists;
+}
+
+static bool ih_read_env_config_dir(char *output, size_t output_size) {
+  const char *env_value = getenv(IH_CONFIG_DIR_ENV);
+
+  if(output == NULL || output_size == 0)
+    return false;
+
+  output[0] = '\0';
+  if(env_value == NULL)
+    return false;
+
+  ih_copy_string(output, output_size, env_value);
+  ih_trim_spaces_in_place(output);
+  return output[0] != '\0';
+}
+
+static bool ih_build_user_config_dir(char *output, size_t output_size) {
+  const char *xdg_config_home = getenv("XDG_CONFIG_HOME");
+  const char *home = getenv("HOME");
+  int written = 0;
+
+  if(output == NULL || output_size == 0)
+    return false;
+
+  output[0] = '\0';
+  if(xdg_config_home != NULL && xdg_config_home[0] != '\0')
+    written = snprintf(output, output_size, "%s/vfo", xdg_config_home);
+  else if(home != NULL && home[0] != '\0')
+    written = snprintf(output, output_size, "%s/.config/vfo", home);
+  else
+    return false;
+
+  return written >= 0 && (size_t)written < output_size;
+}
+
+static void ih_resolve_config_dir(char *output, size_t output_size, bool wizard_mode) {
+  char env_config_dir[IH_INPUT_BUFFER_SIZE];
+  char user_config_dir[IH_INPUT_BUFFER_SIZE];
+  bool has_env = false;
+  bool has_user_dir = false;
+
+  if(output == NULL || output_size == 0)
+    return;
+
+  output[0] = '\0';
+  has_env = ih_read_env_config_dir(env_config_dir, sizeof(env_config_dir));
+  has_user_dir = ih_build_user_config_dir(user_config_dir, sizeof(user_config_dir));
+
+  if(has_env) {
+    ih_copy_string(output, output_size, env_config_dir);
+    return;
+  }
+
+  if(wizard_mode) {
+    if(has_user_dir) {
+      ih_copy_string(output, output_size, user_config_dir);
+      return;
+    }
+
+    ih_copy_string(output, output_size, IH_LEGACY_CONFIG_DIR);
+    return;
+  }
+
+  if(has_user_dir && ih_path_has_config_file(user_config_dir)) {
+    ih_copy_string(output, output_size, user_config_dir);
+    return;
+  }
+
+  if(ih_path_has_config_file(IH_LEGACY_CONFIG_DIR)) {
+    ih_copy_string(output, output_size, IH_LEGACY_CONFIG_DIR);
+    return;
+  }
+
+  if(has_user_dir) {
+    ih_copy_string(output, output_size, user_config_dir);
+    return;
+  }
+
+  ih_copy_string(output, output_size, IH_LEGACY_CONFIG_DIR);
+}
+
+#ifdef TESTING
+void ih_resolve_config_dir_for_test(char *output, size_t output_size, bool wizard_mode) {
+  ih_resolve_config_dir(output, output_size, wizard_mode);
+}
+#endif
+
 static bool ih_prompt_line(const char *prompt,
                            const char *default_value,
                            char *buffer,
@@ -1172,16 +1272,34 @@ static void ih_print_preview(const char *label, const char *value) {
 }
 
 static bool ih_create_config_dir_if_needed(const char *config_dir) {
+  char tmp[IH_INPUT_BUFFER_SIZE];
+  size_t length = 0;
+
   if(utils_does_folder_exist((char *)config_dir))
     return true;
 
-  if(mkdir(config_dir, 0755) == 0)
-    return true;
+  if(config_dir == NULL || config_dir[0] == '\0')
+    return false;
 
-  if(errno == EEXIST)
-    return true;
+  ih_copy_string(tmp, sizeof(tmp), config_dir);
+  length = strlen(tmp);
+  if(length == 0)
+    return false;
+  if(tmp[length - 1] == '/')
+    tmp[length - 1] = '\0';
 
-  return false;
+  for(char *cursor = tmp + 1; *cursor != '\0'; cursor++) {
+    if(*cursor == '/') {
+      *cursor = '\0';
+      if(mkdir(tmp, 0755) != 0 && errno != EEXIST)
+        return false;
+      *cursor = '/';
+    }
+  }
+  if(mkdir(tmp, 0755) != 0 && errno != EEXIST)
+    return false;
+
+  return true;
 }
 
 static bool ih_string_ends_with(const char *value, const char *suffix) {
@@ -1407,6 +1525,12 @@ static bool ih_resolve_stock_preset_path(const char *config_dir,
       ih_copy_string(resolved_path, resolved_path_size, candidate);
       return true;
     }
+  }
+
+  snprintf(candidate, sizeof(candidate), "%s/presets/%s", IH_LEGACY_CONFIG_DIR, relative_path);
+  if(utils_does_file_exist(candidate)) {
+    ih_copy_string(resolved_path, resolved_path_size, candidate);
+    return true;
   }
 
   snprintf(candidate, sizeof(candidate), "services/vfo/presets/%s", relative_path);
@@ -1637,6 +1761,7 @@ static int ih_run_wizard(const char *config_dir) {
 
   printf("WIZARD ALERT: guided setup for %s\n", IH_CONFIG_FILENAME);
   printf("WIZARD INFO: press Enter to accept defaults\n");
+  printf("WIZARD INFO: target config directory: %s\n", config_dir);
 
   if(!ih_prompt_line("Mezzanine location", "/Volumes/Media/mezzanine", original_location, sizeof(original_location), true))
     return EXIT_FAILURE;
@@ -2003,7 +2128,7 @@ int main (int argc, char **argv) {
   /*immediately revise argc & argv if duplicate words are found in command ---------------*/
   int revised_argc= 0;
   char **revised_argv = utils_remove_duplicates_in_array_of_strings(argv, argc, &revised_argc);
-  const char *config_dir = IH_DEFAULT_CONFIG_DIR;
+  char config_dir[IH_INPUT_BUFFER_SIZE];
   /*DONE----------------------------------------------------------------------------------*/
   input_handler_t *ih = input_handler_create_new_struct();
   /* add any captured options to options struct*/
@@ -2037,6 +2162,8 @@ int main (int argc, char **argv) {
     printf("ERROR: You cannot execute revert command without the mezzanine command\n");
     exit(EXIT_FAILURE);
   }
+
+  ih_resolve_config_dir(config_dir, sizeof(config_dir), ih->arguments->wizard_detected == true);
 
   if(ih->arguments->wizard_detected == true) {
     return ih_run_wizard(config_dir);

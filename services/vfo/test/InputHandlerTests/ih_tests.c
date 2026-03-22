@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 void test_status_report_update_and_summary(void **state) {
   status_report_t *report = NULL;
@@ -159,4 +160,79 @@ void test_quality_reference_mode_parser_rejects_invalid_values(void **state) {
 
   assert_int_equal(quality_reference_mode_from_string("invalid_mode", &valid), QUALITY_REFERENCE_AUTO);
   assert_false(valid);
+}
+
+void test_ih_resolve_config_dir_prefers_env_override(void **state) {
+  char resolved[4096];
+  const char *env_value = "/tmp/vfo-env-config";
+  const char *old_env = getenv("VFO_CONFIG_DIR");
+  char old_env_copy[4096];
+  bool had_old_env = old_env != NULL;
+  (void)state;
+
+  old_env_copy[0] = '\0';
+  if(had_old_env)
+    snprintf(old_env_copy, sizeof(old_env_copy), "%s", old_env);
+
+  assert_int_equal(setenv("VFO_CONFIG_DIR", env_value, 1), 0);
+  ih_resolve_config_dir_for_test(resolved, sizeof(resolved), false);
+  assert_string_equal(resolved, env_value);
+
+  if(had_old_env)
+    assert_int_equal(setenv("VFO_CONFIG_DIR", old_env_copy, 1), 0);
+  else
+    assert_int_equal(unsetenv("VFO_CONFIG_DIR"), 0);
+}
+
+void test_ih_resolve_config_dir_uses_user_dir_for_wizard(void **state) {
+  char resolved[4096];
+  char home_template[] = "/tmp/vfo-home-XXXXXX";
+  char *home_dir = NULL;
+  const char *old_home = getenv("HOME");
+  const char *old_xdg = getenv("XDG_CONFIG_HOME");
+  const char *old_env = getenv("VFO_CONFIG_DIR");
+  char old_home_copy[4096];
+  char old_xdg_copy[4096];
+  char old_env_copy[4096];
+  bool had_old_home = old_home != NULL;
+  bool had_old_xdg = old_xdg != NULL;
+  bool had_old_env = old_env != NULL;
+  char expected[4096];
+  (void)state;
+
+  old_home_copy[0] = '\0';
+  old_xdg_copy[0] = '\0';
+  old_env_copy[0] = '\0';
+  if(had_old_home)
+    snprintf(old_home_copy, sizeof(old_home_copy), "%s", old_home);
+  if(had_old_xdg)
+    snprintf(old_xdg_copy, sizeof(old_xdg_copy), "%s", old_xdg);
+  if(had_old_env)
+    snprintf(old_env_copy, sizeof(old_env_copy), "%s", old_env);
+
+  home_dir = mkdtemp(home_template);
+  assert_non_null(home_dir);
+  snprintf(expected, sizeof(expected), "%s/.config/vfo", home_dir);
+
+  assert_int_equal(unsetenv("VFO_CONFIG_DIR"), 0);
+  assert_int_equal(unsetenv("XDG_CONFIG_HOME"), 0);
+  assert_int_equal(setenv("HOME", home_dir, 1), 0);
+
+  ih_resolve_config_dir_for_test(resolved, sizeof(resolved), true);
+  assert_string_equal(resolved, expected);
+
+  if(had_old_home)
+    assert_int_equal(setenv("HOME", old_home_copy, 1), 0);
+  else
+    assert_int_equal(unsetenv("HOME"), 0);
+  if(had_old_xdg)
+    assert_int_equal(setenv("XDG_CONFIG_HOME", old_xdg_copy, 1), 0);
+  else
+    assert_int_equal(unsetenv("XDG_CONFIG_HOME"), 0);
+  if(had_old_env)
+    assert_int_equal(setenv("VFO_CONFIG_DIR", old_env_copy, 1), 0);
+  else
+    assert_int_equal(unsetenv("VFO_CONFIG_DIR"), 0);
+
+  assert_int_equal(rmdir(home_dir), 0);
 }

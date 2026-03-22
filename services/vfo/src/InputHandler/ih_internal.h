@@ -73,5 +73,8 @@ void ih_mes_user_provided_no_args_and_no_options();
 void ih_mes_user_provided_help_option();
 void ih_mes_user_provided_version_option();
 
+#ifdef TESTING
+void ih_resolve_config_dir_for_test(char *output, size_t output_size, bool wizard_mode);
+#endif
 
 #endif // IH_INTERNAL_H
