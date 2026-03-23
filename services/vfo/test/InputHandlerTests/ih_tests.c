@@ -140,6 +140,21 @@ void test_ih_arguments_parser_detects_mezzanine_clean_commands(void **state) {
   free(arguments);
 }
 
+void test_ih_arguments_parser_detects_visualize_command(void **state) {
+  arguments_t *arguments = NULL;
+  char *argv[] = {"vfo", "visualize"};
+  int argc = 2;
+  (void)state;
+
+  arguments = arguments_create_new_struct();
+  assert_non_null(arguments);
+
+  ih_arguments_parser(argc, argv, arguments);
+  assert_true(arguments->visualize_detected);
+
+  free(arguments);
+}
+
 void test_quality_reference_mode_parser_accepts_valid_values(void **state) {
   bool valid = false;
   (void)state;

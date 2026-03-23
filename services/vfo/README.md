@@ -41,6 +41,7 @@ Cross-cutting E2E tests live under `tests/e2e/` and are run from repository root
 - `vfo doctor` validates toolchain and configured paths.
 - `vfo status` prints component/stage readiness snapshot for the vfo engine.
 - `vfo status-json` prints machine-readable status.
+- `vfo visualize` generates local workflow artifacts (`status.json`, `workflow.mmd`, `index.html`) and supports optional `--open`.
 - `vfo mezzanine-clean` audits or applies mezzanine folder/filename hygiene (no transcode/remux).
 - `vfo run` executes the default pipeline (mezzanine -> source if enabled -> profiles -> optional quality scoring) and pre-checks required dependencies.
 - `MEZZANINE_LOCATIONS`, `SOURCE_LOCATIONS`, and `<PROFILE>_LOCATIONS` support semicolon-separated multi-drive targets with per-location caps via `*_LOCATION_MAX_USAGE_PCT`.
@@ -50,3 +51,4 @@ Status schema/details are documented in `docs/status-observability.md`.
 Mezzanine hygiene behavior is documented in `docs/mezzanine-clean.md`.
 Quality scoring behavior is documented in `docs/quality-scoring.md`.
 Workflow progression map is documented in `docs/workflow-engine-progression.md`.
+Workflow visualization command is documented in `docs/workflow-visualization.md`.

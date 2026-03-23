@@ -34,6 +34,7 @@ arguments_t* arguments_create_new_struct() {
   result->doctor_detected = false;
   result->status_detected = false;
   result->status_json_detected = false;
+  result->visualize_detected = false;
   result->wizard_detected = false;
   result->show_detected = false;
   result->mezzanine_clean_detected = false;
@@ -63,6 +64,8 @@ void ih_arguments_parser(int argc, char **argv, arguments_t* arguments) {
   if(utils_string_array_contains_string(argv, argc, "status-json")
      || utils_string_array_contains_string(argv, argc, "status_json"))
     arguments->status_json_detected = true;
+  if(utils_string_array_contains_string(argv, argc, "visualize"))
+    arguments->visualize_detected = true;
   if(utils_string_array_contains_string(argv, argc, "wizard"))
     arguments->wizard_detected = true;
   if(utils_string_array_contains_string(argv, argc, "show"))

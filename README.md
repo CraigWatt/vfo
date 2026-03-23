@@ -156,9 +156,10 @@ It also copies stock profile-action scripts (`transcode_*_profile.sh`) into `/us
 5. Define at least one profile (`PROFILE=`) and one scenario.
 6. Run `vfo doctor` to validate environment + config.
 7. Run `vfo status` for a high-level readiness snapshot.
-8. Run `vfo mezzanine-clean` to preview mezzanine hygiene changes (or apply if enabled).
-9. Run `vfo run` for the default end-to-end pipeline.
-10. Run `vfo` with individual stage commands or a specific profile name when needed.
+8. Run `vfo visualize` for a local workflow view (HTML + JSON + Mermaid).
+9. Run `vfo mezzanine-clean` to preview mezzanine hygiene changes (or apply if enabled).
+10. Run `vfo run` for the default end-to-end pipeline.
+11. Run `vfo` with individual stage commands or a specific profile name when needed.
 
 Example starter flow:
 
@@ -170,6 +171,7 @@ vfo --help
 vfo doctor
 vfo status
 vfo status-json
+vfo visualize
 vfo mezzanine-clean
 vfo run
 vfo profiles
@@ -198,6 +200,7 @@ vfo [argument] || [options]
 - `doctor`
 - `status`
 - `status-json`
+- `visualize`
 - `run`
 - `mezzanine-clean`
 - `profiles`
@@ -212,6 +215,7 @@ A useful mental model is:
 - use `doctor` before first run (or after machine/config changes)
 - use `status` to view a component-level readiness summary before execution
 - use `status-json` in automation/tests when you need machine-readable status
+- use `visualize` for local workflow artifacts (`status.json`, Mermaid, HTML)
 - use `mezzanine-clean` for optional mezzanine filename/folder hygiene and recommendations
 - use `run` for the default pipeline (mezzanine -> source if enabled -> profiles -> optional quality scoring)
 
@@ -239,6 +243,9 @@ For device compatibility conformance checks, see:
 For engine readiness and observability status output, see:
 
 - `services/vfo/docs/status-observability.md`
+- `services/vfo/docs/workflow-visualization.md`
+- `services/vfo/docs/workflow-engine.bpmn`
+- `services/vfo/docs/workflow-decisions.dmn`
 
 ### 1. Set required paths
 

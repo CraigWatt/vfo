@@ -39,6 +39,7 @@ struct arguments {
   bool doctor_detected;
   bool status_detected;
   bool status_json_detected;
+  bool visualize_detected;
   bool wizard_detected;
   bool show_detected;
   bool mezzanine_clean_detected;

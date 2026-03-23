@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"
+             xmlns:dmndi="https://www.omg.org/spec/DMN/20191111/DMNDI/"
+             xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/"
+             xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+             id="Definitions_vfo_decisions"
+             name="vfo Decisions"
+             namespace="https://vfo.local/dmn">
+
+  <decision id="decision_pipeline_mode" name="Pipeline mode">
+    <decisionTable id="decision_table_pipeline_mode" hitPolicy="FIRST">
+      <input id="input_keep_source">
+        <inputExpression id="input_expr_keep_source" typeRef="boolean">
+          <text>keep_source</text>
+        </inputExpression>
+      </input>
+      <output id="output_pipeline_mode" name="pipeline_mode" typeRef="string" />
+      <rule id="rule_mode_default">
+        <inputEntry id="input_entry_keep_source_true"><text>true</text></inputEntry>
+        <outputEntry id="output_entry_mode_default"><text>"mezzanine_to_source_to_profile"</text></outputEntry>
+      </rule>
+      <rule id="rule_mode_direct">
+        <inputEntry id="input_entry_keep_source_false"><text>false</text></inputEntry>
+        <outputEntry id="output_entry_mode_direct"><text>"mezzanine_to_profile"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+
+  <decision id="decision_quality_stage" name="Quality stage gating">
+    <decisionTable id="decision_table_quality_stage" hitPolicy="FIRST">
+      <input id="input_quality_enabled">
+        <inputExpression id="input_expr_quality_enabled" typeRef="boolean">
+          <text>quality_check_enabled</text>
+        </inputExpression>
+      </input>
+      <input id="input_quality_strict">
+        <inputExpression id="input_expr_quality_strict" typeRef="boolean">
+          <text>quality_check_strict_gate</text>
+        </inputExpression>
+      </input>
+      <input id="input_quality_failed">
+        <inputExpression id="input_expr_quality_failed" typeRef="boolean">
+          <text>quality_failed</text>
+        </inputExpression>
+      </input>
+      <output id="output_quality_result" name="quality_result" typeRef="string" />
+      <rule id="rule_quality_disabled">
+        <inputEntry id="input_entry_quality_enabled_false"><text>false</text></inputEntry>
+        <inputEntry id="input_entry_quality_strict_any_1"><text>-</text></inputEntry>
+        <inputEntry id="input_entry_quality_failed_any_1"><text>-</text></inputEntry>
+        <outputEntry id="output_entry_quality_disabled"><text>"skipped"</text></outputEntry>
+      </rule>
+      <rule id="rule_quality_strict_fail">
+        <inputEntry id="input_entry_quality_enabled_true_1"><text>true</text></inputEntry>
+        <inputEntry id="input_entry_quality_strict_true"><text>true</text></inputEntry>
+        <inputEntry id="input_entry_quality_failed_true"><text>true</text></inputEntry>
+        <outputEntry id="output_entry_quality_fail"><text>"fail_run"</text></outputEntry>
+      </rule>
+      <rule id="rule_quality_warn_continue">
+        <inputEntry id="input_entry_quality_enabled_true_2"><text>true</text></inputEntry>
+        <inputEntry id="input_entry_quality_strict_false"><text>false</text></inputEntry>
+        <inputEntry id="input_entry_quality_failed_true_2"><text>true</text></inputEntry>
+        <outputEntry id="output_entry_quality_warn"><text>"warn_continue"</text></outputEntry>
+      </rule>
+      <rule id="rule_quality_pass">
+        <inputEntry id="input_entry_quality_enabled_true_3"><text>true</text></inputEntry>
+        <inputEntry id="input_entry_quality_strict_any_2"><text>-</text></inputEntry>
+        <inputEntry id="input_entry_quality_failed_false"><text>false</text></inputEntry>
+        <outputEntry id="output_entry_quality_pass"><text>"pass"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+
+  <decision id="decision_subtitle_container" name="Subtitle intent container output">
+    <decisionTable id="decision_table_subtitle_container" hitPolicy="FIRST">
+      <input id="input_main_subtitle_profile">
+        <inputExpression id="input_expr_main_subtitle_profile" typeRef="boolean">
+          <text>main_subtitle_intent_profile</text>
+        </inputExpression>
+      </input>
+      <input id="input_main_subtitle_detected">
+        <inputExpression id="input_expr_main_subtitle_detected" typeRef="boolean">
+          <text>main_subtitle_detected</text>
+        </inputExpression>
+      </input>
+      <output id="output_container" name="container" typeRef="string" />
+      <rule id="rule_main_subtitle_mkv">
+        <inputEntry id="input_entry_main_profile_true"><text>true</text></inputEntry>
+        <inputEntry id="input_entry_main_detected_true"><text>true</text></inputEntry>
+        <outputEntry id="output_entry_container_mkv"><text>"mkv"</text></outputEntry>
+      </rule>
+      <rule id="rule_no_main_subtitle_mp4">
+        <inputEntry id="input_entry_main_profile_true_2"><text>true</text></inputEntry>
+        <inputEntry id="input_entry_main_detected_false"><text>false</text></inputEntry>
+        <outputEntry id="output_entry_container_mp4"><text>"mp4"</text></outputEntry>
+      </rule>
+      <rule id="rule_non_subtitle_profile_default">
+        <inputEntry id="input_entry_main_profile_false"><text>false</text></inputEntry>
+        <inputEntry id="input_entry_main_detected_any"><text>-</text></inputEntry>
+        <outputEntry id="output_entry_container_profile_default"><text>"profile_default"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>
