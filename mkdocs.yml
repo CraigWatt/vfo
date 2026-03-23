@@ -1,0 +1,38 @@
+site_name: vfo docs
+site_description: Video File Organiser documentation
+repo_name: CraigWatt/vfo
+repo_url: https://github.com/CraigWatt/vfo
+edit_uri: edit/main/platform/docs-site/docs/
+docs_dir: platform/docs-site/docs
+site_dir: platform/docs-site/site
+
+nav:
+  - Home: index.md
+  - Pipeline: pipeline-end-to-end.md
+  - Profile Packs: profile-packs.md
+  - Capability Matrix: profile-capability-matrix.md
+  - Profile Info Sheets: profiles/index.md
+  - Workflow Visuals: workflow-visuals.md
+
+theme:
+  name: material
+  logo: assets/vfo-mark.svg
+  favicon: assets/vfo-mark.svg
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+
+plugins:
+  - search
+  - mermaid2

@@ -1,6 +1,6 @@
 SERVICE_DIR := services/vfo
 
-.PHONY: default all tests e2e ci clean clean_tests install uninstall valgrind show_names show_objects show_os
+.PHONY: default all tests e2e ci clean clean_tests install uninstall valgrind show_names show_objects show_os docs-generate docs-build docs-serve
 
 default: all
 
@@ -40,3 +40,12 @@ show_objects:
 
 show_os:
 	$(MAKE) -C $(SERVICE_DIR) show_os
+
+docs-generate:
+	bash infra/scripts/generate-profile-docs.sh
+
+docs-build: docs-generate
+	mkdocs build --strict
+
+docs-serve: docs-generate
+	mkdocs serve
