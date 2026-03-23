@@ -64,10 +64,17 @@ void o_revert_to_start(original_t *original) {
 }
 
 void o_pre_move_checks(original_t *original) {
+  bool start_is_root_workspace = strcmp(original->start, original->root) == 0;
+  const char *workspace_label = start_is_root_workspace ? "mezzanine(root workspace)" : "mezzanine/start";
+
   printf("MEZZANINE ALERT: initiating 'pre-move checks'\n");
-  //does start folder contain valid custom folders
-  printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/start to see if it contains custom folders.\n");
-  utils_does_folder_contain_valid_custom_folders(original->start, original->cf_head);
+  //does active workspace contain valid custom folders
+  if(start_is_root_workspace) {
+    printf("MEZZANINE INFO: /start not present; skipping strict custom-folder root checks on mezzanine root workspace.\n");
+  } else {
+    printf("MEZZANINE ALERT: 'pre-move check': scanning %s to see if it contains custom folders.\n", workspace_label);
+    utils_does_folder_contain_valid_custom_folders(original->start, original->cf_head);
+  }
   //does mkv_original folder contain valid custom folders
   printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/mkv_original to see if it contains custom folders.\n");
   utils_does_folder_contain_valid_custom_folders(original->mkv_original, original->cf_head);
@@ -75,9 +82,11 @@ void o_pre_move_checks(original_t *original) {
   printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/mp4_original to see if it contains custom folders.\n");
   utils_does_folder_contain_valid_custom_folders(original->mp4_original, original->cf_head);
   
-  //is start folder missing any custom folders
-  printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/start to see if it is missing any custom folders.\n");
-  utils_is_folder_missing_custom_folders(original->start, original->cf_head);
+  //is active workspace missing any custom folders
+  if(start_is_root_workspace == false) {
+    printf("MEZZANINE ALERT: 'pre-move check': scanning %s to see if it is missing any custom folders.\n", workspace_label);
+    utils_is_folder_missing_custom_folders(original->start, original->cf_head);
+  }
   //is mkv_original missing any custom folders
   printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/mkv_original to see if it is missing any custom folders.\n");
   utils_is_folder_missing_custom_folders(original->mkv_original, original->cf_head);
@@ -91,9 +100,11 @@ void o_pre_move_checks(original_t *original) {
   /*now we know all necessary folders contain necessary custom_folders*/
 
   /*but let's check to see if each custom_folder is adhering to their custom_folder_type*/
-  //are the start folder custom_folders adhering to their types?
-  printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/start to see if it is compliant with custom folder rules.\n");
-  utils_are_custom_folders_type_compliant(original->start, "start", original->cf_head);
+  //are the active workspace custom_folders adhering to their types?
+  if(start_is_root_workspace == false) {
+    printf("MEZZANINE ALERT: 'pre-move check': scanning %s to see if it is compliant with custom folder rules.\n", workspace_label);
+    utils_are_custom_folders_type_compliant(original->start, "start", original->cf_head);
+  }
   //are the mkv_original folder custom_folders adhering to their types?
   printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/mkv_original to see if it is compliant with custom folder rules.\n");
   utils_are_custom_folders_type_compliant(original->mkv_original, "mkv_original", original->cf_head);
@@ -106,11 +117,11 @@ void o_pre_move_checks(original_t *original) {
   /*now we know every file & folder location within all relevant original folders are adhering to their custom_folder type rules*/
 
   /*let's now check for duplicates*/
-  //does start contain video folders that match the folders in mkv_original?
-  printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/start VERSUS mezzanine/mkv_original in an attempt to detect duplicates\n");
+  //does active workspace contain video folders that match the folders in mkv_original?
+  printf("MEZZANINE ALERT: 'pre-move check': scanning %s VERSUS mezzanine/mkv_original in an attempt to detect duplicates\n", workspace_label);
   o_detect_duplicates_start_versus_mkv_original(original);
-  //does start contain video folders that match the folders in mp4_original?
-  printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/start VERSUS mezzanine/mp4_original in an attempt to detect duplicates\n");
+  //does active workspace contain video folders that match the folders in mp4_original?
+  printf("MEZZANINE ALERT: 'pre-move check': scanning %s VERSUS mezzanine/mp4_original in an attempt to detect duplicates\n", workspace_label);
   o_detect_duplicates_start_versus_mp4_original(original);
   //does mkv_original contain video folders that match the folders in mp4_original?
   printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/mkv_original VERSUS mezzanine/mp4_original in an attempt to detect duplicates\n");
@@ -319,5 +330,4 @@ void o_detect_duplicates(char *from_cf_parent_folder, char *to_cf_parent_folder,
     exit(EXIT_FAILURE);
   }
 }
-
 

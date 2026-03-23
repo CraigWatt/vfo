@@ -30,6 +30,7 @@
 #include <strings.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <unistd.h>
 
 #define IH_LEGACY_CONFIG_DIR "/usr/local/bin/vfo_conf_folder"
 #define IH_CONFIG_DIR_ENV "VFO_CONFIG_DIR"
@@ -40,6 +41,9 @@
 #define IH_VISUALIZE_STATUS_FILENAME "status.json"
 #define IH_VISUALIZE_MERMAID_FILENAME "workflow.mmd"
 #define IH_VISUALIZE_HTML_FILENAME "index.html"
+#define IH_ASSUME_YES_ENV "VFO_ASSUME_YES"
+#define IH_AUTO_INTERVAL_SECONDS_ENV "VFO_AUTO_INTERVAL_SECONDS"
+#define IH_AUTO_MAX_ITERATIONS_ENV "VFO_AUTO_MAX_ITERATIONS"
 
 typedef struct ih_stock_preset_option {
   const char *key;
@@ -56,6 +60,7 @@ static const ih_stock_preset_option_t IH_STOCK_PRESET_OPTIONS[] = {
 #define IH_STOCK_PRESET_COUNT ((int)(sizeof(IH_STOCK_PRESET_OPTIONS) / sizeof(IH_STOCK_PRESET_OPTIONS[0])))
 
 static int ih_cs_count(cs_node_t *cs_head);
+static bool ih_execute_default_run(config_t *config);
 
 static bool ih_suppress_stdout_begin(int *saved_stdout_fd) {
   int dev_null_fd = -1;
@@ -958,6 +963,9 @@ static bool ih_run_mezzanine_clean_dependency_precheck() {
 static bool ih_pipeline_work_requested(arguments_t *arguments, config_t *config) {
   bool alias_targets_requested = uw_get_count(config->uw_head) > 0;
 
+  if(arguments->auto_detected)
+    return true;
+
   if(arguments->run_detected)
     return true;
 
@@ -1254,6 +1262,77 @@ static bool ih_execute_quality_scoring_stage(config_t *config, status_report_t *
 
   quality_scoring_report_free(&report);
   return stage_ok;
+}
+
+static int ih_read_env_int(const char *name,
+                           int default_value,
+                           int minimum_value,
+                           bool allow_zero) {
+  const char *raw = getenv(name);
+  char *end_ptr = NULL;
+  long parsed = 0;
+
+  if(raw == NULL || raw[0] == '\0')
+    return default_value;
+
+  errno = 0;
+  parsed = strtol(raw, &end_ptr, 10);
+  if(errno != 0 || end_ptr == raw || *end_ptr != '\0' || parsed > INT_MAX) {
+    printf("AUTO WARN: invalid %s=%s, using default %i\n", name, raw, default_value);
+    return default_value;
+  }
+
+  if(allow_zero) {
+    if(parsed < 0) {
+      printf("AUTO WARN: invalid %s=%s, using default %i\n", name, raw, default_value);
+      return default_value;
+    }
+  } else if(parsed < minimum_value) {
+    printf("AUTO WARN: invalid %s=%s, using default %i\n", name, raw, default_value);
+    return default_value;
+  }
+
+  return (int)parsed;
+}
+
+static bool ih_execute_auto(config_t *config) {
+  int interval_seconds = ih_read_env_int(IH_AUTO_INTERVAL_SECONDS_ENV, 60, 1, false);
+  int max_iterations = ih_read_env_int(IH_AUTO_MAX_ITERATIONS_ENV, 0, 1, true);
+  int completed_runs = 0;
+  int failed_runs = 0;
+
+  if(setenv(IH_ASSUME_YES_ENV, "1", 1) != 0)
+    printf("AUTO WARN: could not set %s=1, some prompts may still appear\n", IH_ASSUME_YES_ENV);
+
+  printf("AUTO ALERT: initiating auto mode\n");
+  printf("AUTO INFO: %s=%i\n", IH_AUTO_INTERVAL_SECONDS_ENV, interval_seconds);
+  if(max_iterations == 0)
+    printf("AUTO INFO: %s=0 (infinite loop; stop with Ctrl+C)\n", IH_AUTO_MAX_ITERATIONS_ENV);
+  else
+    printf("AUTO INFO: %s=%i\n", IH_AUTO_MAX_ITERATIONS_ENV, max_iterations);
+
+  while(max_iterations == 0 || completed_runs < max_iterations) {
+    bool run_success = false;
+
+    completed_runs++;
+    printf("AUTO ALERT: cycle %i started\n", completed_runs);
+    run_success = ih_execute_default_run(config);
+    if(run_success) {
+      printf("AUTO ALERT: cycle %i completed successfully\n", completed_runs);
+    } else {
+      failed_runs++;
+      printf("AUTO WARN: cycle %i completed with failures; auto mode will continue\n", completed_runs);
+    }
+
+    if(max_iterations > 0 && completed_runs >= max_iterations)
+      break;
+
+    printf("AUTO ALERT: sleeping %i second(s) before next cycle\n", interval_seconds);
+    sleep((unsigned int)interval_seconds);
+  }
+
+  printf("AUTO ALERT: auto mode stopped after %i cycle(s), failures=%i\n", completed_runs, failed_runs);
+  return failed_runs == 0;
 }
 
 static bool ih_execute_default_run(config_t *config) {
@@ -2682,6 +2761,13 @@ int main (int argc, char **argv) {
     return mezzanine_clean_success ? EXIT_SUCCESS : EXIT_FAILURE;
   }
 
+  if(ih->arguments->auto_detected == true) {
+    bool auto_success = ih_execute_auto(config);
+    free(config);
+    config = NULL;
+    return auto_success ? EXIT_SUCCESS : EXIT_FAILURE;
+  }
+
   if(ih->arguments->run_detected == true) {
     bool run_success = ih_execute_default_run(config);
     free(config);
@@ -2696,6 +2782,7 @@ int main (int argc, char **argv) {
   printf("ih->arguments->revert_detected: %i\n", ih->arguments->revert_detected);
   printf("ih->arguments->source_detected: %i\n", ih->arguments->source_detected);
   printf("ih->arguments->run_detected: %i\n", ih->arguments->run_detected);
+  printf("ih->arguments->auto_detected: %i\n", ih->arguments->auto_detected);
   printf("ih->arguments->doctor_detected: %i\n", ih->arguments->doctor_detected);
   printf("ih->arguments->status_detected: %i\n", ih->arguments->status_detected);
   printf("ih->arguments->status_json_detected: %i\n", ih->arguments->status_json_detected);

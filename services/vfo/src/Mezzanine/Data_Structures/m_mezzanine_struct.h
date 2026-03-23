@@ -55,8 +55,8 @@ typedef struct original original_t;
 original_t* original_create_new_struct(config_t *config);
 char* o_create_start(char *original_root);
 char* o_create_unable_to_process(char *original_root);
-char* o_get_mkv_original_if_it_exists(char *original_root);
-char* o_get_mp4_original_if_it_exists(char *original_root);
-char* o_get_m2ts_original_if_it_exists(char *original_root);
+char* o_get_mkv_original_if_it_exists(char *original_root, cf_node_t *cf_head);
+char* o_get_mp4_original_if_it_exists(char *original_root, cf_node_t *cf_head);
+char* o_get_m2ts_original_if_it_exists(char *original_root, cf_node_t *cf_head);
 
 #endif // M_MEZZANINE_STRUCT_H
