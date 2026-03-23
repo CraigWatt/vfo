@@ -2,6 +2,13 @@
 
 This is the primary application service in this repository.
 
+vfo should be read as a media decision engine, not only a transcode wrapper:
+
+- detect file characteristics from mixed libraries
+- decide profile/scenario routes
+- execute deterministic action scripts
+- verify readiness and optional quality outcomes
+
 ## Contents
 
 - `src/` application source code and default `vfo_config.conf`

@@ -2,6 +2,12 @@
 
 This pack provides compatibility-shaped profiles for common streaming device families.
 
+## Outcome Target
+
+- maximize practical playback success on mainstream devices
+- keep output envelopes explicit per device family
+- preserve audio flexibility while remaining compatibility-first
+
 ## Focus
 
 - device-oriented criteria envelopes (Roku, Fire TV, Chromecast, Apple TV)
@@ -34,4 +40,3 @@ flowchart TD
   B -->|No| D[Handled by other profile or skipped]:::stage
   C --> E[Profile output written]:::output
 ```
-

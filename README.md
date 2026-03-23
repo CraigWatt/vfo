@@ -3,17 +3,40 @@
 
 # vfo
 
-`vfo` is a command-line utility for batch-processing a video library with FFmpeg.
+`vfo` is an autonomous media optimization engine for video libraries.
 
 Instead of applying one preset to every file, `vfo` reads a configuration file, inspects each input video, and chooses an FFmpeg command based on matching profile rules (configured with `PROFILE=` entries). The project is aimed at media-library and streaming workflows where source files vary widely in codec, color space, bit depth, and resolution.
 
+At a system level, vfo implements a repeatable loop:
+
+- detect media properties
+- decide the profile + scenario path
+- act by executing deterministic profile actions
+- verify outcomes through status observability and optional quality scoring
+
 ## Why use vfo?
 
-- Batch-process a whole library instead of encoding files one by one.
-- Keep different output targets separated with profiles.
-- Attach multiple scenario rules to each profile so different source files can be handled differently.
-- Preserve folder structure while generating output variants.
-- Keep the full flexibility of raw FFmpeg commands by defining them directly in the config file.
+- Turn heterogeneous libraries into consistent, target-shaped outputs.
+- Model output intent as rules (profiles + scenarios), not one-off encode scripts.
+- Keep playback-driven output families separated with explicit profile targets.
+- Preserve folder structure while generating variants across one or many storage locations.
+- Keep full FFmpeg flexibility through explicit profile action commands.
+- Validate readiness and outcomes with `doctor`, `status`, `status-json`, `visualize`, and optional PSNR/SSIM/VMAF gates.
+
+## Outcome framing
+
+Today, vfo is strongest when you need:
+
+- a deterministic, auditable decision path from mezzanine to delivery profile
+- repeatable profile behavior across large libraries
+- a balance between quality, compatibility, and throughput
+- observable pipeline state for local runs and CI lanes
+
+vfo does not yet claim:
+
+- real-device playback certification for every target
+- universal automatic tuning without operator profile choices
+- complete quality guarantees unless thresholds/gates are explicitly configured
 
 ## Current project status
 
@@ -44,6 +67,8 @@ At a high level, `vfo` works like this:
 4. Match the file against profile criteria and scenario conditions.
 5. Run the FFmpeg command attached to the first matching scenario.
 6. Write output into the profile destination while keeping the source folder layout.
+7. Optionally score outputs against a reference layer (PSNR/SSIM and optional VMAF) and apply strict gates.
+8. Surface run/stage outcomes through status observability for operator and CI feedback.
 
 Optional hygiene stage (configurable):
 

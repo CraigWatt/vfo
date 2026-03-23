@@ -1,10 +1,17 @@
 # vfo Documentation
 
-vfo is a profile-driven media workflow engine centered on three layers:
+vfo is an autonomous media optimization engine centered on three layers:
 
 - `mezzanine` (high-quality working inputs)
 - `source` (normalized intermediate, optional)
 - `profile` (delivery target)
+
+The design goal is outcome ownership:
+
+- detect input characteristics
+- decide via profile/scenario rules
+- execute deterministic profile actions
+- verify results with observability and optional quality scoring
 
 This site is built to answer three practical questions quickly:
 
