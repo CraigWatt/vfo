@@ -13,7 +13,28 @@ nav:
   - Profile Visual Standard: profile-visual-standard.md
   - Profile Packs: profile-packs.md
   - Capability Matrix: profile-capability-matrix.md
-  - Profile Info Sheets: profiles/index.md
+  - Profiles:
+      - Overview: profiles/index.md
+      - Netflixy Main Subtitle Intent:
+          - Pack Overview: profiles/packs/netflixy-main-subtitle-intent.md
+          - 4K Preserve Audio + Main Subtitle Intent: profiles/generated/netflixy-preserve-audio-main-subtitle-intent-4k.md
+          - 1080p Preserve Audio + Main Subtitle Intent: profiles/generated/netflixy-preserve-audio-main-subtitle-intent-1080p.md
+      - Balanced Open Audio:
+          - Pack Overview: profiles/packs/balanced-open-audio.md
+          - 4K Balanced Open Audio: profiles/generated/balanced-4k-open-audio.md
+          - 1080p Balanced Open Audio: profiles/generated/balanced-1080-open-audio.md
+      - Device Targets Open Audio:
+          - Pack Overview: profiles/packs/device-targets-open-audio.md
+          - Roku Express 1080 Open Audio: profiles/generated/roku-express-1080-open-audio.md
+          - Roku 4K Open Audio: profiles/generated/roku-4k-open-audio.md
+          - Fire TV Stick Lite 1080 Open Audio: profiles/generated/fire-tv-stick-lite-1080-open-audio.md
+          - Fire TV Stick 4K Open Audio: profiles/generated/fire-tv-stick-4k-open-audio.md
+          - Fire TV Stick 4K Max Open Audio: profiles/generated/fire-tv-stick-4k-max-open-audio.md
+          - Fire TV Stick 4K DV Open Audio: profiles/generated/fire-tv-stick-4k-dv-open-audio.md
+          - Chromecast Google TV HD Open Audio: profiles/generated/chromecast-google-tv-hd-open-audio.md
+          - Chromecast Google TV 4K Open Audio: profiles/generated/chromecast-google-tv-4k-open-audio.md
+          - Apple TV HD Open Audio: profiles/generated/apple-tv-hd-open-audio.md
+          - Apple TV 4K Open Audio: profiles/generated/apple-tv-4k-open-audio.md
   - Workflow Visuals: workflow-visuals.md
 
 theme:
