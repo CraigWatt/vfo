@@ -114,6 +114,10 @@ CI/CD test integration:
 - Full media-backed e2e runs on the self-hosted runner workflow `.github/workflows/on-self-hosted-e2e.yml`.
 - The self-hosted full-media workflow runs automatically on same-repo PRs to `main` and on `main` pushes, and can also be triggered manually with custom `assets_dir`, `clip_duration`, `max_seeds`, and optional DV fixture inputs.
 - Use local run mode (`VFO_E2E_ASSET_MODE=local`) when you want to validate against your own mounted media library.
+- Codex autonomous loop v1 is available via:
+  - `.github/workflows/ci-codex-autonomous-loop.yml` (scheduled sweep + `agent-ready` issue trigger)
+  - `.github/workflows/ci-codex-pr-autofix.yml` (bounded CI autofix for Codex-owned PRs only)
+  - setup and guardrails doc: `infra/docs/codex-autonomous-loop.md`
 
 ### Option 2: build from source
 

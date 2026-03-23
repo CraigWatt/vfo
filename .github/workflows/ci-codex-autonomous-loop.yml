@@ -1,0 +1,370 @@
+name: 🤖 Codex autonomous loop (sweep + agent-ready)
+
+on:
+  schedule:
+    - cron: "21 6 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      run_mode:
+        description: "Manual run mode (sweep)"
+        required: false
+        default: "sweep"
+  issues:
+    types:
+      - labeled
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: codex-autonomous-loop-${{ github.event_name }}-${{ github.event.issue.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  proactive-sweep:
+    name: Proactive sweep
+    if: >
+      ${{
+        (github.event_name == 'schedule' ||
+         (github.event_name == 'workflow_dispatch' &&
+          (github.event.inputs.run_mode == '' || github.event.inputs.run_mode == 'sweep'))) &&
+        vars.VFO_AUTONOMOUS_LOOP_ENABLED != 'false' &&
+        vars.VFO_CODEX_SWEEP_ENABLED != 'false'
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v6
+
+      - name: 🔑 Preflight API key
+        id: api_key
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${OPENAI_API_KEY:-}" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "reason=OPENAI_API_KEY is not configured" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "reason=ok" >> "$GITHUB_OUTPUT"
+
+      - name: 🤖 Run Codex proactive sweep
+        id: codex_sweep
+        if: steps.api_key.outputs.enabled == 'true'
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt: |
+            Review this repository and produce a concise proactive maintenance sweep.
+
+            Focus:
+            - CI/CD safety gaps
+            - test coverage blind spots
+            - documentation drift
+            - low-risk cleanup items that keep the repo healthy
+
+            Constraints:
+            - Read-only analysis only.
+            - Do not modify files.
+            - Do not propose auto-merge or production deployment automation.
+            - Keep output to:
+              1) Top 5 findings (severity + impact)
+              2) Top 3 recommended next actions for maintainers
+              3) Risks intentionally not automated yet
+          output-file: /tmp/codex-sweep-report.md
+          sandbox: read-only
+          safety-strategy: drop-sudo
+          check-write-access: false
+
+      - name: 🧾 Compose sweep note
+        if: steps.api_key.outputs.enabled == 'true'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          {
+            echo "Automated Codex proactive sweep."
+            echo
+            echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- Run: ${RUN_URL}"
+            echo "- Trigger: \`${GITHUB_EVENT_NAME}\`"
+            echo
+            echo "---"
+            echo
+            cat /tmp/codex-sweep-report.md
+          } > /tmp/codex-sweep-comment.md
+
+      - name: 🗂️ Upsert sweep issue
+        if: steps.api_key.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          title="[codex] Proactive repository sweep"
+          issue_number="$(gh issue list \
+            --state open \
+            --search "${title} in:title" \
+            --json number,title \
+            --jq ".[] | select(.title==\"${title}\") | .number" | head -n 1 || true)"
+
+          if [ -n "${issue_number}" ]; then
+            gh issue comment "${issue_number}" --body-file /tmp/codex-sweep-comment.md
+          else
+            gh issue create \
+              --title "${title}" \
+              --body-file /tmp/codex-sweep-comment.md
+          fi
+
+      - name: ⏭️ Skip sweep (no API key)
+        if: steps.api_key.outputs.enabled != 'true'
+        run: echo "OPENAI_API_KEY not configured; skipping proactive sweep."
+
+  agent-ready-issue:
+    name: Agent-ready issue execution
+    if: >
+      ${{
+        github.event_name == 'issues' &&
+        github.event.action == 'labeled' &&
+        github.event.label.name == 'agent-ready' &&
+        vars.VFO_AUTONOMOUS_LOOP_ENABLED != 'false' &&
+        vars.VFO_CODEX_ISSUE_ENABLED != 'false'
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: 🔑 Preflight trigger guardrails
+        id: preflight
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          should_run=true
+          reason="ok"
+
+          if [ "${{ github.event.issue.state }}" != "open" ]; then
+            should_run=false
+            reason="Issue is not open."
+          elif [ -z "${OPENAI_API_KEY:-}" ]; then
+            should_run=false
+            reason="OPENAI_API_KEY is not configured."
+          fi
+
+          echo "should_run=${should_run}" >> "$GITHUB_OUTPUT"
+          echo "reason=${reason}" >> "$GITHUB_OUTPUT"
+
+      - name: ⬇️ Checkout repo
+        if: steps.preflight.outputs.should_run == 'true'
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 🧰 Configure git identity
+        if: steps.preflight.outputs.should_run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: 🌿 Create working branch
+        if: steps.preflight.outputs.should_run == 'true'
+        id: branch
+        run: |
+          set -euo pipefail
+          branch_name="codex/issue-${{ github.event.issue.number }}-${{ github.run_number }}"
+          git switch -c "${branch_name}"
+          echo "name=${branch_name}" >> "$GITHUB_OUTPUT"
+
+      - name: 🤖 Execute Codex for issue
+        if: steps.preflight.outputs.should_run == 'true'
+        id: codex_issue
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt: |
+            Implement GitHub issue #${{ github.event.issue.number }} with a minimal, reviewable change set.
+
+            Issue title:
+            ${{ github.event.issue.title }}
+
+            Issue body:
+            ${{ github.event.issue.body }}
+
+            Guardrails:
+            - Follow AGENT.md naming and terminology policy.
+            - Keep scope tight and safe.
+            - Do not modify release/deployment workflows.
+            - Do not add unrestricted auto-merge or production deploy logic.
+            - Run `make tests` before finishing.
+            - If requirements are ambiguous or too broad, document a short blocker note in `infra/docs/codex-autonomous-loop.md` and stop without speculative broad refactors.
+
+            Deliverable:
+            - Leave repository changes in this branch.
+            - Provide a concise summary of what changed.
+          output-file: /tmp/codex-agent-ready-summary.md
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          check-write-access: false
+
+      - name: 🧪 Verify changes
+        if: steps.preflight.outputs.should_run == 'true'
+        id: verify
+        continue-on-error: true
+        run: make tests
+
+      - name: 🚦 Capture verification result
+        if: steps.preflight.outputs.should_run == 'true'
+        id: verify_state
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.verify.outcome }}" = "success" ]; then
+            echo "passed=true" >> "$GITHUB_OUTPUT"
+            echo "reason=make tests passed" >> "$GITHUB_OUTPUT"
+          else
+            echo "passed=false" >> "$GITHUB_OUTPUT"
+            echo "reason=make tests failed; no branch push attempted" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 📦 Detect local changes
+        if: steps.preflight.outputs.should_run == 'true'
+        id: diff
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 🚀 Commit and push branch
+        if: >
+          ${{
+            steps.preflight.outputs.should_run == 'true' &&
+            steps.diff.outputs.has_changes == 'true' &&
+            steps.verify_state.outputs.passed == 'true'
+          }}
+        run: |
+          set -euo pipefail
+          git add -A
+          if git diff --cached --quiet --exit-code; then
+            exit 0
+          fi
+          git commit -m "feat: codex issue-ready implementation for #${{ github.event.issue.number }}"
+          git push origin "${{ steps.branch.outputs.name }}"
+
+      - name: 🔗 Open or reuse pull request
+        if: >
+          ${{
+            steps.preflight.outputs.should_run == 'true' &&
+            steps.diff.outputs.has_changes == 'true' &&
+            steps.verify_state.outputs.passed == 'true'
+          }}
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          branch_name="${{ steps.branch.outputs.name }}"
+          existing_url="$(gh pr list --state open --head "${branch_name}" --json url --jq '.[0].url // empty')"
+
+          if [ -n "${existing_url}" ]; then
+            echo "url=${existing_url}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          pr_title="agent: issue #${{ github.event.issue.number }} - ${{ github.event.issue.title }}"
+          pr_body_file="/tmp/agent-ready-pr-body.md"
+          {
+            echo "Automated response to issue #${{ github.event.issue.number }}."
+            echo
+            echo "Created by Codex autonomous issue trigger."
+            echo
+            echo "Closes #${{ github.event.issue.number }}"
+          } > "${pr_body_file}"
+
+          pr_url="$(gh pr create \
+            --base main \
+            --head "${branch_name}" \
+            --title "${pr_title}" \
+            --body-file "${pr_body_file}")"
+          echo "url=${pr_url}" >> "$GITHUB_OUTPUT"
+
+      - name: 💬 Post issue update (changes opened)
+        if: >
+          ${{
+            steps.preflight.outputs.should_run == 'true' &&
+            steps.diff.outputs.has_changes == 'true' &&
+            steps.verify_state.outputs.passed == 'true'
+          }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          note_file="/tmp/agent-ready-issue-note.md"
+          {
+            echo "Codex prepared a PR for this \`agent-ready\` issue."
+            echo
+            echo "PR: ${{ steps.pr.outputs.url }}"
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } > "${note_file}"
+          gh issue comment "${{ github.event.issue.number }}" --body-file "${note_file}"
+
+      - name: 💬 Post issue update (verification failed)
+        if: >
+          ${{
+            steps.preflight.outputs.should_run == 'true' &&
+            steps.diff.outputs.has_changes == 'true' &&
+            steps.verify_state.outputs.passed != 'true'
+          }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          note_file="/tmp/agent-ready-issue-note.md"
+          {
+            echo "Codex generated changes but verification failed, so no PR was opened."
+            echo
+            echo "Reason: ${{ steps.verify_state.outputs.reason }}"
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } > "${note_file}"
+          gh issue comment "${{ github.event.issue.number }}" --body-file "${note_file}"
+
+      - name: 💬 Post issue update (no changes)
+        if: >
+          ${{
+            steps.preflight.outputs.should_run == 'true' &&
+            steps.diff.outputs.has_changes != 'true'
+          }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          note_file="/tmp/agent-ready-issue-note.md"
+          {
+            echo "Codex reviewed this \`agent-ready\` issue but did not produce repository changes."
+            echo
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } > "${note_file}"
+          gh issue comment "${{ github.event.issue.number }}" --body-file "${note_file}"
+
+      - name: 💬 Post issue update (skipped)
+        if: steps.preflight.outputs.should_run != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          note_file="/tmp/agent-ready-issue-note.md"
+          {
+            echo "Codex skipped this \`agent-ready\` trigger."
+            echo
+            echo "Reason: ${{ steps.preflight.outputs.reason }}"
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } > "${note_file}"
+          gh issue comment "${{ github.event.issue.number }}" --body-file "${note_file}"
