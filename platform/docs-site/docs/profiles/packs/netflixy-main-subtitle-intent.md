@@ -2,6 +2,12 @@
 
 This pack targets practical streaming efficiency while preserving viewer-intent essentials.
 
+## Outcome Target
+
+- reduce bitrate with Netflix-like practical intent
+- preserve full audio set and director-intent "main subtitle" behavior
+- emit container type by viewing-intent need: MKV when subtitle intent applies, fragmented MP4 otherwise
+
 ## Focus
 
 - preserve all audio streams
@@ -34,4 +40,3 @@ flowchart TD
   H -->|Yes| K[MKV output]:::output
   H -->|No| L[Fragmented MP4 output]:::output
 ```
-

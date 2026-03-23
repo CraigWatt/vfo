@@ -1,5 +1,14 @@
 ## vfo Installation and Quick Start
 
+vfo is positioned as an autonomous media optimization engine:
+
+- input: mixed mezzanine libraries
+- decision layer: profile + scenario rules
+- output: deterministic, target-shaped media variants
+- verification: readiness/status observability and optional quality scoring gates
+
+This release keeps that loop explicit for operators who want outcome ownership, not just batch transcoding.
+
 ### Supported platforms (this release)
 - macOS 13+ (Apple Silicon ARM64 and Intel x64)
 - Linux/Windows installers are not yet published

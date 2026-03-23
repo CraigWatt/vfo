@@ -2,6 +2,12 @@
 
 This pack provides simple baseline lanes for broad usage before device-specific tuning.
 
+## Outcome Target
+
+- produce consistent 4K/1080 outputs with low setup overhead
+- keep audio handling open where possible
+- provide a stable baseline before moving to stricter device-target packs
+
 ## Focus
 
 - easy 4K and 1080p starter targets
@@ -29,4 +35,3 @@ flowchart TD
   C --> G[Profile output written]:::output
   E --> H[Profile output written]:::output
 ```
-
