@@ -416,6 +416,13 @@ VFO_E2E_ASSET_MODE=local VFO_E2E_ASSETS_DIR="/absolute/path/to/open-source-media
 
 The monorepo docs site source is in `platform/docs-site/`.
 
+Key visual docs include:
+
+- `platform/docs-site/docs/pipeline-end-to-end.md`
+- `platform/docs-site/docs/flow-levels.md`
+- `platform/docs-site/docs/profile-visual-standard.md`
+- generated stock profile sheets under `platform/docs-site/docs/profiles/generated/`
+
 Local docs workflow:
 
 ```bash

@@ -30,9 +30,17 @@ Generated from stock preset pack `device_targets_open_audio`.
 
 ```mermaid
 flowchart TD
-  A[Candidate matches profile criteria] --> B[Evaluate scenario rules]
-  B --> C[Execute selected command]
-  C --> D[Write profile output]
+  classDef gate fill:#fff7ed,stroke:#f59e0b,color:#7c2d12,stroke-width:1.5px;
+  classDef stage fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,stroke-width:1.2px;
+  classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;
+  classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;
+
+  A[Candidate enters profile]:::stage --> B{Matches profile criteria envelope?}:::gate
+  B -->|No| Z[Handled by other profile or skipped]:::skip
+  B -->|Yes| C{Evaluate scenarios in order}:::gate
+  C --> D[First match: CODEC_JUST_RIGHT RES_JUST_RIGHT]:::stage
+  D --> E[Execute: direct ffmpeg]:::stage
+  E --> F[Write profile output]:::output
 ```
 
 ## Source
