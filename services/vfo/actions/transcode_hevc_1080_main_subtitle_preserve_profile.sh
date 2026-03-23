@@ -12,11 +12,14 @@ set -euo pipefail
 #   priority: forced english -> forced untagged/unknown -> optional default english.
 #   non-english forced tracks are intentionally skipped.
 # - If a main subtitle is selected, output container is MKV for reliable subtitle preservation.
-# - If no main subtitle is selected, output container is MP4 with +faststart.
+# - If no main subtitle is selected, output container is stream-ready MP4:
+#   fragmented MP4 with init/moov at the start.
 #
 # Optional env:
 #   VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT=1   # include default english subtitle when no forced track exists
 #   VFO_ENCODER_MODE=auto|hw|cpu
+#   VFO_MP4_STREAM_MODE=fmp4_faststart|fmp4|faststart
+#     default: fmp4_faststart
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
@@ -33,6 +36,7 @@ fi
 
 ENCODER_MODE="${VFO_ENCODER_MODE:-auto}" # auto|hw|cpu
 INCLUDE_DEFAULT_MAIN_SUB="${VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT:-0}"
+MP4_STREAM_MODE="${VFO_MP4_STREAM_MODE:-fmp4_faststart}"
 PROBE_SIZE="${PROBE_SIZE:-200M}"
 ANALYZE_DUR="${ANALYZE_DUR:-200M}"
 AVG_K_1080="${AVG_K_1080:-8000}"
@@ -142,6 +146,42 @@ has_videotoolbox_encoder() {
   ffmpeg -hide_banner -encoders 2>/dev/null | grep -q "hevc_videotoolbox"
 }
 
+resolve_mp4_movflags() {
+  case "$1" in
+    fmp4_faststart)
+      # init/moov-first + fragmented moof chunks for stream-oriented single-file MP4
+      printf '%s' "+faststart+frag_keyframe+empty_moov+default_base_moof"
+      ;;
+    fmp4)
+      printf '%s' "+frag_keyframe+empty_moov+default_base_moof"
+      ;;
+    faststart)
+      printf '%s' "+faststart"
+      ;;
+    *)
+      echo "Invalid VFO_MP4_STREAM_MODE value: $1"
+      echo "Expected one of: fmp4_faststart, fmp4, faststart"
+      exit 1
+      ;;
+  esac
+}
+
+finalize_streamable_mp4() {
+  local input_mp4="$1"
+  local output_mp4="$2"
+  local movflags
+
+  movflags="$(resolve_mp4_movflags "$MP4_STREAM_MODE")"
+  echo "Finalizing MP4 stream packaging mode=${MP4_STREAM_MODE} movflags=${movflags}"
+  ffmpeg -hide_banner -nostdin -y \
+    -i "$input_mp4" \
+    -map 0 \
+    -c copy \
+    -movflags "$movflags" \
+    -max_muxing_queue_size 4096 \
+    "$output_mp4"
+}
+
 VIDEO_ARGS=()
 if [ "$ENCODER_MODE" = "hw" ] || { [ "$ENCODER_MODE" = "auto" ] && has_videotoolbox_encoder; }; then
   VIDEO_ARGS=(
@@ -176,14 +216,17 @@ if MAIN_SUB_POS="$(resolve_main_subtitle_position)"; then
     -max_muxing_queue_size 4096 \
     "$OUTPUT_PATH"
 else
-  echo "No main subtitle detected; generating faststart MP4 output: $OUTPUT"
+  MP4_WORK_OUTPUT="${OUTPUT%.*}.packaging_work.mp4"
+  echo "No main subtitle detected; generating MP4 encode work file: $MP4_WORK_OUTPUT"
   ffmpeg -hide_banner -nostdin -y \
     -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
     -i "$INPUT" \
     -map 0:v:0 -map 0:a? \
     "${VIDEO_ARGS[@]}" \
     -c:a copy \
-    -movflags +faststart \
     -max_muxing_queue_size 4096 \
-    "$OUTPUT"
+    "$MP4_WORK_OUTPUT"
+
+  finalize_streamable_mp4 "$MP4_WORK_OUTPUT" "$OUTPUT"
+  rm -f "$MP4_WORK_OUTPUT"
 fi
