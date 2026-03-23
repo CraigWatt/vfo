@@ -105,6 +105,7 @@ vfo uses three delivery lanes:
 - Main snapshot artifacts (on `main` pushes) for internal/beta testing.
 - Beta prereleases from tags like `v1.2.3-beta.1`.
 - Stable releases from tags like `v1.2.3`.
+- Successful `main` push validations auto-create the next stable tag (`vX.Y.Z`) for that commit, which triggers the stable release workflow automatically.
 
 CI/CD test integration:
 
