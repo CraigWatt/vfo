@@ -125,6 +125,8 @@ write_profile_doc() {
   local first_command_label
   local profile_doc
   local mermaid_variant
+  local typical_input_containers
+  local output_intent
 
   slug="$(to_slug "$profile")"
   prefix="$(to_upper_prefix "$profile")"
@@ -165,6 +167,14 @@ write_profile_doc() {
   mermaid_variant="generic"
   if printf '%s' "$first_command" | grep -q "main_subtitle_preserve_profile.sh"; then
     mermaid_variant="subtitle_intent"
+  fi
+
+  typical_input_containers="mkv, mp4, mov, mxf (anything ffmpeg can demux)"
+  output_intent="profile-specific output written by selected scenario command"
+  if [ "$mermaid_variant" = "subtitle_intent" ]; then
+    output_intent="conditional: MKV when main subtitle intent is detected, otherwise MP4 +faststart"
+  elif printf '%s' "$first_command" | grep -q "ffmpeg"; then
+    output_intent="output container and streams are defined directly by the ffmpeg command"
   fi
 
   {
@@ -240,6 +250,17 @@ write_profile_doc() {
       fi
     fi
 
+    printf '## Starting Inputs And Expected Outputs\n\n'
+    printf '| Aspect | What this profile expects / does |\n'
+    printf '| --- | --- |\n'
+    printf '| Starting containers | `%s` |\n' "$typical_input_containers"
+    printf '| Required codec envelope | `%s` / `%s-bit` / `%s` |\n' "${criteria_codec:-any}" "${criteria_bits:-any}" "${criteria_color:-any}"
+    printf '| Required resolution range | `%sx%s` to `%sx%s` |\n' "${min_w:-0}" "${min_h:-0}" "${max_w:-any}" "${max_h:-any}"
+    printf '| If criteria do not match | candidate is routed to another profile or skipped |\n'
+    printf '| If criteria match | scenario order is evaluated and first match executes |\n'
+    printf '| Output intent | %s |\n' "$output_intent"
+    printf '\n'
+
     printf '## Flow\n\n'
     if [ "$mermaid_variant" = "subtitle_intent" ]; then
       cat <<'MERMAID'
@@ -250,14 +271,15 @@ flowchart TD
   classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;
   classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;
 
-  A[Candidate enters profile]:::stage --> B{Matches profile criteria envelope?}:::gate
-  B -->|No| Z[Handled by other profile or skipped]:::skip
-  B -->|Yes| C[Run subtitle-intent action script]:::stage
-  C --> D{Main subtitle detected by heuristic?}:::gate
-  D -->|Yes| E[Encode HEVC / copy audio / copy selected subtitle]:::stage
-  E --> F[Emit MKV output]:::output
-  D -->|No| G[Encode HEVC / copy audio]:::stage
-  G --> H[Emit MP4 faststart output]:::output
+  A[Input candidate: mkv or mp4 or mov or mxf]:::stage --> B[Probe codec, bits, color, resolution]:::stage
+  B --> C{Matches profile criteria envelope?}:::gate
+  C -->|No| Z[Handled by other profile or skipped]:::skip
+  C -->|Yes| D[Run subtitle-intent action script]:::stage
+  D --> E{Main subtitle detected by heuristic?}:::gate
+  E -->|Yes| F[Encode HEVC, copy audio, copy selected subtitle]:::stage
+  F --> G[Emit MKV output]:::output
+  E -->|No| H[Encode HEVC, copy audio]:::stage
+  H --> I[Emit MP4 faststart output]:::output
 ```
 MERMAID
     else
@@ -270,12 +292,13 @@ MERMAID
       printf '  classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;\n'
       printf '  classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;\n'
       printf '\n'
-      printf '  A[Candidate enters profile]:::stage --> B{Matches profile criteria envelope?}:::gate\n'
-      printf '  B -->|No| Z[Handled by other profile or skipped]:::skip\n'
-      printf '  B -->|Yes| C{Evaluate scenarios in order}:::gate\n'
-      printf '  C --> D[First match: %s]:::stage\n' "${first_scenario_safe:-ELSE}"
-      printf '  D --> E[Execute: %s]:::stage\n' "${first_command_safe:-command}"
-      printf '  E --> F[Write profile output]:::output\n'
+      printf '  A[Input candidate: mkv or mp4 or mov or mxf]:::stage --> B[Probe codec, bits, color, resolution]:::stage\n'
+      printf '  B --> C{Matches profile criteria envelope?}:::gate\n'
+      printf '  C -->|No| Z[Handled by other profile or skipped]:::skip\n'
+      printf '  C -->|Yes| D{Evaluate scenarios in order}:::gate\n'
+      printf '  D --> E[First match: %s]:::stage\n' "${first_scenario_safe:-ELSE}"
+      printf '  E --> F[Execute: %s]:::stage\n' "${first_command_safe:-command}"
+      printf '  F --> G[Write profile output]:::output\n'
       printf '```\n'
     fi
 

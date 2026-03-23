@@ -56,8 +56,8 @@ flowchart TD
 
   E0[engine.snapshot]:::status --> C0[config.directory]:::status
   C0 --> D0[dependency.ffmpeg / ffprobe / mkvmerge / dovi_tool]:::status
-  D0 --> S0[storage.mezzanine[n] / storage.source[n]]:::status
-  S0 --> P0[profiles.detected + profile.*.scenarios]:::status
+  D0 --> S0[storage.mezzanine index / storage.source index]:::status
+  S0 --> P0[profiles.detected + profile scenarios]:::status
   P0 --> G0{stage.mezzanine ready?}:::gate
   G0 -->|No| X0[stage.execute blocked]:::warn
   G0 -->|Yes| M0[stage.mezzanine]:::status

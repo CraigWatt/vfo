@@ -36,6 +36,17 @@ Operator knobs from `transcode_hevc_1080_main_subtitle_preserve_profile.sh`:
 - `VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT=1   # include default english subtitle when no forced track exists`
 - `VFO_ENCODER_MODE=auto|hw|cpu`
 
+## Starting Inputs And Expected Outputs
+
+| Aspect | What this profile expects / does |
+| --- | --- |
+| Starting containers | `mkv, mp4, mov, mxf (anything ffmpeg can demux)` |
+| Required codec envelope | `h264` / `8-bit` / `bt709` |
+| Required resolution range | `352x240` to `1920x1080` |
+| If criteria do not match | candidate is routed to another profile or skipped |
+| If criteria match | scenario order is evaluated and first match executes |
+| Output intent | conditional: MKV when main subtitle intent is detected, otherwise MP4 +faststart |
+
 ## Flow
 
 ```mermaid
@@ -45,14 +56,15 @@ flowchart TD
   classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;
   classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;
 
-  A[Candidate enters profile]:::stage --> B{Matches profile criteria envelope?}:::gate
-  B -->|No| Z[Handled by other profile or skipped]:::skip
-  B -->|Yes| C[Run subtitle-intent action script]:::stage
-  C --> D{Main subtitle detected by heuristic?}:::gate
-  D -->|Yes| E[Encode HEVC / copy audio / copy selected subtitle]:::stage
-  E --> F[Emit MKV output]:::output
-  D -->|No| G[Encode HEVC / copy audio]:::stage
-  G --> H[Emit MP4 faststart output]:::output
+  A[Input candidate: mkv or mp4 or mov or mxf]:::stage --> B[Probe codec, bits, color, resolution]:::stage
+  B --> C{Matches profile criteria envelope?}:::gate
+  C -->|No| Z[Handled by other profile or skipped]:::skip
+  C -->|Yes| D[Run subtitle-intent action script]:::stage
+  D --> E{Main subtitle detected by heuristic?}:::gate
+  E -->|Yes| F[Encode HEVC, copy audio, copy selected subtitle]:::stage
+  F --> G[Emit MKV output]:::output
+  E -->|No| H[Encode HEVC, copy audio]:::stage
+  H --> I[Emit MP4 faststart output]:::output
 ```
 
 ## Source

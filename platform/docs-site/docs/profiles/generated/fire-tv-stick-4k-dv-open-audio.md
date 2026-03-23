@@ -26,6 +26,17 @@ Generated from stock preset pack `device_targets_open_audio`.
 - Scenario `RES_TOO_HIGH` uses action script `transcode_hevc_4k_dv_profile.sh`.
 - Scenario `ELSE` uses action script `transcode_hevc_4k_dv_profile.sh`.
 
+## Starting Inputs And Expected Outputs
+
+| Aspect | What this profile expects / does |
+| --- | --- |
+| Starting containers | `mkv, mp4, mov, mxf (anything ffmpeg can demux)` |
+| Required codec envelope | `hevc` / `any-bit` / `bt709` |
+| Required resolution range | `352x240` to `3840x2160` |
+| If criteria do not match | candidate is routed to another profile or skipped |
+| If criteria match | scenario order is evaluated and first match executes |
+| Output intent | output container and streams are defined directly by the ffmpeg command |
+
 ## Flow
 
 ```mermaid
@@ -35,12 +46,13 @@ flowchart TD
   classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;
   classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;
 
-  A[Candidate enters profile]:::stage --> B{Matches profile criteria envelope?}:::gate
-  B -->|No| Z[Handled by other profile or skipped]:::skip
-  B -->|Yes| C{Evaluate scenarios in order}:::gate
-  C --> D[First match: CODEC_JUST_RIGHT RES_JUST_RIGHT]:::stage
-  D --> E[Execute: direct ffmpeg]:::stage
-  E --> F[Write profile output]:::output
+  A[Input candidate: mkv or mp4 or mov or mxf]:::stage --> B[Probe codec, bits, color, resolution]:::stage
+  B --> C{Matches profile criteria envelope?}:::gate
+  C -->|No| Z[Handled by other profile or skipped]:::skip
+  C -->|Yes| D{Evaluate scenarios in order}:::gate
+  D --> E[First match: CODEC_JUST_RIGHT RES_JUST_RIGHT]:::stage
+  E --> F[Execute: direct ffmpeg]:::stage
+  F --> G[Write profile output]:::output
 ```
 
 ## Source
