@@ -17,6 +17,13 @@ Use `vfo status` or `vfo status-json` to inspect component/stage readiness befor
 Use `vfo visualize` to generate local workflow artifacts (HTML + JSON + Mermaid).
 `vfo mezzanine-clean` provides optional mezzanine folder/filename hygiene with probe-based recommendations.
 
+### CI automation (Codex loop v1)
+- Scheduled proactive sweep lane (read-only Codex audit issue updates).
+- Issue trigger lane via `agent-ready` label (bounded change proposal + PR creation).
+- Bounded failed-CI autofix lane for Codex-owned PRs only.
+- No unrestricted auto-merge and no production deploy automation.
+- Setup/guardrails: `infra/docs/codex-autonomous-loop.md`
+
 ### macOS (recommended: signed package)
 1. Download `vfo_macOS_installer-v*.*.*.pkg` from this release's assets.
 2. If macOS blocks first launch, right-click the package and choose **Open**.

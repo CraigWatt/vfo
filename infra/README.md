@@ -17,6 +17,7 @@ This directory contains infrastructure and operational code.
 ## CI/CD Operations Docs
 
 - Self-hosted full-media runner setup: `infra/docs/self-hosted-runner.md`
+- Codex autonomous repo loop (v1): `infra/docs/codex-autonomous-loop.md`
 
 ## Keep out
 

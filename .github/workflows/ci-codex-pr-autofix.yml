@@ -1,0 +1,308 @@
+name: 🤖 Codex bounded CI autofix
+
+on:
+  workflow_run:
+    workflows:
+      - "Validate (PR + main)"
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: codex-pr-autofix-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  autofix:
+    name: Autofix failed Validate runs (Codex-owned PRs only)
+    if: >
+      ${{
+        github.event.workflow_run.conclusion == 'failure' &&
+        github.event.workflow_run.event == 'pull_request' &&
+        vars.VFO_AUTONOMOUS_LOOP_ENABLED != 'false' &&
+        vars.VFO_CODEX_AUTOFIX_ENABLED != 'false'
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: 🔍 Resolve PR context + guardrails
+        id: context
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          should_run=true
+          reason="ok"
+          pr_number="${{ github.event.workflow_run.pull_requests[0].number }}"
+          head_ref=""
+          head_sha=""
+
+          if [ -z "${pr_number:-}" ] || [ "${pr_number}" = "null" ]; then
+            should_run=false
+            reason="No pull request is associated with this failed workflow run."
+          elif [ -z "${OPENAI_API_KEY:-}" ]; then
+            should_run=false
+            reason="OPENAI_API_KEY is not configured."
+          fi
+
+          if [ "${should_run}" = "true" ]; then
+            gh api "repos/${{ github.repository }}/pulls/${pr_number}" > /tmp/autofix-pr.json
+
+            head_ref="$(jq -r '.head.ref' /tmp/autofix-pr.json)"
+            head_repo="$(jq -r '.head.repo.full_name' /tmp/autofix-pr.json)"
+            head_sha="$(jq -r '.head.sha' /tmp/autofix-pr.json)"
+            pr_state="$(jq -r '.state' /tmp/autofix-pr.json)"
+            codex_owned="false"
+
+            if [[ "${head_ref}" == codex/* ]]; then
+              codex_owned="true"
+            fi
+            if jq -e '.labels[] | select(.name == "codex-owned")' /tmp/autofix-pr.json >/dev/null; then
+              codex_owned="true"
+            fi
+
+            if [ "${pr_state}" != "open" ]; then
+              should_run=false
+              reason="PR is not open."
+            elif [ "${head_repo}" != "${{ github.repository }}" ]; then
+              should_run=false
+              reason="PR head repository is a fork."
+            elif [ "${codex_owned}" != "true" ]; then
+              should_run=false
+              reason="PR is not Codex-owned (expected codex/* branch or codex-owned label)."
+            fi
+
+            if [ "${should_run}" = "true" ]; then
+              commit_message="$(gh api "repos/${{ github.repository }}/commits/${head_sha}" --jq '.commit.message' || true)"
+              if [[ "${commit_message}" == ci:\ bounded\ codex\ autofix* ]]; then
+                should_run=false
+                reason="Latest commit is already a Codex autofix commit."
+              fi
+            fi
+
+            if [ "${should_run}" = "true" ]; then
+              marker="<!-- codex-autofix:${head_sha} -->"
+              if gh api "repos/${{ github.repository }}/issues/${pr_number}/comments?per_page=100" \
+                --jq ".[] | select(.body | contains(\"${marker}\")) | .id" | head -n 1 | grep -q .; then
+                should_run=false
+                reason="Autofix already attempted for this head SHA."
+              fi
+            fi
+          fi
+
+          echo "should_run=${should_run}" >> "$GITHUB_OUTPUT"
+          echo "reason=${reason}" >> "$GITHUB_OUTPUT"
+          echo "pr_number=${pr_number:-}" >> "$GITHUB_OUTPUT"
+          echo "head_ref=${head_ref}" >> "$GITHUB_OUTPUT"
+          echo "head_sha=${head_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: ⏭️ Skip autofix
+        if: steps.context.outputs.should_run != 'true'
+        run: |
+          echo "Skipping Codex autofix: ${{ steps.context.outputs.reason }}"
+
+      - name: ⬇️ Checkout PR head
+        if: steps.context.outputs.should_run == 'true'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.context.outputs.head_ref }}
+          fetch-depth: 0
+
+      - name: 🧰 Configure git identity
+        if: steps.context.outputs.should_run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: 🤖 Run Codex bounded autofix
+        if: steps.context.outputs.should_run == 'true'
+        id: codex_autofix
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt: |
+            You are running a bounded CI autofix for PR #${{ steps.context.outputs.pr_number }}.
+
+            Context:
+            - Failed workflow run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}
+            - Failed commit SHA: ${{ steps.context.outputs.head_sha }}
+
+            Objective:
+            - Make the smallest safe repository change required to get `make ci` passing.
+
+            Guardrails:
+            - Only edit files needed for this CI fix.
+            - Keep the patch small and transparent.
+            - Do not modify release/deployment workflows.
+            - Do not add auto-merge or production deployment behavior.
+            - Run `make ci` before finishing.
+            - If a safe fix is not possible, leave the repo unchanged and report why.
+          output-file: /tmp/codex-autofix-summary.md
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          check-write-access: false
+
+      - name: 🧮 Enforce change bounds
+        if: steps.context.outputs.should_run == 'true'
+        id: guard
+        run: |
+          set -euo pipefail
+
+          tracked_changed=()
+          untracked_changed=()
+          mapfile -t tracked_changed < <(git diff --name-only)
+          mapfile -t untracked_changed < <(git ls-files --others --exclude-standard)
+
+          changed_files=()
+          if [ "${#tracked_changed[@]}" -gt 0 ]; then
+            changed_files+=("${tracked_changed[@]}")
+          fi
+          if [ "${#untracked_changed[@]}" -gt 0 ]; then
+            changed_files+=("${untracked_changed[@]}")
+          fi
+          if [ "${#changed_files[@]}" -gt 0 ]; then
+            mapfile -t changed_files < <(printf '%s\n' "${changed_files[@]}" | sort -u)
+          fi
+          changed_count="${#changed_files[@]}"
+
+          has_changes=false
+          allowed=true
+          reason="ok"
+
+          if [ "${changed_count}" -eq 0 ]; then
+            has_changes=false
+            allowed=true
+            reason="No repository changes were produced."
+          else
+            has_changes=true
+            if [ "${changed_count}" -gt 12 ]; then
+              allowed=false
+              reason="Patch exceeded 12 changed files."
+            fi
+          fi
+
+          if [ "${has_changes}" = "true" ]; then
+            forbidden_regex='^\.github/workflows/(on-tags-push\.yml|on-beta-tags-push\.yml|on-main-auto-tag\.yml|on-main-snapshot\.yml)$'
+            for file in "${changed_files[@]}"; do
+              if printf '%s\n' "${file}" | grep -Eq "${forbidden_regex}"; then
+                allowed=false
+                reason="Patch touched protected release/deploy workflow: ${file}"
+                break
+              fi
+            done
+          fi
+
+          echo "has_changes=${has_changes}" >> "$GITHUB_OUTPUT"
+          echo "allowed=${allowed}" >> "$GITHUB_OUTPUT"
+          echo "reason=${reason}" >> "$GITHUB_OUTPUT"
+          echo "changed_count=${changed_count}" >> "$GITHUB_OUTPUT"
+          {
+            echo "changed_files<<EOF"
+            if [ "${changed_count}" -gt 0 ]; then
+              printf '%s\n' "${changed_files[@]}"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 🧪 Verify autofix with make ci
+        if: >
+          ${{
+            steps.context.outputs.should_run == 'true' &&
+            steps.guard.outputs.has_changes == 'true' &&
+            steps.guard.outputs.allowed == 'true'
+          }}
+        id: verify
+        continue-on-error: true
+        run: make ci
+
+      - name: 🚦 Decide push eligibility
+        if: steps.context.outputs.should_run == 'true'
+        id: decision
+        run: |
+          set -euo pipefail
+
+          can_push=false
+          reason="${{ steps.guard.outputs.reason }}"
+
+          if [ "${{ steps.guard.outputs.has_changes }}" != "true" ]; then
+            can_push=false
+            reason="No changes to push."
+          elif [ "${{ steps.guard.outputs.allowed }}" != "true" ]; then
+            can_push=false
+            reason="${{ steps.guard.outputs.reason }}"
+          elif [ "${{ steps.verify.outcome }}" != "success" ]; then
+            can_push=false
+            reason="make ci failed after autofix."
+          else
+            can_push=true
+            reason="Autofix passed make ci and is safe to push."
+          fi
+
+          echo "can_push=${can_push}" >> "$GITHUB_OUTPUT"
+          echo "reason=${reason}" >> "$GITHUB_OUTPUT"
+
+      - name: 🚀 Commit and push autofix
+        if: >
+          ${{
+            steps.context.outputs.should_run == 'true' &&
+            steps.decision.outputs.can_push == 'true'
+          }}
+        id: push
+        run: |
+          set -euo pipefail
+
+          git add -A
+          if git diff --cached --quiet --exit-code; then
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            echo "reason=No staged changes after add." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git commit -m "ci: bounded codex autofix for validate failure"
+          git push origin "HEAD:${{ steps.context.outputs.head_ref }}"
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+          echo "reason=Autofix pushed to PR branch." >> "$GITHUB_OUTPUT"
+
+      - name: 💬 Comment on PR with autofix result
+        if: steps.context.outputs.should_run == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          note_file="/tmp/codex-autofix-pr-note.md"
+          marker="<!-- codex-autofix:${{ steps.context.outputs.head_sha }} -->"
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          source_run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}"
+          push_result="${{ steps.push.outputs.pushed }}"
+          decision_reason="${{ steps.decision.outputs.reason }}"
+
+          {
+            echo "${marker}"
+            echo "Codex bounded autofix result for failed Validate run."
+            echo
+            echo "- Source failed run: ${source_run_url}"
+            echo "- Autofix run: ${run_url}"
+            echo "- Changed files: ${{ steps.guard.outputs.changed_count }}"
+            echo "- Push applied: ${push_result:-false}"
+            echo "- Decision: ${decision_reason}"
+          } > "${note_file}"
+
+          if [ -s /tmp/codex-autofix-summary.md ]; then
+            {
+              echo
+              echo "Summary excerpt:"
+              echo
+              sed -n '1,60p' /tmp/codex-autofix-summary.md
+            } >> "${note_file}"
+          fi
+
+          gh pr comment "${{ steps.context.outputs.pr_number }}" --body-file "${note_file}"
