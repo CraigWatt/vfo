@@ -24,11 +24,67 @@
 
 #include "m_tests.h"
 #include "cmocka.h"
+#include <string.h>
 
 void test_o_original_null_ptr(void **state) {
   original_t *test_original = NULL;
   // o_original(test_original);
   // add a comment and a second bit a third bit fourth fifth
   int duck = 1;
+  (void)test_original;
+  (void)state;
   assert_int_equal(duck, 1);
+}
+
+void test_mc_sanitize_title_uses_underscores(void **state) {
+  char output[256];
+  (void)state;
+
+  mc_sanitize_title_for_test("WALL-E (2008) unknown", output, sizeof(output));
+  assert_string_equal(output, "WALL_E_2008_unknown");
+  assert_null(strchr(output, ' '));
+}
+
+void test_mc_prepare_filename_with_tags_uses_underscores(void **state) {
+  char output[256];
+  (void)state;
+
+  mc_prepare_filename_with_tags_for_test(output,
+                                         sizeof(output),
+                                         "WALL_E_2008_unknown",
+                                         "mkv",
+                                         "UHD",
+                                         "DV",
+                                         "HEVC",
+                                         "TRUEHD",
+                                         true);
+  assert_string_equal(output, "WALL_E_2008_unknown_[UHD_DV_HEVC_TRUEHD].mkv");
+  assert_null(strchr(output, ' '));
+}
+
+void test_mc_prepare_movie_folder_name_appends_tags(void **state) {
+  char with_tags[256];
+  char without_tags[256];
+  (void)state;
+
+  mc_prepare_movie_folder_name_for_test(with_tags,
+                                        sizeof(with_tags),
+                                        "WALL_E_2008_unknown",
+                                        "UHD",
+                                        "DV",
+                                        "HEVC",
+                                        "TRUEHD",
+                                        true);
+  mc_prepare_movie_folder_name_for_test(without_tags,
+                                        sizeof(without_tags),
+                                        "WALL_E_2008_unknown",
+                                        "UHD",
+                                        "DV",
+                                        "HEVC",
+                                        "TRUEHD",
+                                        false);
+
+  assert_string_equal(with_tags, "WALL_E_2008_unknown_[UHD_DV_HEVC_TRUEHD]");
+  assert_string_equal(without_tags, "WALL_E_2008_unknown");
+  assert_null(strchr(with_tags, ' '));
 }

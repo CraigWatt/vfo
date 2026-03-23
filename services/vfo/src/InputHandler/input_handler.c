@@ -1763,7 +1763,7 @@ static int ih_run_wizard(const char *config_dir) {
   printf("WIZARD INFO: press Enter to accept defaults\n");
   printf("WIZARD INFO: target config directory: %s\n", config_dir);
 
-  if(!ih_prompt_line("Mezzanine location", "/Volumes/Media/mezzanine", original_location, sizeof(original_location), true))
+  if(!ih_prompt_line("Mezzanine location", "/Users/craigwatt/Downloads/PRACTICE101/mezzanine", original_location, sizeof(original_location), true))
     return EXIT_FAILURE;
   if(!ih_prompt_line("Mezzanine locations (semicolon list)", original_location, original_locations, sizeof(original_locations), true))
     return EXIT_FAILURE;
@@ -1774,7 +1774,7 @@ static int ih_run_wizard(const char *config_dir) {
   if(!ih_first_location_from_list(original_locations, original_location, sizeof(original_location)))
     return EXIT_FAILURE;
 
-  if(!ih_prompt_line("Source location", "/Volumes/Media/source", source_location, sizeof(source_location), true))
+  if(!ih_prompt_line("Source location", "/Users/craigwatt/Downloads/PRACTICE101/source", source_location, sizeof(source_location), true))
     return EXIT_FAILURE;
   if(!ih_prompt_line("Source locations (semicolon list)", source_location, source_locations, sizeof(source_locations), true))
     return EXIT_FAILURE;
@@ -1788,7 +1788,7 @@ static int ih_run_wizard(const char *config_dir) {
   if(!ih_prompt_bool("Keep source outputs?", true, &keep_source))
     return EXIT_FAILURE;
 
-  if(!ih_prompt_bool("Enable source test clipping?", false, &source_test_active))
+  if(!ih_prompt_bool("Enable source test clipping?", true, &source_test_active))
     return EXIT_FAILURE;
 
   if(source_test_active) {
@@ -1801,20 +1801,20 @@ static int ih_run_wizard(const char *config_dir) {
     ih_copy_string(source_test_trim_duration, sizeof(source_test_trim_duration), "00:01:00");
   }
 
-  if(!ih_prompt_bool("Enable mezzanine-clean hygiene checks?", false, &mezzanine_clean_enabled))
+  if(!ih_prompt_bool("Enable mezzanine-clean hygiene checks?", true, &mezzanine_clean_enabled))
     return EXIT_FAILURE;
-  if(!ih_prompt_bool("Apply mezzanine-clean renames/moves automatically?", false, &mezzanine_clean_apply_changes))
+  if(!ih_prompt_bool("Apply mezzanine-clean renames/moves automatically?", true, &mezzanine_clean_apply_changes))
     return EXIT_FAILURE;
   if(!ih_prompt_bool("Append probe-derived media tags to mezzanine filenames?", true, &mezzanine_clean_append_media_tags))
     return EXIT_FAILURE;
-  if(!ih_prompt_bool("Fail mezzanine-clean when warnings are found (strict gate)?", false, &mezzanine_clean_strict_quality_gate))
+  if(!ih_prompt_bool("Fail mezzanine-clean when warnings are found (strict gate)?", true, &mezzanine_clean_strict_quality_gate))
     return EXIT_FAILURE;
 
-  if(!ih_prompt_bool("Enable post-profile quality scoring (PSNR/SSIM)?", false, &quality_check_enabled))
+  if(!ih_prompt_bool("Enable post-profile quality scoring (PSNR/SSIM)?", true, &quality_check_enabled))
     return EXIT_FAILURE;
-  if(!ih_prompt_bool("Include VMAF in quality scoring (requires ffmpeg libvmaf)?", false, &quality_check_include_vmaf))
+  if(!ih_prompt_bool("Include VMAF in quality scoring (requires ffmpeg libvmaf)?", true, &quality_check_include_vmaf))
     return EXIT_FAILURE;
-  if(!ih_prompt_bool("Fail run when quality checks fail (strict gate)?", false, &quality_check_strict_gate))
+  if(!ih_prompt_bool("Fail run when quality checks fail (strict gate)?", true, &quality_check_strict_gate))
     return EXIT_FAILURE;
   if(!ih_prompt_line("Quality reference layer (auto|source|mezzanine)", "auto", quality_check_reference_layer, sizeof(quality_check_reference_layer), true))
     return EXIT_FAILURE;
@@ -1897,14 +1897,14 @@ static int ih_run_wizard(const char *config_dir) {
   if(use_stock_presets) {
     ih_print_stock_preset_menu();
     while(true) {
-      if(!ih_prompt_line("Select stock preset packs (comma list, names, or all)", "all", stock_preset_selection, sizeof(stock_preset_selection), true))
+      if(!ih_prompt_line("Select stock preset packs (comma list, names, or all)", "netflixy_main_subtitle_intent", stock_preset_selection, sizeof(stock_preset_selection), true))
         return EXIT_FAILURE;
       if(ih_parse_stock_preset_selection(stock_preset_selection, selected_stock_presets, &selected_stock_preset_count))
         break;
       printf("WIZARD INFO: choose one or more presets, e.g. 1,3 or all\n");
     }
 
-    if(!ih_prompt_line("Profiles output base location", "/Volumes/Media/profiles", stock_profile_location, sizeof(stock_profile_location), true))
+    if(!ih_prompt_line("Profiles output base location", "/Users/craigwatt/Downloads/PRACTICE101/profiles", stock_profile_location, sizeof(stock_profile_location), true))
       return EXIT_FAILURE;
     if(!ih_prompt_line("Profiles output base locations (semicolon list)", stock_profile_location, stock_profile_locations, sizeof(stock_profile_locations), true))
       return EXIT_FAILURE;
