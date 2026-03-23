@@ -29,6 +29,7 @@ options_t* options_create_new_struct() {
   options_t *result = malloc(sizeof(options_t));
   result->help_detected = false;
   result->version_detected = false;
+  result->open_detected = false;
   return result;
 }
 
@@ -48,10 +49,12 @@ void ih_options_parser(int argc, char* argv[], options_t* options) {
       /*General*/
       {"help", no_argument, 0, 'h'},
       {"version", no_argument, 0, 'v'},
+      {"open", no_argument, 0, 'o'},
+      {0, 0, 0, 0}
   };
   while (true) {
     int option_index = 0;
-    arg = getopt_long(argc, argv, "hvt:", long_options, &option_index);
+    arg = getopt_long(argc, argv, "hvo", long_options, &option_index);
     /* End of the options? */
     if (arg == -1) break;
     /* Find the matching case of the argument */
@@ -73,6 +76,9 @@ void ih_options_switch(int arg, options_t* options) {
 
       case 'v':
         options->version_detected = true;
+        break;
+      case 'o':
+        options->open_detected = true;
         break;
         // ih_mes_version();
         // exit(EXIT_SUCCESS);

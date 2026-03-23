@@ -33,6 +33,7 @@
 struct options {
     bool help_detected;
     bool version_detected;
+    bool open_detected;
 };
 /* Exports options as a global type */
 typedef struct options options_t;

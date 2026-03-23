@@ -2,6 +2,12 @@
 
 This map describes how vfo progresses through runtime selections, pipeline branches, and stage outcomes.
 
+Formal model artifacts:
+
+- BPMN: `services/vfo/docs/workflow-engine.bpmn`
+- DMN: `services/vfo/docs/workflow-decisions.dmn`
+- Local visualization report: `vfo visualize` (see `services/vfo/docs/workflow-visualization.md`)
+
 ## Camunda-style progression map
 
 ```mermaid

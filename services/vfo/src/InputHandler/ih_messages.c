@@ -49,6 +49,7 @@ void ih_mes_usage () {
   fprintf(stdout, "%s show        # print active config summary\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s status      # high-level engine observability snapshot\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s status-json # machine-readable observability snapshot\n\n", __PROGRAM_NAME__);
+  fprintf(stdout, "%s visualize   # generate local workflow visualization artifacts\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s run         # run default pipeline end-to-end (+ optional quality scoring)\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s mezzanine-clean # audit/normalize mezzanine naming and structure\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s mezzanine   # mezzanine preparation stage\n\n", __PROGRAM_NAME__);
@@ -82,6 +83,8 @@ void ih_mes_options () {
                     "\t\tPrints this help message\n\n");
     fprintf(stdout, GRAY "\t--no-color\n" NO_COLOR
                     "\t\tDoes not use colors for printing\n\n");
+    fprintf(stdout, GRAY "\t-o|--open\n" NO_COLOR
+                    "\t\tWith `visualize`, attempt to open generated report in browser\n\n");
 }
 
 /*
@@ -99,6 +102,8 @@ void ih_mes_arguments() {
                     "\t\tprint high-level component readiness and stage status\n\n");
     fprintf(stdout, GRAY "\tstatus-json\n" NO_COLOR
                     "\t\tprint machine-readable status report for automation/tests\n\n");
+    fprintf(stdout, GRAY "\tvisualize\n" NO_COLOR
+                    "\t\tgenerate status.json + mermaid + html workflow report (supports --open)\n\n");
     fprintf(stdout, GRAY "\trun\n" NO_COLOR
                     "\t\texecutes default pipeline: mezzanine -> source (if enabled) -> profiles -> optional quality scoring\n\n");
     fprintf(stdout, GRAY "\tmezzanine-clean\n" NO_COLOR

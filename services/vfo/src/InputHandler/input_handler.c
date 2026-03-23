@@ -29,12 +29,17 @@
 #include <limits.h>
 #include <strings.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #define IH_LEGACY_CONFIG_DIR "/usr/local/bin/vfo_conf_folder"
 #define IH_CONFIG_DIR_ENV "VFO_CONFIG_DIR"
 #define IH_CONFIG_FILENAME "vfo_config.conf"
 #define IH_INPUT_BUFFER_SIZE 4096
 #define IH_PREVIEW_LIMIT 140
+#define IH_VISUALIZE_SUBDIR "visualizations"
+#define IH_VISUALIZE_STATUS_FILENAME "status.json"
+#define IH_VISUALIZE_MERMAID_FILENAME "workflow.mmd"
+#define IH_VISUALIZE_HTML_FILENAME "index.html"
 
 typedef struct ih_stock_preset_option {
   const char *key;
@@ -378,17 +383,322 @@ static bool ih_status_check_profiles(status_report_t *report, ca_node_t *profile
   return healthy;
 }
 
-static bool ih_run_status_snapshot(config_t *config, const char *config_dir, bool json_output) {
-  status_report_t *report = status_report_create();
+static status_state_t ih_status_state_for_component(const status_report_t *report,
+                                                    const char *component_name,
+                                                    bool *found_out) {
+  status_component_t *cursor = NULL;
+
+  if(found_out != NULL)
+    *found_out = false;
+
+  if(report == NULL || component_name == NULL)
+    return STATUS_STATE_PENDING;
+
+  cursor = report->head;
+  while(cursor != NULL) {
+    if(cursor->name != NULL && strcmp(cursor->name, component_name) == 0) {
+      if(found_out != NULL)
+        *found_out = true;
+      return cursor->state;
+    }
+    cursor = cursor->next;
+  }
+
+  return STATUS_STATE_PENDING;
+}
+
+static const char* ih_status_css_class_for_state(status_state_t state) {
+  switch(state) {
+    case STATUS_STATE_IN_PROGRESS:
+      return "in_progress";
+    case STATUS_STATE_COMPLETE:
+      return "complete";
+    case STATUS_STATE_ERROR:
+      return "error";
+    case STATUS_STATE_SKIPPED:
+      return "skipped";
+    case STATUS_STATE_PENDING:
+    default:
+      return "pending";
+  }
+}
+
+static bool ih_ensure_directory_recursive(const char *path) {
+  char buffer[IH_INPUT_BUFFER_SIZE];
+  size_t length = 0;
+  char *cursor = NULL;
+
+  if(path == NULL || path[0] == '\0')
+    return false;
+
+  snprintf(buffer, sizeof(buffer), "%s", path);
+  length = strlen(buffer);
+  if(length == 0)
+    return false;
+
+  if(length > 1 && buffer[length - 1] == '/')
+    buffer[length - 1] = '\0';
+
+  for(cursor = buffer + 1; *cursor != '\0'; cursor++) {
+    if(*cursor == '/') {
+      *cursor = '\0';
+      if(mkdir(buffer, 0755) != 0 && errno != EEXIST)
+        return false;
+      *cursor = '/';
+    }
+  }
+
+  if(mkdir(buffer, 0755) != 0 && errno != EEXIST)
+    return false;
+
+  return true;
+}
+
+static void ih_build_visualize_run_id(char *output, size_t output_size) {
+  time_t now = time(NULL);
+  struct tm local_time;
+
+  if(output == NULL || output_size == 0)
+    return;
+
+  if(localtime_r(&now, &local_time) == NULL) {
+    snprintf(output, output_size, "run-%ld", (long)now);
+    return;
+  }
+
+  if(strftime(output, output_size, "%Y%m%d-%H%M%S", &local_time) == 0)
+    snprintf(output, output_size, "run-%ld", (long)now);
+}
+
+static void ih_write_html_escaped(FILE *stream, const char *value) {
+  size_t i = 0;
+
+  if(stream == NULL)
+    return;
+
+  if(value == NULL)
+    value = "";
+
+  for(i = 0; value[i] != '\0'; i++) {
+    switch(value[i]) {
+      case '&':
+        fputs("&amp;", stream);
+        break;
+      case '<':
+        fputs("&lt;", stream);
+        break;
+      case '>':
+        fputs("&gt;", stream);
+        break;
+      case '"':
+        fputs("&quot;", stream);
+        break;
+      case '\'':
+        fputs("&#39;", stream);
+        break;
+      default:
+        fputc(value[i], stream);
+        break;
+    }
+  }
+}
+
+static bool ih_write_visualize_mermaid(FILE *stream, const status_report_t *report) {
+  status_state_t snapshot_state = ih_status_state_for_component(report, "engine.snapshot", NULL);
+  status_state_t mezzanine_clean_state = ih_status_state_for_component(report, "stage.mezzanine_clean", NULL);
+  status_state_t mezzanine_state = ih_status_state_for_component(report, "stage.mezzanine", NULL);
+  status_state_t source_state = ih_status_state_for_component(report, "stage.source", NULL);
+  status_state_t profiles_state = ih_status_state_for_component(report, "stage.profiles", NULL);
+  status_state_t quality_state = ih_status_state_for_component(report, "stage.quality", NULL);
+  status_state_t execute_state = ih_status_state_for_component(report, "stage.execute", NULL);
+
+  if(stream == NULL)
+    return false;
+
+  fprintf(stream, "flowchart LR\n");
+  fprintf(stream, "  A[\"Snapshot\"] --> B[\"Mezzanine Clean\"] --> C[\"Mezzanine\"] --> D[\"Source\"] --> E[\"Profiles\"] --> F[\"Quality\"] --> G[\"Execute\"]\n");
+  fprintf(stream, "  classDef pending fill:#fff4db,stroke:#d3a80f,color:#5a4700;\n");
+  fprintf(stream, "  classDef in_progress fill:#d9ecff,stroke:#2082d8,color:#083a66;\n");
+  fprintf(stream, "  classDef complete fill:#dbf6e3,stroke:#2f9b5f,color:#0f4f2d;\n");
+  fprintf(stream, "  classDef error fill:#ffdede,stroke:#cf2f2f,color:#6e1111;\n");
+  fprintf(stream, "  classDef skipped fill:#ececec,stroke:#8a8a8a,color:#4a4a4a;\n");
+  fprintf(stream, "  class A %s;\n", ih_status_css_class_for_state(snapshot_state));
+  fprintf(stream, "  class B %s;\n", ih_status_css_class_for_state(mezzanine_clean_state));
+  fprintf(stream, "  class C %s;\n", ih_status_css_class_for_state(mezzanine_state));
+  fprintf(stream, "  class D %s;\n", ih_status_css_class_for_state(source_state));
+  fprintf(stream, "  class E %s;\n", ih_status_css_class_for_state(profiles_state));
+  fprintf(stream, "  class F %s;\n", ih_status_css_class_for_state(quality_state));
+  fprintf(stream, "  class G %s;\n", ih_status_css_class_for_state(execute_state));
+
+  return true;
+}
+
+static bool ih_write_visualize_html(FILE *stream,
+                                    const status_report_t *report,
+                                    const char *generated_at,
+                                    const char *status_json_path,
+                                    const char *mermaid_path,
+                                    bool healthy) {
+  int pending = 0;
+  int in_progress = 0;
+  int complete = 0;
+  int error = 0;
+  int skipped = 0;
+  status_component_t *cursor = NULL;
+  int i = 0;
+  struct {
+    const char *label;
+    const char *component;
+  } stage_views[] = {
+    {"Snapshot", "engine.snapshot"},
+    {"Mezzanine Clean", "stage.mezzanine_clean"},
+    {"Mezzanine", "stage.mezzanine"},
+    {"Source", "stage.source"},
+    {"Profiles", "stage.profiles"},
+    {"Quality", "stage.quality"},
+    {"Execute", "stage.execute"}
+  };
+  int stage_view_count = (int)(sizeof(stage_views) / sizeof(stage_views[0]));
+
+  if(stream == NULL || report == NULL)
+    return false;
+
+  status_report_summary(report, &pending, &in_progress, &complete, &error, &skipped);
+
+  fprintf(stream, "<!doctype html>\n");
+  fprintf(stream, "<html lang=\"en\">\n");
+  fprintf(stream, "<head>\n");
+  fprintf(stream, "  <meta charset=\"utf-8\" />\n");
+  fprintf(stream, "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n");
+  fprintf(stream, "  <title>vfo visualize report</title>\n");
+  fprintf(stream, "  <style>\n");
+  fprintf(stream, "    body { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; margin: 24px; color: #102018; background: #f7faf7; }\n");
+  fprintf(stream, "    h1, h2 { margin: 0 0 12px 0; }\n");
+  fprintf(stream, "    .meta { color: #284034; margin-bottom: 18px; }\n");
+  fprintf(stream, "    .summary { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0 24px 0; }\n");
+  fprintf(stream, "    .pill { border-radius: 999px; padding: 6px 10px; font-size: 13px; border: 1px solid transparent; }\n");
+  fprintf(stream, "    .pending { background: #fff4db; border-color: #d3a80f; color: #5a4700; }\n");
+  fprintf(stream, "    .in_progress { background: #d9ecff; border-color: #2082d8; color: #083a66; }\n");
+  fprintf(stream, "    .complete { background: #dbf6e3; border-color: #2f9b5f; color: #0f4f2d; }\n");
+  fprintf(stream, "    .error { background: #ffdede; border-color: #cf2f2f; color: #6e1111; }\n");
+  fprintf(stream, "    .skipped { background: #ececec; border-color: #8a8a8a; color: #4a4a4a; }\n");
+  fprintf(stream, "    .flow { display: flex; align-items: stretch; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 24px; }\n");
+  fprintf(stream, "    .node { min-width: 150px; border: 1px solid #cfd8cf; border-radius: 10px; padding: 10px; background: #fff; }\n");
+  fprintf(stream, "    .node .label { font-weight: 600; margin-bottom: 6px; }\n");
+  fprintf(stream, "    .node .component { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; opacity: 0.85; }\n");
+  fprintf(stream, "    .arrow { align-self: center; color: #4f6357; font-size: 22px; }\n");
+  fprintf(stream, "    table { width: 100%%; border-collapse: collapse; background: #fff; }\n");
+  fprintf(stream, "    th, td { border: 1px solid #d5ddd5; padding: 8px; text-align: left; vertical-align: top; font-size: 13px; }\n");
+  fprintf(stream, "    th { background: #edf3ed; }\n");
+  fprintf(stream, "    code { background: #edf2ed; border-radius: 6px; padding: 1px 6px; }\n");
+  fprintf(stream, "    .refs { margin-top: 16px; color: #2b4033; }\n");
+  fprintf(stream, "  </style>\n");
+  fprintf(stream, "</head>\n");
+  fprintf(stream, "<body>\n");
+  fprintf(stream, "  <h1>vfo visualize report</h1>\n");
+  fprintf(stream, "  <div class=\"meta\">Generated: ");
+  ih_write_html_escaped(stream, generated_at);
+  fprintf(stream, "</div>\n");
+
+  fprintf(stream, "  <div class=\"summary\">\n");
+  fprintf(stream, "    <span class=\"pill %s\">healthy=%s</span>\n",
+          healthy ? "complete" : "error",
+          healthy ? "true" : "false");
+  fprintf(stream, "    <span class=\"pill pending\">pending=%d</span>\n", pending);
+  fprintf(stream, "    <span class=\"pill in_progress\">in_progress=%d</span>\n", in_progress);
+  fprintf(stream, "    <span class=\"pill complete\">complete=%d</span>\n", complete);
+  fprintf(stream, "    <span class=\"pill error\">error=%d</span>\n", error);
+  fprintf(stream, "    <span class=\"pill skipped\">skipped=%d</span>\n", skipped);
+  fprintf(stream, "  </div>\n");
+
+  fprintf(stream, "  <h2>Pipeline View</h2>\n");
+  fprintf(stream, "  <div class=\"flow\">\n");
+  for(i = 0; i < stage_view_count; i++) {
+    bool found = false;
+    status_state_t stage_state = ih_status_state_for_component(report, stage_views[i].component, &found);
+    const char *state_label = status_state_to_string(stage_state);
+    const char *css_class = ih_status_css_class_for_state(stage_state);
+    fprintf(stream, "    <div class=\"node %s\">\n", css_class);
+    fprintf(stream, "      <div class=\"label\">");
+    ih_write_html_escaped(stream, stage_views[i].label);
+    fprintf(stream, "</div>\n");
+    fprintf(stream, "      <div class=\"component\">");
+    ih_write_html_escaped(stream, stage_views[i].component);
+    fprintf(stream, "</div>\n");
+    fprintf(stream, "      <div><span class=\"pill %s\">", css_class);
+    ih_write_html_escaped(stream, state_label);
+    fprintf(stream, "</span></div>\n");
+    fprintf(stream, "    </div>\n");
+    if(i < stage_view_count - 1)
+      fprintf(stream, "    <div class=\"arrow\">&#8594;</div>\n");
+  }
+  fprintf(stream, "  </div>\n");
+
+  fprintf(stream, "  <h2>Components</h2>\n");
+  fprintf(stream, "  <table>\n");
+  fprintf(stream, "    <thead><tr><th>component</th><th>state</th><th>detail</th></tr></thead>\n");
+  fprintf(stream, "    <tbody>\n");
+  cursor = report->head;
+  while(cursor != NULL) {
+    const char *css_class = ih_status_css_class_for_state(cursor->state);
+    fprintf(stream, "      <tr>\n");
+    fprintf(stream, "        <td><code>");
+    ih_write_html_escaped(stream, cursor->name == NULL ? "" : cursor->name);
+    fprintf(stream, "</code></td>\n");
+    fprintf(stream, "        <td><span class=\"pill %s\">", css_class);
+    ih_write_html_escaped(stream, status_state_to_string(cursor->state));
+    fprintf(stream, "</span></td>\n");
+    fprintf(stream, "        <td>");
+    ih_write_html_escaped(stream, cursor->detail == NULL ? "" : cursor->detail);
+    fprintf(stream, "</td>\n");
+    fprintf(stream, "      </tr>\n");
+    cursor = cursor->next;
+  }
+  fprintf(stream, "    </tbody>\n");
+  fprintf(stream, "  </table>\n");
+
+  fprintf(stream, "  <div class=\"refs\">\n");
+  fprintf(stream, "    <p>Artifacts: <code>");
+  ih_write_html_escaped(stream, status_json_path);
+  fprintf(stream, "</code>, <code>");
+  ih_write_html_escaped(stream, mermaid_path);
+  fprintf(stream, "</code></p>\n");
+  fprintf(stream, "    <p>Formal models: <code>services/vfo/docs/workflow-engine.bpmn</code> and <code>services/vfo/docs/workflow-decisions.dmn</code>.</p>\n");
+  fprintf(stream, "  </div>\n");
+  fprintf(stream, "</body>\n");
+  fprintf(stream, "</html>\n");
+
+  return true;
+}
+
+static void ih_try_open_visualization(const char *html_path) {
+  char command[IH_INPUT_BUFFER_SIZE * 2];
+
+  if(html_path == NULL || html_path[0] == '\0')
+    return;
+
+#if defined(__APPLE__)
+  snprintf(command, sizeof(command), "open \"%s\" >/dev/null 2>&1", html_path);
+  if(system(command) == 0)
+    printf("VISUALIZE ALERT: opened report in browser\n");
+  else
+    printf("VISUALIZE WARN: could not open report automatically; open this path manually: %s\n", html_path);
+#elif defined(__linux__)
+  snprintf(command, sizeof(command), "xdg-open \"%s\" >/dev/null 2>&1", html_path);
+  if(system(command) == 0)
+    printf("VISUALIZE ALERT: opened report in browser\n");
+  else
+    printf("VISUALIZE WARN: could not open report automatically; open this path manually: %s\n", html_path);
+#else
+  printf("VISUALIZE WARN: browser auto-open is not supported on this platform. Open this path manually: %s\n", html_path);
+#endif
+}
+
+static bool ih_collect_status_snapshot(config_t *config, const char *config_dir, status_report_t *report) {
   bool healthy = true;
   bool originals_healthy = true;
   bool source_healthy = true;
   bool profiles_healthy = true;
-
-  if(report == NULL) {
-    printf("STATUS ERROR: could not allocate status report\n");
-    return false;
-  }
 
   status_report_update(report, "engine.snapshot", STATUS_STATE_IN_PROGRESS, "collecting component status");
 
@@ -485,12 +795,128 @@ static bool ih_run_status_snapshot(config_t *config, const char *config_dir, boo
                        healthy ? STATUS_STATE_COMPLETE : STATUS_STATE_ERROR,
                        healthy ? "snapshot completed successfully" : "snapshot completed with errors");
 
+  return status_report_is_healthy(report) && healthy;
+}
+
+static bool ih_run_status_snapshot(config_t *config, const char *config_dir, bool json_output) {
+  status_report_t *report = status_report_create();
+  bool healthy = true;
+
+  if(report == NULL) {
+    printf("STATUS ERROR: could not allocate status report\n");
+    return false;
+  }
+
+  healthy = ih_collect_status_snapshot(config, config_dir, report);
+
   if(json_output)
     status_report_print_json(report, stdout);
   else
     status_report_print_text(report, stdout);
 
-  healthy = status_report_is_healthy(report);
+  healthy = status_report_is_healthy(report) && healthy;
+  status_report_free(report);
+  return healthy;
+}
+
+static bool ih_run_visualize(config_t *config, const char *config_dir, bool open_report) {
+  status_report_t *report = status_report_create();
+  bool healthy = true;
+  time_t now = time(NULL);
+  struct tm local_time;
+  char generated_at[128];
+  char run_id[64];
+  char visualize_root[IH_INPUT_BUFFER_SIZE];
+  char run_dir[IH_INPUT_BUFFER_SIZE];
+  char status_json_path[IH_INPUT_BUFFER_SIZE];
+  char mermaid_path[IH_INPUT_BUFFER_SIZE];
+  char html_path[IH_INPUT_BUFFER_SIZE];
+  FILE *status_file = NULL;
+  FILE *mermaid_file = NULL;
+  FILE *html_file = NULL;
+
+  if(report == NULL) {
+    printf("VISUALIZE ERROR: could not allocate status report\n");
+    return false;
+  }
+
+  if(localtime_r(&now, &local_time) != NULL)
+    strftime(generated_at, sizeof(generated_at), "%Y-%m-%d %H:%M:%S %Z", &local_time);
+  else
+    snprintf(generated_at, sizeof(generated_at), "%ld", (long)now);
+
+  ih_build_visualize_run_id(run_id, sizeof(run_id));
+
+  if(config_dir != NULL && config_dir[0] != '\0')
+    snprintf(visualize_root, sizeof(visualize_root), "%s/%s", config_dir, IH_VISUALIZE_SUBDIR);
+  else
+    snprintf(visualize_root, sizeof(visualize_root), "/tmp/vfo-visualizations");
+
+  if(ih_ensure_directory_recursive(visualize_root) == false) {
+    snprintf(visualize_root, sizeof(visualize_root), "/tmp/vfo-visualizations");
+    if(ih_ensure_directory_recursive(visualize_root) == false) {
+      printf("VISUALIZE ERROR: could not create output directory: %s\n", visualize_root);
+      status_report_free(report);
+      return false;
+    }
+    printf("VISUALIZE WARN: using fallback output directory: %s\n", visualize_root);
+  }
+
+  snprintf(run_dir, sizeof(run_dir), "%s/%s", visualize_root, run_id);
+  if(ih_ensure_directory_recursive(run_dir) == false) {
+    printf("VISUALIZE ERROR: could not create run directory: %s\n", run_dir);
+    status_report_free(report);
+    return false;
+  }
+
+  snprintf(status_json_path, sizeof(status_json_path), "%s/%s", run_dir, IH_VISUALIZE_STATUS_FILENAME);
+  snprintf(mermaid_path, sizeof(mermaid_path), "%s/%s", run_dir, IH_VISUALIZE_MERMAID_FILENAME);
+  snprintf(html_path, sizeof(html_path), "%s/%s", run_dir, IH_VISUALIZE_HTML_FILENAME);
+
+  healthy = ih_collect_status_snapshot(config, config_dir, report);
+
+  status_file = fopen(status_json_path, "w");
+  if(status_file == NULL) {
+    printf("VISUALIZE ERROR: could not write %s\n", status_json_path);
+    status_report_free(report);
+    return false;
+  }
+  status_report_print_json(report, status_file);
+  fclose(status_file);
+  status_file = NULL;
+
+  mermaid_file = fopen(mermaid_path, "w");
+  if(mermaid_file == NULL) {
+    printf("VISUALIZE ERROR: could not write %s\n", mermaid_path);
+    status_report_free(report);
+    return false;
+  }
+  ih_write_visualize_mermaid(mermaid_file, report);
+  fclose(mermaid_file);
+  mermaid_file = NULL;
+
+  html_file = fopen(html_path, "w");
+  if(html_file == NULL) {
+    printf("VISUALIZE ERROR: could not write %s\n", html_path);
+    status_report_free(report);
+    return false;
+  }
+  ih_write_visualize_html(html_file, report, generated_at, status_json_path, mermaid_path, healthy);
+  fclose(html_file);
+  html_file = NULL;
+
+  printf("VISUALIZE ALERT: generated workflow visualization artifacts\n");
+  printf("VISUALIZE INFO: status json => %s\n", status_json_path);
+  printf("VISUALIZE INFO: mermaid map => %s\n", mermaid_path);
+  printf("VISUALIZE INFO: html report => %s\n", html_path);
+  printf("VISUALIZE INFO: formal BPMN => services/vfo/docs/workflow-engine.bpmn\n");
+  printf("VISUALIZE INFO: formal DMN => services/vfo/docs/workflow-decisions.dmn\n");
+
+  if(open_report)
+    ih_try_open_visualization(html_path);
+  else
+    printf("VISUALIZE NEXT: pass --open with `vfo visualize` to open the report in a browser\n");
+
   status_report_free(report);
   return healthy;
 }
@@ -560,7 +986,8 @@ static bool ih_should_use_lenient_config_validation(arguments_t *arguments) {
   return arguments->doctor_detected
       || arguments->show_detected
       || arguments->status_detected
-      || arguments->status_json_detected;
+      || arguments->status_json_detected
+      || arguments->visualize_detected;
 }
 
 static void ih_execute_all_profiles(config_t *config) {
@@ -2156,6 +2583,11 @@ int main (int argc, char **argv) {
     exit(EXIT_SUCCESS);
   }
 
+  if(ih->options->open_detected == true && ih->arguments->visualize_detected == false) {
+    printf("ERROR: --open is only supported with `vfo visualize`\n");
+    exit(EXIT_FAILURE);
+  }
+
   /*Let's handle what argument errors WE CAN HANDLE before running con_init*/
   //vfo revert [no_original]
   if(ih->arguments->revert_detected && !(ih->arguments->original_detected)) {
@@ -2183,7 +2615,9 @@ int main (int argc, char **argv) {
   //extract config file data and unknown words from user input, to config struct
   int suppressed_stdout_fd = -1;
 
-  if(ih->arguments->status_detected == true || ih->arguments->status_json_detected == true)
+  if(ih->arguments->status_detected == true
+     || ih->arguments->status_json_detected == true
+     || ih->arguments->visualize_detected == true)
     ih_suppress_stdout_begin(&suppressed_stdout_fd);
 
   con_set_lenient_location_validation(ih_should_use_lenient_config_validation(ih->arguments));
@@ -2198,6 +2632,13 @@ int main (int argc, char **argv) {
     free(config);
     config = NULL;
     return status_success ? EXIT_SUCCESS : EXIT_FAILURE;
+  }
+
+  if(ih->arguments->visualize_detected == true) {
+    bool visualize_success = ih_run_visualize(config, config_dir, ih->options->open_detected == true);
+    free(config);
+    config = NULL;
+    return visualize_success ? EXIT_SUCCESS : EXIT_FAILURE;
   }
 
   if(ih->arguments->show_detected == true) {
@@ -2258,6 +2699,7 @@ int main (int argc, char **argv) {
   printf("ih->arguments->doctor_detected: %i\n", ih->arguments->doctor_detected);
   printf("ih->arguments->status_detected: %i\n", ih->arguments->status_detected);
   printf("ih->arguments->status_json_detected: %i\n", ih->arguments->status_json_detected);
+  printf("ih->arguments->visualize_detected: %i\n", ih->arguments->visualize_detected);
   printf("ih->arguments->wizard_detected: %i\n", ih->arguments->wizard_detected);
   printf("ih->arguments->show_detected: %i\n", ih->arguments->show_detected);
   printf("ih->arguments->mezzanine_clean_detected: %i\n", ih->arguments->mezzanine_clean_detected);

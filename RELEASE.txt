@@ -14,6 +14,7 @@
 
 vfo now checks required dependencies before pipeline execution and clearly reports what is missing.
 Use `vfo status` or `vfo status-json` to inspect component/stage readiness before running the pipeline.
+Use `vfo visualize` to generate local workflow artifacts (HTML + JSON + Mermaid).
 `vfo mezzanine-clean` provides optional mezzanine folder/filename hygiene with probe-based recommendations.
 
 ### macOS (recommended: signed package)
@@ -48,8 +49,9 @@ Installed paths:
 2. `vfo show` to review active config values.
 3. `vfo doctor` to validate paths and required tools.
 4. `vfo status` (or `vfo status-json`) to confirm engine readiness.
-5. `vfo mezzanine-clean` to audit (or apply) mezzanine naming/structure hygiene.
-6. `vfo run` to execute the default pipeline (including optional quality scoring when enabled).
+5. `vfo visualize` to generate a local workflow report and formal-model references.
+6. `vfo mezzanine-clean` to audit (or apply) mezzanine naming/structure hygiene.
+7. `vfo run` to execute the default pipeline (including optional quality scoring when enabled).
 
 ### Multi-location storage routing
 - `MEZZANINE_LOCATIONS`, `SOURCE_LOCATIONS`, and `<PROFILE>_LOCATIONS` support semicolon-separated paths.

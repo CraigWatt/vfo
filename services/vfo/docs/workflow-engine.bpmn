@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_vfo_workflow"
+                  targetNamespace="https://vfo.local/bpmn">
+  <bpmn:process id="vfo_pipeline_process" name="vfo Pipeline" isExecutable="false">
+    <bpmn:startEvent id="start_event" name="CLI command" />
+
+    <bpmn:task id="task_snapshot" name="Collect status snapshot" />
+    <bpmn:exclusiveGateway id="gw_run_path" name="Run pipeline?" default="flow_not_run" />
+
+    <bpmn:task id="task_mezzanine_clean" name="Mezzanine-clean stage" />
+    <bpmn:task id="task_mezzanine" name="Mezzanine stage" />
+    <bpmn:exclusiveGateway id="gw_source_enabled" name="KEEP_SOURCE?" default="flow_skip_source" />
+    <bpmn:task id="task_source" name="Source stage" />
+
+    <bpmn:task id="task_profiles" name="Profile stage" />
+    <bpmn:exclusiveGateway id="gw_quality_enabled" name="QUALITY_CHECK_ENABLED?" default="flow_skip_quality" />
+    <bpmn:task id="task_quality" name="Quality scoring" />
+
+    <bpmn:endEvent id="end_event_success" name="End (success)" />
+    <bpmn:endEvent id="end_event_ready" name="End (snapshot/visualize)" />
+
+    <bpmn:sequenceFlow id="flow_start_snapshot" sourceRef="start_event" targetRef="task_snapshot" />
+    <bpmn:sequenceFlow id="flow_snapshot_run_gate" sourceRef="task_snapshot" targetRef="gw_run_path" />
+
+    <bpmn:sequenceFlow id="flow_run_default" sourceRef="gw_run_path" targetRef="task_mezzanine_clean">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[command == "run" || command == "auto"]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_not_run" sourceRef="gw_run_path" targetRef="end_event_ready" />
+
+    <bpmn:sequenceFlow id="flow_clean_to_mezzanine" sourceRef="task_mezzanine_clean" targetRef="task_mezzanine" />
+    <bpmn:sequenceFlow id="flow_mezzanine_to_source_gate" sourceRef="task_mezzanine" targetRef="gw_source_enabled" />
+
+    <bpmn:sequenceFlow id="flow_keep_source_true" sourceRef="gw_source_enabled" targetRef="task_source">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[keep_source == true]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_skip_source" sourceRef="gw_source_enabled" targetRef="task_profiles" />
+
+    <bpmn:sequenceFlow id="flow_source_to_profiles" sourceRef="task_source" targetRef="task_profiles" />
+    <bpmn:sequenceFlow id="flow_profiles_to_quality_gate" sourceRef="task_profiles" targetRef="gw_quality_enabled" />
+
+    <bpmn:sequenceFlow id="flow_quality_true" sourceRef="gw_quality_enabled" targetRef="task_quality">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression"><![CDATA[quality_check_enabled == true]]></bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_skip_quality" sourceRef="gw_quality_enabled" targetRef="end_event_success" />
+
+    <bpmn:sequenceFlow id="flow_quality_to_end" sourceRef="task_quality" targetRef="end_event_success" />
+  </bpmn:process>
+</bpmn:definitions>
