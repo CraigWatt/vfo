@@ -887,7 +887,12 @@ static const char* quality_select_reference_root(const char *source_root,
 
   if(mezzanine_root == NULL || mezzanine_root[0] == '\0')
     return NULL;
+
   snprintf(buffer_out, buffer_out_size, "%s/start", mezzanine_root);
+  if(utils_does_folder_exist(buffer_out))
+    return buffer_out;
+
+  snprintf(buffer_out, buffer_out_size, "%s", mezzanine_root);
   return buffer_out;
 }
 

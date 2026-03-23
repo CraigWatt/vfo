@@ -51,6 +51,7 @@ void ih_mes_usage () {
   fprintf(stdout, "%s status-json # machine-readable observability snapshot\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s visualize   # generate local workflow visualization artifacts\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s run         # run default pipeline end-to-end (+ optional quality scoring)\n\n", __PROGRAM_NAME__);
+  fprintf(stdout, "%s auto        # continuously run pipeline (non-interactive)\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s mezzanine-clean # audit/normalize mezzanine naming and structure\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s mezzanine   # mezzanine preparation stage\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s source      # normalized source stage\n\n", __PROGRAM_NAME__);
@@ -106,6 +107,8 @@ void ih_mes_arguments() {
                     "\t\tgenerate status.json + mermaid + html workflow report (supports --open)\n\n");
     fprintf(stdout, GRAY "\trun\n" NO_COLOR
                     "\t\texecutes default pipeline: mezzanine -> source (if enabled) -> profiles -> optional quality scoring\n\n");
+    fprintf(stdout, GRAY "\tauto\n" NO_COLOR
+                    "\t\trepeatedly executes `run` in non-interactive mode (env: VFO_AUTO_INTERVAL_SECONDS, VFO_AUTO_MAX_ITERATIONS)\n\n");
     fprintf(stdout, GRAY "\tmezzanine-clean\n" NO_COLOR
                     "\t\taudit or apply Jellyfin-style mezzanine naming/structure hygiene\n\n");
     fprintf(stdout, GRAY "\tmezzanine\n" NO_COLOR

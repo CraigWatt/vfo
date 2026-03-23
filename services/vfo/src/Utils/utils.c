@@ -25,6 +25,25 @@
 #include "u_internal.h"
 #include <stdlib.h>
 
+static bool utils_assume_yes_mode(void) {
+  const char *value = getenv("VFO_ASSUME_YES");
+  if(value == NULL || value[0] == '\0')
+    return false;
+
+  if(strcmp(value, "1") == 0
+     || strcmp(value, "y") == 0
+     || strcmp(value, "Y") == 0
+     || strcmp(value, "yes") == 0
+     || strcmp(value, "YES") == 0
+     || strcmp(value, "true") == 0
+     || strcmp(value, "TRUE") == 0
+     || strcmp(value, "on") == 0
+     || strcmp(value, "ON") == 0)
+    return true;
+
+  return false;
+}
+
 /**
  * Checks to see if param is a real directory on current machine
  * 
@@ -206,6 +225,7 @@ bool utils_is_folder_empty(char *folder) {
  * This function replaces ' ' characters in param file_name with '_'
  */
 void utils_replace_spaces(char *file_name, char *parent_directory) {
+  bool assume_yes = utils_assume_yes_mode();
   int s_length = strlen(file_name);
   for(int i = 0; i <= s_length; i++) {
     if (isspace(file_name[i])) {
@@ -219,10 +239,15 @@ void utils_replace_spaces(char *file_name, char *parent_directory) {
         }
       }
       char answer;
-      printf("change %s to %s ?\n", file_name, tmp_filename);
-      printf("y/n ?\n");
-      scanf(" %c", &answer);
-      printf("\n user input: %c\n", answer);
+      if(assume_yes) {
+        answer = 'y';
+        printf("AUTO INFO: non-interactive mode accepted rename %s -> %s\n", file_name, tmp_filename);
+      } else {
+        printf("change %s to %s ?\n", file_name, tmp_filename);
+        printf("y/n ?\n");
+        scanf(" %c", &answer);
+        printf("\n user input: %c\n", answer);
+      }
       
       if(answer == 'n' || answer == 'N') {
         printf("exiting vfo...\n");
@@ -249,6 +274,10 @@ void utils_replace_spaces(char *file_name, char *parent_directory) {
  * This function pauses to ask the user if they wish to continue with the next process, and tells the user what process was just completed.
  */
 void utils_wish_to_continue(char *previous_process, char *next_action) {
+   if(utils_assume_yes_mode()) {
+    printf("AUTO INFO: non-interactive mode accepted transition %s -> %s\n", previous_process, next_action);
+    return;
+   }
    char answer;
     printf("USER PROMPT:\n");
     printf("Everything appears to be in order with %s, do you wish to continue with the next action:%s?\n", previous_process, next_action);
@@ -272,6 +301,10 @@ void utils_wish_to_continue(char *previous_process, char *next_action) {
  * This functions pauses to ask for permission to create a specific folder
  */
 void utils_ask_user_for_permission_to_create_a_folder(char *folder) {
+  if(utils_assume_yes_mode()) {
+    printf("AUTO INFO: non-interactive mode accepted creating required folder: %s\n", folder);
+    return;
+  }
   char answer;
   printf("USER PROMPT:\n");
   printf("vfo requires %s to exist.\n", folder);
@@ -632,7 +665,7 @@ void utils_found_a_rogue_file(char *file_name, char *folder) {
 }
 
 bool utils_is_string_a_reserved_word(char *string) {
-  char *reserved_words[] = {"mezzanine", "original", "source", "revert", "wipe", "profiles", "all_aliases", "do_it_all", "run", "doctor", "wizard", "show", "visualize", "mezzanine-clean", "mezzanine_clean", "profile", "alias", "status", "status-json", "status_json", "-o", "--open"};
+  char *reserved_words[] = {"mezzanine", "original", "source", "revert", "wipe", "profiles", "all_aliases", "do_it_all", "run", "auto", "doctor", "wizard", "show", "visualize", "mezzanine-clean", "mezzanine_clean", "profile", "alias", "status", "status-json", "status_json", "-o", "--open"};
   int reserved_words_array_length = (sizeof reserved_words / sizeof(char*));
   
   bool match_found = false;
