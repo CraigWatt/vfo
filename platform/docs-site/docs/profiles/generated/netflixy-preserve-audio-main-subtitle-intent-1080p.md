@@ -31,16 +31,28 @@ Action summary from `transcode_hevc_1080_main_subtitle_preserve_profile.sh`:
 - If a main subtitle is selected, output container is MKV for reliable subtitle preservation.
 - If no main subtitle is selected, output container is MP4 with +faststart.
 
+Operator knobs from `transcode_hevc_1080_main_subtitle_preserve_profile.sh`:
+
+- `VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT=1   # include default english subtitle when no forced track exists`
+- `VFO_ENCODER_MODE=auto|hw|cpu`
+
 ## Flow
 
 ```mermaid
 flowchart TD
-  A[Candidate matches profile criteria] --> B[Run action script]
-  B --> C{Main subtitle found?}
-  C -->|Yes| D[Encode HEVC + copy audio + keep one subtitle]
-  D --> E[Output MKV]
-  C -->|No| F[Encode HEVC + copy audio]
-  F --> G[Output MP4 faststart]
+  classDef gate fill:#fff7ed,stroke:#f59e0b,color:#7c2d12,stroke-width:1.5px;
+  classDef stage fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,stroke-width:1.2px;
+  classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;
+  classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;
+
+  A[Candidate enters profile]:::stage --> B{Matches profile criteria envelope?}:::gate
+  B -->|No| Z[Handled by other profile or skipped]:::skip
+  B -->|Yes| C[Run subtitle-intent action script]:::stage
+  C --> D{Main subtitle detected by heuristic?}:::gate
+  D -->|Yes| E[Encode HEVC / copy audio / copy selected subtitle]:::stage
+  E --> F[Emit MKV output]:::output
+  D -->|No| G[Encode HEVC / copy audio]:::stage
+  G --> H[Emit MP4 faststart output]:::output
 ```
 
 ## Source

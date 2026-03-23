@@ -15,8 +15,9 @@ This site is built to answer three practical questions quickly:
 ## Start Here
 
 1. Read [Pipeline](pipeline-end-to-end.md) for end-to-end behavior.
-2. Check [Capability Matrix](profile-capability-matrix.md) to see what each stock profile targets.
-3. Open [Profile Info Sheets](profiles/index.md) for deep behavior details per profile.
+2. Read [Flow Levels](flow-levels.md) for executive/operator/engine visuals.
+3. Check [Capability Matrix](profile-capability-matrix.md) to see what each stock profile targets.
+4. Open [Profile Info Sheets](profiles/index.md) for deep behavior details per profile.
 
 ## Install and Verify
 

@@ -48,6 +48,52 @@ parse_behavior_block() {
   return 1
 }
 
+parse_optional_env_block() {
+  local action_file="$1"
+  local optional_env
+
+  if [ ! -f "$action_file" ]; then
+    return 1
+  fi
+
+  optional_env="$(sed -n '/^# Optional env:/,/^if \[/p' "$action_file" \
+    | sed '1d;$d' \
+    | sed -E 's/^# ?//' \
+    | sed -E 's/^- +//' \
+    | sed -E 's/^[[:space:]]+//' \
+    | sed '/^$/d' \
+    || true)"
+
+  if [ -n "$optional_env" ]; then
+    printf '%s\n' "$optional_env"
+    return 0
+  fi
+
+  return 1
+}
+
+command_label() {
+  local command="$1"
+  local token
+
+  token="${command%% *}"
+  if [ "$token" = "ffmpeg" ]; then
+    printf 'direct ffmpeg'
+    return 0
+  fi
+
+  if [[ "$token" == *.sh ]]; then
+    printf '%s' "$token"
+    return 0
+  fi
+
+  printf '%s' "${token:-command}"
+}
+
+mermaid_text() {
+  printf '%s' "$1" | tr '"' "'" | tr '|' '/'
+}
+
 write_profile_doc() {
   local pack="$1"
   local profile="$2"
@@ -72,8 +118,11 @@ write_profile_doc() {
   local command_token
   local action_file
   local behavior_text
+  local optional_env_text
   local scenario_count
   local first_command
+  local first_scenario
+  local first_command_label
   local profile_doc
   local mermaid_variant
 
@@ -107,6 +156,12 @@ write_profile_doc() {
     first_command="${commands[0]}"
   fi
 
+  first_scenario=""
+  if [ "${#scenarios[@]}" -gt 0 ]; then
+    first_scenario="${scenarios[0]}"
+  fi
+
+  first_command_label="$(command_label "$first_command")"
   mermaid_variant="generic"
   if printf '%s' "$first_command" | grep -q "main_subtitle_preserve_profile.sh"; then
     mermaid_variant="subtitle_intent"
@@ -173,6 +228,15 @@ write_profile_doc() {
           done <<< "$behavior_text"
           printf '\n'
         fi
+
+        optional_env_text="$(parse_optional_env_block "$action_file" || true)"
+        if [ -n "$optional_env_text" ]; then
+          printf 'Operator knobs from `%s`:\n\n' "$command_token"
+          while IFS= read -r line; do
+            printf -- '- `%s`\n' "$line"
+          done <<< "$optional_env_text"
+          printf '\n'
+        fi
       fi
     fi
 
@@ -181,23 +245,38 @@ write_profile_doc() {
       cat <<'MERMAID'
 ```mermaid
 flowchart TD
-  A[Candidate matches profile criteria] --> B[Run action script]
-  B --> C{Main subtitle found?}
-  C -->|Yes| D[Encode HEVC + copy audio + keep one subtitle]
-  D --> E[Output MKV]
-  C -->|No| F[Encode HEVC + copy audio]
-  F --> G[Output MP4 faststart]
+  classDef gate fill:#fff7ed,stroke:#f59e0b,color:#7c2d12,stroke-width:1.5px;
+  classDef stage fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,stroke-width:1.2px;
+  classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;
+  classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;
+
+  A[Candidate enters profile]:::stage --> B{Matches profile criteria envelope?}:::gate
+  B -->|No| Z[Handled by other profile or skipped]:::skip
+  B -->|Yes| C[Run subtitle-intent action script]:::stage
+  C --> D{Main subtitle detected by heuristic?}:::gate
+  D -->|Yes| E[Encode HEVC / copy audio / copy selected subtitle]:::stage
+  E --> F[Emit MKV output]:::output
+  D -->|No| G[Encode HEVC / copy audio]:::stage
+  G --> H[Emit MP4 faststart output]:::output
 ```
 MERMAID
     else
-      cat <<'MERMAID'
-```mermaid
-flowchart TD
-  A[Candidate matches profile criteria] --> B[Evaluate scenario rules]
-  B --> C[Execute selected command]
-  C --> D[Write profile output]
-```
-MERMAID
+      first_scenario_safe="$(mermaid_text "$first_scenario")"
+      first_command_safe="$(mermaid_text "$first_command_label")"
+      printf '```mermaid\n'
+      printf 'flowchart TD\n'
+      printf '  classDef gate fill:#fff7ed,stroke:#f59e0b,color:#7c2d12,stroke-width:1.5px;\n'
+      printf '  classDef stage fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,stroke-width:1.2px;\n'
+      printf '  classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;\n'
+      printf '  classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;\n'
+      printf '\n'
+      printf '  A[Candidate enters profile]:::stage --> B{Matches profile criteria envelope?}:::gate\n'
+      printf '  B -->|No| Z[Handled by other profile or skipped]:::skip\n'
+      printf '  B -->|Yes| C{Evaluate scenarios in order}:::gate\n'
+      printf '  C --> D[First match: %s]:::stage\n' "${first_scenario_safe:-ELSE}"
+      printf '  D --> E[Execute: %s]:::stage\n' "${first_command_safe:-command}"
+      printf '  E --> F[Write profile output]:::output\n'
+      printf '```\n'
     fi
 
     printf '\n## Source\n\n'

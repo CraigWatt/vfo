@@ -9,6 +9,8 @@ site_dir: platform/docs-site/site
 nav:
   - Home: index.md
   - Pipeline: pipeline-end-to-end.md
+  - Flow Levels: flow-levels.md
+  - Profile Visual Standard: profile-visual-standard.md
   - Profile Packs: profile-packs.md
   - Capability Matrix: profile-capability-matrix.md
   - Profile Info Sheets: profiles/index.md
