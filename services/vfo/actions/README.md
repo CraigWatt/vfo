@@ -60,8 +60,11 @@ Device-target templates:
   - selects one "main subtitle" using english-speaker heuristics:
     forced english -> forced untagged/unknown -> optional default english
   - explicitly skips non-english forced tracks
-  - emits MKV when a main subtitle is selected, otherwise faststart MP4
-  - optional env: `VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT=1`
+  - emits MKV when a main subtitle is selected
+  - otherwise emits stream-ready MP4, defaulting to fragmented MP4 with init/moov at start
+  - optional env:
+    - `VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT=1`
+    - `VFO_MP4_STREAM_MODE=fmp4_faststart|fmp4|faststart` (default: `fmp4_faststart`)
 
 ## Hardware selection override
 

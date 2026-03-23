@@ -29,12 +29,15 @@ Action summary from `transcode_hevc_1080_main_subtitle_preserve_profile.sh`:
 -   priority: forced english -> forced untagged/unknown -> optional default english.
 -   non-english forced tracks are intentionally skipped.
 - If a main subtitle is selected, output container is MKV for reliable subtitle preservation.
-- If no main subtitle is selected, output container is MP4 with +faststart.
+- If no main subtitle is selected, output container is stream-ready MP4:
+-   fragmented MP4 with init/moov at the start.
 
 Operator knobs from `transcode_hevc_1080_main_subtitle_preserve_profile.sh`:
 
 - `VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT=1   # include default english subtitle when no forced track exists`
 - `VFO_ENCODER_MODE=auto|hw|cpu`
+- `VFO_MP4_STREAM_MODE=fmp4_faststart|fmp4|faststart`
+- `default: fmp4_faststart`
 
 ## Starting Inputs And Expected Outputs
 
@@ -45,7 +48,7 @@ Operator knobs from `transcode_hevc_1080_main_subtitle_preserve_profile.sh`:
 | Required resolution range | `352x240` to `1920x1080` |
 | If criteria do not match | candidate is routed to another profile or skipped |
 | If criteria match | scenario order is evaluated and first match executes |
-| Output intent | conditional: MKV when main subtitle intent is detected, otherwise MP4 +faststart |
+| Output intent | conditional: MKV when main subtitle intent is detected, otherwise stream-ready MP4 (fragmented + init/moov at start by default) |
 
 ## Flow
 
@@ -64,7 +67,8 @@ flowchart TD
   E -->|Yes| F[Encode HEVC, copy audio, copy selected subtitle]:::stage
   F --> G[Emit MKV output]:::output
   E -->|No| H[Encode HEVC, copy audio]:::stage
-  H --> I[Emit MP4 faststart output]:::output
+  H --> I[Finalize stream-ready MP4 packaging]:::stage
+  I --> J[Emit fragmented MP4 with init/moov at start]:::output
 ```
 
 ## Source

@@ -172,7 +172,7 @@ write_profile_doc() {
   typical_input_containers="mkv, mp4, mov, mxf (anything ffmpeg can demux)"
   output_intent="profile-specific output written by selected scenario command"
   if [ "$mermaid_variant" = "subtitle_intent" ]; then
-    output_intent="conditional: MKV when main subtitle intent is detected, otherwise MP4 +faststart"
+    output_intent="conditional: MKV when main subtitle intent is detected, otherwise stream-ready MP4 (fragmented + init/moov at start by default)"
   elif printf '%s' "$first_command" | grep -q "ffmpeg"; then
     output_intent="output container and streams are defined directly by the ffmpeg command"
   fi
@@ -279,7 +279,8 @@ flowchart TD
   E -->|Yes| F[Encode HEVC, copy audio, copy selected subtitle]:::stage
   F --> G[Emit MKV output]:::output
   E -->|No| H[Encode HEVC, copy audio]:::stage
-  H --> I[Emit MP4 faststart output]:::output
+  H --> I[Finalize stream-ready MP4 packaging]:::stage
+  I --> J[Emit fragmented MP4 with init/moov at start]:::output
 ```
 MERMAID
     else

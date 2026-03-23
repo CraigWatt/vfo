@@ -29,7 +29,7 @@ flowchart TD
 For `netflixy_main_subtitle_intent` profiles, the output container branch is explicit:
 
 - Main subtitle found -> MKV output
-- Main subtitle not found -> MP4 faststart output
+- Main subtitle not found -> stream-ready MP4 output (fragmented + init/moov at start by default)
 
 This variant is now generated automatically into each subtitle-intent profile sheet.
 

@@ -16,7 +16,9 @@ Main-subtitle heuristic (implemented in action scripts):
 Container behavior:
 
 - main subtitle selected -> MKV output (subtitle-safe preservation)
-- no main subtitle selected -> MP4 output with `+faststart`
+- no main subtitle selected -> stream-ready MP4 output:
+  - default mode: fragmented MP4 + init/moov at start (`VFO_MP4_STREAM_MODE=fmp4_faststart`)
+  - optional modes: `fmp4` or `faststart`
 
 ## Included active profiles (lane 1)
 

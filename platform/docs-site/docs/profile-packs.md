@@ -13,6 +13,7 @@ Focus:
 - practical Netflix-like bitrate reduction approach
 - preserve audio streams
 - preserve one "main subtitle" when it appears director-intent oriented
+- emit MKV when subtitle intent applies, otherwise stream-ready MP4 (fragmented + init/moov at start by default)
 
 Included active profiles:
 
