@@ -178,6 +178,7 @@ finalize_streamable_mp4() {
     -map 0:v -map 0:a? \
     -sn -dn \
     -c copy \
+    -write_tmcd 0 \
     -movflags "$movflags" \
     -max_muxing_queue_size 4096 \
     "$output_mp4"
