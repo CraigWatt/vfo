@@ -151,6 +151,12 @@ probe_subtitle_count() {
     -of csv=p=0 "$1" | wc -l | tr -d ' '
 }
 
+probe_data_count() {
+  ffprobe -v error -select_streams d \
+    -show_entries stream=index \
+    -of csv=p=0 "$1" | wc -l | tr -d ' '
+}
+
 create_subtitle_fixture() {
   local input="$1"
   local output="$2"
@@ -269,6 +275,7 @@ run_main_subtitle_action_assertions() {
   local input_audio_count
   local output_audio_count
   local output_subtitle_count
+  local output_data_count
   local codec
   local height
 
@@ -295,13 +302,17 @@ run_main_subtitle_action_assertions() {
   height="$(probe_video_height "$expected_output")"
   output_audio_count="$(probe_audio_count "$expected_output")"
   output_subtitle_count="$(probe_subtitle_count "$expected_output")"
+  output_data_count="$(probe_data_count "$expected_output")"
 
   assert_equals "$codec" "hevc" "${action_name} should output HEVC"
   assert_int_lte "$height" "$max_height" "${action_name} output exceeds max height"
   assert_equals "$output_audio_count" "$input_audio_count" "${action_name} changed audio stream count"
   assert_equals "$output_subtitle_count" "$expected_subtitle_count" "${action_name} subtitle stream count mismatch"
+  if [ "$expected_container" = "mp4" ]; then
+    assert_equals "$output_data_count" "0" "${action_name} MP4 output should not contain data streams"
+  fi
 
-  log "${action_name} passed (codec=${codec}, height=${height}, audio_streams=${output_audio_count}, subtitle_streams=${output_subtitle_count}, container=${expected_container})"
+  log "${action_name} passed (codec=${codec}, height=${height}, audio_streams=${output_audio_count}, subtitle_streams=${output_subtitle_count}, data_streams=${output_data_count}, container=${expected_container})"
 }
 
 run_seed_from_input() {

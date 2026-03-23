@@ -175,7 +175,8 @@ finalize_streamable_mp4() {
   echo "Finalizing MP4 stream packaging mode=${MP4_STREAM_MODE} movflags=${movflags}"
   ffmpeg -hide_banner -nostdin -y \
     -i "$input_mp4" \
-    -map 0 \
+    -map 0:v -map 0:a? \
+    -sn -dn \
     -c copy \
     -movflags "$movflags" \
     -max_muxing_queue_size 4096 \
