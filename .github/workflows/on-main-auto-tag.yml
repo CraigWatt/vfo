@@ -1,0 +1,80 @@
+name: 🏷️ Auto-tag main merges
+
+on:
+  workflow_run:
+    workflows:
+      - "Validate (PR + main)"
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-tag-main
+  cancel-in-progress: false
+
+jobs:
+  auto-tag:
+    name: Create next stable tag from main
+    if: >
+      ${{
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main'
+      }}
+    runs-on: macos-latest
+
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 🧰 Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: 🏷️ Create and push next stable tag
+        env:
+          TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          git fetch --tags --force
+
+          existing_stable_tag="$(git tag --points-at "$TARGET_SHA" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' || true)"
+          if [ -n "$existing_stable_tag" ]; then
+            echo "Stable tag already exists for ${TARGET_SHA}:"
+            echo "${existing_stable_tag}"
+            exit 0
+          fi
+
+          latest_stable="$(git tag --list | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | awk -F'[v.]' '{printf \"%09d.%09d.%09d %s\\n\", $2, $3, $4, $0}' | sort | tail -n 1 | awk '{print $2}' || true)"
+
+          if [ -z "$latest_stable" ]; then
+            major=0
+            minor=1
+            patch=-1
+          else
+            version="${latest_stable#v}"
+            major="${version%%.*}"
+            remainder="${version#*.}"
+            minor="${remainder%%.*}"
+            patch="${remainder##*.}"
+          fi
+
+          while true; do
+            patch=$((patch + 1))
+            next_tag="v${major}.${minor}.${patch}"
+            if ! git rev-parse --verify "refs/tags/${next_tag}" >/dev/null 2>&1; then
+              break
+            fi
+          done
+
+          echo "Latest stable tag: ${latest_stable:-<none>}"
+          echo "Creating next stable tag: ${next_tag}"
+
+          git tag -a "$next_tag" "$TARGET_SHA" -m "Auto release for main merge ${TARGET_SHA}"
+          git push origin "$next_tag"
