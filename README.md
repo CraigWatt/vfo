@@ -1,4 +1,8 @@
-![GitHub Workflow Status (with branch)](https://img.shields.io/github/actions/workflow/status/CraigWatt/vfo/on-push-test.yml?branch=main)
+![Validate](https://img.shields.io/github/actions/workflow/status/CraigWatt/vfo/on-push-test.yml?branch=main&label=validate)
+![E2E (media)](https://img.shields.io/github/actions/workflow/status/CraigWatt/vfo/on-self-hosted-e2e.yml?branch=main&label=e2e%20media)
+![Docs](https://img.shields.io/github/actions/workflow/status/CraigWatt/vfo/ci-docs-pages.yml?branch=main&label=docs)
+![Latest Release](https://img.shields.io/github/v/release/CraigWatt/vfo?display_name=tag)
+![License](https://img.shields.io/github/license/CraigWatt/vfo)
 ![GitHub all releases](https://img.shields.io/github/downloads/CraigWatt/vfo/total)
 
 # vfo
