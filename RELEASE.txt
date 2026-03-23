@@ -23,6 +23,18 @@ Use `vfo visualize` to generate local workflow artifacts (HTML + JSON + Mermaid)
 - Bounded failed-CI autofix lane for Codex-owned PRs only.
 - No unrestricted auto-merge and no production deploy automation.
 - Setup/guardrails: `infra/docs/codex-autonomous-loop.md`
+- Docs build + Pages deployment lane: `.github/workflows/ci-docs-pages.yml`
+
+### Documentation site
+- Source: `platform/docs-site/`
+- Generated profile docs script: `infra/scripts/generate-profile-docs.sh`
+- Local build:
+  - `make docs-generate`
+  - `make docs-build`
+- Local preview:
+  - `make docs-serve`
+- Published URL (after enabling GitHub Pages in repo settings):
+  - `https://craigwatt.github.io/vfo/`
 
 ### macOS (recommended: signed package)
 1. Download `vfo_macOS_installer-v*.*.*.pkg` from this release's assets.

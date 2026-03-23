@@ -1,0 +1,83 @@
+name: 📚 Docs (build + pages)
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - "mkdocs.yml"
+      - "platform/docs-site/**"
+      - "infra/scripts/generate-profile-docs.sh"
+      - "services/vfo/presets/**"
+      - "services/vfo/actions/**"
+      - ".github/workflows/ci-docs-pages.yml"
+  push:
+    branches:
+      - "main"
+    paths:
+      - "mkdocs.yml"
+      - "platform/docs-site/**"
+      - "infra/scripts/generate-profile-docs.sh"
+      - "services/vfo/presets/**"
+      - "services/vfo/actions/**"
+      - ".github/workflows/ci-docs-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build docs site
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v6
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 📦 Install docs dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r platform/docs-site/requirements.txt
+
+      - name: 🧬 Regenerate profile docs
+        run: bash infra/scripts/generate-profile-docs.sh
+
+      - name: 🔒 Ensure generated docs are committed
+        run: |
+          git diff --exit-code -- \
+            platform/docs-site/docs/profiles \
+            platform/docs-site/docs/profile-capability-matrix.md
+
+      - name: 🏗️ Build docs
+        run: mkdocs build --strict
+
+      - name: ⬆️ Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: platform/docs-site/site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: 🚀 Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

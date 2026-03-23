@@ -54,3 +54,4 @@ dkms.conf
 # Other
 .DS_Store
 .vscode/
+platform/docs-site/site/

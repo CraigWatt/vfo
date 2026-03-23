@@ -118,6 +118,8 @@ CI/CD test integration:
   - `.github/workflows/ci-codex-autonomous-loop.yml` (scheduled sweep + `agent-ready` issue trigger)
   - `.github/workflows/ci-codex-pr-autofix.yml` (bounded CI autofix for Codex-owned PRs only)
   - setup and guardrails doc: `infra/docs/codex-autonomous-loop.md`
+- Docs site build + Pages deploy is available via:
+  - `.github/workflows/ci-docs-pages.yml` (PR build validation + `main` Pages deploy)
 
 ### Option 2: build from source
 
@@ -409,6 +411,27 @@ For full local-media e2e:
 ```bash
 VFO_E2E_ASSET_MODE=local VFO_E2E_ASSETS_DIR="/absolute/path/to/open-source-media" VFO_E2E_MAX_SEEDS=4 make e2e
 ```
+
+### Docs site
+
+The monorepo docs site source is in `platform/docs-site/`.
+
+Local docs workflow:
+
+```bash
+make docs-generate
+make docs-build
+```
+
+Optional local preview:
+
+```bash
+make docs-serve
+```
+
+Published docs (when GitHub Pages is enabled for the repository):
+
+- `https://craigwatt.github.io/vfo/`
 
 ## Known rough edges
 
