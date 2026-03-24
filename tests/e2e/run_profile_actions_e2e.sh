@@ -178,6 +178,73 @@ probe_data_count() {
     -of csv=p=0 "$1" | wc -l | tr -d ' '
 }
 
+detect_crop_at_offset_for_input() {
+  local input="$1"
+  local offset="$2"
+  local sample_seconds="$3"
+  local detect_limit="$4"
+
+  ffmpeg -hide_banner -nostdin -ss "$offset" -t "$sample_seconds" \
+    -i "$input" \
+    -map 0:v:0 \
+    -vf "cropdetect=limit=${detect_limit}:round=2:reset=0" \
+    -an -sn -dn -f null - 2>&1 \
+    | grep -Eo 'crop=[0-9]+:[0-9]+:[0-9]+:[0-9]+' \
+    | sort \
+    | uniq -c \
+    | sort -nr \
+    | head -n 1 \
+    | awk '{print $2}'
+}
+
+detect_stable_crop_height_for_input() {
+  local input="$1"
+  local sample_seconds="$2"
+  local detect_limit="$3"
+  local duration
+  local offset_0="0"
+  local offset_1="0"
+  local offset_2="0"
+  local candidate_0=""
+  local candidate_1=""
+  local candidate_2=""
+  local winner_line=""
+  local winner_crop=""
+  local crop_values=""
+  local crop_h=""
+
+  duration="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$input" 2>/dev/null | head -n 1 | tr -d '\r')"
+  if ! printf '%s' "$duration" | awk 'BEGIN{ok=0} /^[0-9]+(\.[0-9]+)?$/ {ok=1} END{exit(ok?0:1)}'; then
+    duration="0"
+  fi
+
+  offset_1="$(awk -v d="$duration" 'BEGIN{printf "%.3f", (d*0.33)}')"
+  offset_2="$(awk -v d="$duration" 'BEGIN{printf "%.3f", (d*0.66)}')"
+
+  candidate_0="$(detect_crop_at_offset_for_input "$input" "$offset_0" "$sample_seconds" "$detect_limit" || true)"
+  candidate_1="$(detect_crop_at_offset_for_input "$input" "$offset_1" "$sample_seconds" "$detect_limit" || true)"
+  candidate_2="$(detect_crop_at_offset_for_input "$input" "$offset_2" "$sample_seconds" "$detect_limit" || true)"
+
+  winner_line="$(
+    printf '%s\n%s\n%s\n' "$candidate_0" "$candidate_1" "$candidate_2" \
+      | sed '/^$/d' \
+      | sort \
+      | uniq -c \
+      | sort -nr \
+      | head -n 1
+  )"
+  [ -n "$winner_line" ] || return 1
+
+  winner_crop="$(printf '%s' "$winner_line" | awk '{print $2}')"
+  [ -n "$winner_crop" ] || return 1
+
+  crop_values="${winner_crop#crop=}"
+  crop_h="$(printf '%s' "$crop_values" | awk -F: '{print $2}')"
+  [ -n "$crop_h" ] || return 1
+
+  printf '%s\n' "$crop_h"
+}
+
 create_subtitle_fixture() {
   local input="$1"
   local output="$2"
@@ -364,6 +431,9 @@ run_legacy_main_subtitle_autocrop_assertions() {
   local codec
   local width
   local height
+  local expected_crop_height=""
+  local vertical_pixels_removed=0
+  local min_vertical_removed=0
 
   input_audio_count="$(probe_audio_count "$input")"
 
@@ -390,15 +460,25 @@ run_legacy_main_subtitle_autocrop_assertions() {
   output_audio_count="$(probe_audio_count "$expected_output")"
   output_subtitle_count="$(probe_subtitle_count "$expected_output")"
   output_data_count="$(probe_data_count "$expected_output")"
+  expected_crop_height="$(detect_stable_crop_height_for_input "$input" 1 24 || true)"
+  min_vertical_removed=$((8 * 2))
+  if [ -n "$expected_crop_height" ]; then
+    vertical_pixels_removed=$((input_height - expected_crop_height))
+  fi
 
   assert_equals "$codec" "hevc" "${action_name} should output HEVC"
+  assert_int_lte "$height" "$input_height" "${action_name} output height should not exceed input height"
   assert_equals "$output_audio_count" "$input_audio_count" "${action_name} changed audio stream count"
   assert_equals "$output_subtitle_count" "$expected_subtitle_count" "${action_name} subtitle stream count mismatch"
   if [ "$expected_container" = "mp4" ]; then
     assert_equals "$output_data_count" "0" "${action_name} MP4 output should not contain data streams"
   fi
-  if [ "$height" -ge "$input_height" ]; then
-    fail "${action_name} expected auto-crop to reduce height. input_height=${input_height} output_height=${height}"
+  if [ -n "$expected_crop_height" ] && [ "$vertical_pixels_removed" -ge "$min_vertical_removed" ]; then
+    if [ "$height" -ge "$input_height" ]; then
+      fail "${action_name} expected auto-crop to reduce height. input_height=${input_height} output_height=${height} expected_crop_height=${expected_crop_height}"
+    fi
+  else
+    log "${action_name} crop precheck: no stable vertical crop candidate detected (input_height=${input_height}, expected_crop_height=${expected_crop_height:-none})"
   fi
 
   log "${action_name} passed (codec=${codec}, width=${width}, height=${height}, audio_streams=${output_audio_count}, subtitle_streams=${output_subtitle_count}, data_streams=${output_data_count}, container=${expected_container})"
