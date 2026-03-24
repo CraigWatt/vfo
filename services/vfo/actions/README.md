@@ -74,6 +74,8 @@ Device-target templates:
     - `VFO_DV_CONVERT_P7_TO_81=1` (default)
     - `VFO_DV_P7_TO_81_MODE=2|5` (default: `2`)
     - `VFO_DV_REQUIRE_P7_TO_81=1` (default)
+    - `VFO_DV_P7_EXTRACT_MODE=auto|mkvextract|ffmpeg` (default: `auto`)
+  - 4K lane can use `mkvextract` for profile-7 MKV track extraction before P8.1 conversion fallback
   - all subtitle-intent lanes support dynamic-range controls:
     - `VFO_DYNAMIC_METADATA_REPAIR=1|0` (default: `1`)
     - `VFO_DYNAMIC_RANGE_STRICT=1|0` (default: `1`)

@@ -14,6 +14,7 @@ set -euo pipefail
 # - Preserves dynamic-range signaling for HDR/DV workflows by default:
 #   applies metadata-repair defaults when source tags are incomplete.
 # - If source signals Dolby Vision side data, attempts DV RPU retention/injection.
+# - If source is DV profile 7.x, attempts profile 8.1 conversion semantics before injection.
 # - If a main subtitle is selected, output container is MKV for reliable subtitle preservation.
 # - If no main subtitle is selected, output container is stream-ready MP4:
 #   fragmented MP4 with init/moov at the start.
@@ -37,6 +38,8 @@ set -euo pipefail
 #     default: 2
 #   VFO_DV_REQUIRE_P7_TO_81=1|0
 #     default: 1
+#   VFO_DV_P7_EXTRACT_MODE=auto|mkvextract|ffmpeg
+#     default: auto
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
@@ -73,6 +76,7 @@ VFO_DV_REQUIRE_DOVI="${VFO_DV_REQUIRE_DOVI:-1}"
 VFO_DV_CONVERT_P7_TO_81="${VFO_DV_CONVERT_P7_TO_81:-1}"
 VFO_DV_P7_TO_81_MODE="${VFO_DV_P7_TO_81_MODE:-2}"
 VFO_DV_REQUIRE_P7_TO_81="${VFO_DV_REQUIRE_P7_TO_81:-1}"
+VFO_DV_P7_EXTRACT_MODE="${VFO_DV_P7_EXTRACT_MODE:-auto}"
 
 lower_text() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
@@ -224,6 +228,61 @@ get_fps() {
   printf '%s' "$fps"
 }
 
+has_mkv_input() {
+  case "$(lower_text "$INPUT")" in
+    *.mkv) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+dv_profile_is_7_family() {
+  case "$1" in
+    7|7.*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+resolve_mkv_video_track_id() {
+  mkvmerge -i "$INPUT" 2>/dev/null \
+    | awk -F: '/[Vv]ideo/ { gsub(/Track ID /,"",$1); gsub(/^[[:space:]]+|[[:space:]]+$/,"",$1); print $1; exit }'
+}
+
+extract_source_hevc_for_dv() {
+  local output_hevc="$1"
+  local track_id=""
+
+  case "$VFO_DV_P7_EXTRACT_MODE" in
+    auto|mkvextract|ffmpeg) ;;
+    *)
+      echo "Invalid VFO_DV_P7_EXTRACT_MODE='${VFO_DV_P7_EXTRACT_MODE}' (allowed: auto|mkvextract|ffmpeg)"
+      return 1
+      ;;
+  esac
+
+  if [ "$VFO_DV_P7_EXTRACT_MODE" != "ffmpeg" ] \
+    && has_mkv_input \
+    && command -v mkvextract >/dev/null 2>&1 \
+    && command -v mkvmerge >/dev/null 2>&1; then
+    track_id="$(resolve_mkv_video_track_id || true)"
+    if [ -n "$track_id" ]; then
+      echo "Using mkvextract for DV source extraction (track id ${track_id})"
+      if mkvextract tracks "$INPUT" "${track_id}:${output_hevc}" >/dev/null 2>&1; then
+        [ -s "$output_hevc" ] && return 0
+      fi
+      echo "WARN: mkvextract DV source extraction failed; falling back to ffmpeg extraction"
+    elif [ "$VFO_DV_P7_EXTRACT_MODE" = "mkvextract" ]; then
+      echo "WARN: could not determine MKV video track id; falling back to ffmpeg extraction"
+    fi
+  fi
+
+  ffmpeg -hide_banner -nostdin -y \
+    -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
+    -i "$INPUT" \
+    -map 0:v:0 -c:v copy -bsf:v hevc_mp4toannexb -f hevc \
+    "$output_hevc" >/dev/null 2>&1 || true
+  [ -s "$output_hevc" ]
+}
+
 dr_collect_source_state "$INPUT"
 dr_compute_target_tags "preserve"
 COLOR_ARGS=()
@@ -274,6 +333,7 @@ src_hevc="$workdir/src.hevc"
 rpu_bin="$workdir/rpu.bin"
 dv_hevc="$workdir/dv.hevc"
 dv_mp4="$workdir/dv_video.mp4"
+src_p81_hevc="$workdir/src_p81.hevc"
 fps="$(get_fps "$INPUT")"
 
 MAIN_SUB_POS=""
@@ -331,16 +391,18 @@ if [ "$source_is_dv" -eq 1 ]; then
       exit 1
     fi
 
-    ffmpeg -hide_banner -nostdin -y \
-      -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
-      -i "$INPUT" \
-      -map 0:v:0 -c:v copy -bsf:v hevc_mp4toannexb -f hevc \
-      "$src_hevc" >/dev/null 2>&1 || true
+    extract_source_hevc_for_dv "$src_hevc" || true
 
-    if [ "$source_dv_profile" = "7" ] && [ "$VFO_DV_CONVERT_P7_TO_81" = "1" ]; then
+    if dv_profile_is_7_family "$source_dv_profile" && [ "$VFO_DV_CONVERT_P7_TO_81" = "1" ]; then
       p7_to_81_requested=1
       if [ -s "$src_hevc" ] && dovi_tool -m "$VFO_DV_P7_TO_81_MODE" extract-rpu -i "$src_hevc" -o "$rpu_bin" >/dev/null 2>&1; then
         p7_to_81_applied=1
+      elif [ -s "$src_hevc" ] \
+        && dovi_tool -m "$VFO_DV_P7_TO_81_MODE" convert "$src_hevc" -o "$src_p81_hevc" >/dev/null 2>&1 \
+        && [ -s "$src_p81_hevc" ] \
+        && dovi_tool extract-rpu -i "$src_p81_hevc" -o "$rpu_bin" >/dev/null 2>&1; then
+        p7_to_81_applied=1
+        echo "DV P7 fallback path used: convert source bitstream to P8.1 then extract RPU"
       fi
     elif [ -s "$src_hevc" ] && dovi_tool extract-rpu -i "$src_hevc" -o "$rpu_bin" >/dev/null 2>&1; then
       p7_to_81_applied=1

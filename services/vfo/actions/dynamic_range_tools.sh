@@ -29,6 +29,20 @@ dr_get_dovi_profile() {
     -of default=nw=1 "$1" 2>/dev/null | awk -F= '/^dv_profile=/{print $2; exit}' | tr -d ' \t\r\n'
 }
 
+dr_get_dovi_profile_from_tool() {
+  if ! command -v dovi_tool >/dev/null 2>&1; then
+    return 1
+  fi
+  dovi_tool info -i "$1" 2>/dev/null \
+    | awk '
+      /[Pp]rofile/ {
+        for (i = 1; i <= NF; i++) {
+          if ($i ~ /^[0-9]+(\.[0-9]+)?$/) { print $i; exit }
+        }
+      }
+    ' | head -n 1 | tr -d ' \t\r\n'
+}
+
 dr_is_missing_tag() {
   case "$(dr_lower_text "$1")" in
     ''|unknown|unspecified|undef|undefined|reserved|none|na|n/a|null)
@@ -84,19 +98,32 @@ dr_append_note() {
 
 dr_collect_source_state() {
   local input_path="$1"
+  local fallback_dv_profile=""
   DR_INPUT_PATH="$input_path"
   DR_SRC_COLOR_SPACE="$(dr_lower_text "$(dr_probe_stream_value "$input_path" color_space)")"
   DR_SRC_COLOR_TRC="$(dr_lower_text "$(dr_probe_stream_value "$input_path" color_transfer)")"
   DR_SRC_COLOR_PRIMARIES="$(dr_lower_text "$(dr_probe_stream_value "$input_path" color_primaries)")"
   DR_SRC_HAS_DV="0"
   DR_SRC_DV_PROFILE=""
+  DR_SRC_DV_DETECTION_SOURCE="none"
   DR_SOURCE_CLASS="sdr"
   DR_REPAIR_NOTES=""
 
   if dr_has_dovi_side_data "$input_path"; then
     DR_SRC_HAS_DV="1"
     DR_SRC_DV_PROFILE="$(dr_get_dovi_profile "$input_path")"
+    DR_SRC_DV_DETECTION_SOURCE="ffprobe_side_data"
     DR_SOURCE_CLASS="dv"
+    return 0
+  fi
+
+  fallback_dv_profile="$(dr_get_dovi_profile_from_tool "$input_path" || true)"
+  if [ -n "$fallback_dv_profile" ]; then
+    DR_SRC_HAS_DV="1"
+    DR_SRC_DV_PROFILE="$fallback_dv_profile"
+    DR_SRC_DV_DETECTION_SOURCE="dovi_tool_fallback"
+    DR_SOURCE_CLASS="dv"
+    dr_append_note "dv_detected_via_dovi_tool_without_ffprobe_side_data"
     return 0
   fi
 
@@ -235,6 +262,7 @@ dr_write_report() {
     printf 'source_class=%s\n' "${DR_SOURCE_CLASS:-unknown}"
     printf 'source_dv=%s\n' "${DR_SRC_HAS_DV:-0}"
     printf 'source_dv_profile=%s\n' "${DR_SRC_DV_PROFILE:-}"
+    printf 'source_dv_detection=%s\n' "${DR_SRC_DV_DETECTION_SOURCE:-none}"
     printf 'source_color_space=%s\n' "${DR_SRC_COLOR_SPACE:-}"
     printf 'source_color_transfer=%s\n' "${DR_SRC_COLOR_TRC:-}"
     printf 'source_color_primaries=%s\n' "${DR_SRC_COLOR_PRIMARIES:-}"

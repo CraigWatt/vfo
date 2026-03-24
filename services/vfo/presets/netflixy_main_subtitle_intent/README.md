@@ -43,6 +43,7 @@ Legacy lane processing behavior:
 Dynamic-range behavior:
 
 - 4K lane now attempts Dolby Vision retention/conversion (`P7 -> P8.1`) when source signals DV side data.
+- 4K lane includes an extraction fallback for Profile 7 MKV sources (`mkvextract` path, then ffmpeg fallback).
 - 4K lane defaults to strict DV retention (`VFO_DV_REQUIRE_DOVI=1`) to avoid silent downgrade.
 - HDR/SDR color signaling is preserved with metadata-repair defaults when source tags are incomplete.
 - metadata-repair heuristics can be toggled with `VFO_DYNAMIC_METADATA_REPAIR=1|0`.

@@ -44,6 +44,7 @@ Action summary from `transcode_hevc_4k_main_subtitle_preserve_profile.sh`:
 - Preserves dynamic-range signaling for HDR/DV workflows by default:
 -   applies metadata-repair defaults when source tags are incomplete.
 - If source signals Dolby Vision side data, attempts DV RPU retention/injection.
+- If source is DV profile 7.x, attempts profile 8.1 conversion semantics before injection.
 - If a main subtitle is selected, output container is MKV for reliable subtitle preservation.
 - If no main subtitle is selected, output container is stream-ready MP4:
 -   fragmented MP4 with init/moov at the start.
@@ -68,6 +69,8 @@ Operator knobs from `transcode_hevc_4k_main_subtitle_preserve_profile.sh`:
 - `default: 2`
 - `VFO_DV_REQUIRE_P7_TO_81=1|0`
 - `default: 1`
+- `VFO_DV_P7_EXTRACT_MODE=auto|mkvextract|ffmpeg`
+- `default: auto`
 
 ## Starting Inputs And Expected Outputs
 
