@@ -38,4 +38,4 @@ Current `make e2e` scope:
 
 - profile action correctness checks
 - device conformance predictive checks
-- optional DV metadata retention checks (auto-skip unless `VFO_E2E_DV_P7_ASSET` is configured)
+- optional DV metadata retention checks for both DV action and 4K main-subtitle action (auto-skip unless `VFO_E2E_DV_P7_ASSET` is configured)

@@ -80,4 +80,5 @@ flowchart TD
 - It does not generate ABR ladders (HLS/DASH); outputs are single-file delivery artifacts.
 - It does not certify playback on every device model; profiles are compatibility-oriented guardrails.
 - It does not enforce PSNR/SSIM/VMAF thresholds unless quality checks are explicitly enabled and configured.
-- It does not guarantee HDR/DV metadata preservation for every source and toolchain combination.
+- It does not invent missing HDR/DV essence; metadata repair is heuristic and can be disabled.
+- It depends on source integrity and toolchain support for DV/HDR retention; strict mode may fail instead of silently downgrading.

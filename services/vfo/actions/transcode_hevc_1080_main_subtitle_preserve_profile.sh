@@ -11,6 +11,7 @@ set -euo pipefail
 # - Selects one "main subtitle" when it appears director-intent oriented:
 #   priority: forced english -> forced untagged/unknown -> optional default english.
 #   non-english forced tracks are intentionally skipped.
+# - Enforces SDR-oriented 1080 policy metadata on output (`bt709` signaling).
 # - If a main subtitle is selected, output container is MKV for reliable subtitle preservation.
 # - If no main subtitle is selected, output container is stream-ready MP4:
 #   fragmented MP4 with init/moov at the start.
@@ -20,6 +21,12 @@ set -euo pipefail
 #   VFO_ENCODER_MODE=auto|hw|cpu
 #   VFO_MP4_STREAM_MODE=fmp4_faststart|fmp4|faststart
 #     default: fmp4_faststart
+#   VFO_DYNAMIC_METADATA_REPAIR=1|0
+#     default: 1
+#   VFO_DYNAMIC_RANGE_STRICT=1|0
+#     default: 1
+#   VFO_DYNAMIC_RANGE_REPORT=1|0
+#     default: 1
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
@@ -34,6 +41,10 @@ if [ ! -f "$INPUT" ]; then
   exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=dynamic_range_tools.sh
+. "$SCRIPT_DIR/dynamic_range_tools.sh"
+
 ENCODER_MODE="${VFO_ENCODER_MODE:-auto}" # auto|hw|cpu
 INCLUDE_DEFAULT_MAIN_SUB="${VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT:-0}"
 MP4_STREAM_MODE="${VFO_MP4_STREAM_MODE:-fmp4_faststart}"
@@ -44,6 +55,9 @@ MAXRATE_K_1080="${MAXRATE_K_1080:-12000}"
 BUFSIZE_K_1080="${BUFSIZE_K_1080:-24000}"
 CRF_1080="${CRF_1080:-19}"
 CPU_PRESET="${CPU_PRESET:-slow}"
+VFO_DYNAMIC_METADATA_REPAIR="${VFO_DYNAMIC_METADATA_REPAIR:-1}"
+VFO_DYNAMIC_RANGE_STRICT="${VFO_DYNAMIC_RANGE_STRICT:-1}"
+VFO_DYNAMIC_RANGE_REPORT="${VFO_DYNAMIC_RANGE_REPORT:-1}"
 
 lower_text() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
@@ -184,6 +198,20 @@ finalize_streamable_mp4() {
     "$output_mp4"
 }
 
+dr_collect_source_state "$INPUT"
+dr_compute_target_tags "sdr1080"
+COLOR_ARGS=()
+if [ "$VFO_DYNAMIC_METADATA_REPAIR" = "1" ]; then
+  COLOR_ARGS=(
+    -colorspace "$DR_TARGET_COLOR_SPACE"
+    -color_trc "$DR_TARGET_COLOR_TRC"
+    -color_primaries "$DR_TARGET_COLOR_PRIMARIES"
+  )
+fi
+if [ "$DR_SOURCE_CLASS" != "sdr" ]; then
+  echo "WARN: 1080 SDR lane received ${DR_SOURCE_CLASS} input; profile policy enforces SDR signaling"
+fi
+
 VIDEO_ARGS=()
 if [ "$ENCODER_MODE" = "hw" ] || { [ "$ENCODER_MODE" = "auto" ] && has_videotoolbox_encoder; }; then
   VIDEO_ARGS=(
@@ -193,6 +221,7 @@ if [ "$ENCODER_MODE" = "hw" ] || { [ "$ENCODER_MODE" = "auto" ] && has_videotool
     -b:v "${AVG_K_1080}k"
     -maxrate "${MAXRATE_K_1080}k"
     -bufsize "${BUFSIZE_K_1080}k"
+    "${COLOR_ARGS[@]}"
   )
 else
   VIDEO_ARGS=(
@@ -202,13 +231,15 @@ else
     -crf "$CRF_1080"
     -x265-params "vbv-maxrate=${MAXRATE_K_1080}:vbv-bufsize=${BUFSIZE_K_1080}:aq-mode=3"
     -pix_fmt yuv420p10le
+    "${COLOR_ARGS[@]}"
   )
 fi
 
+ACTUAL_OUTPUT="$OUTPUT"
 MAIN_SUB_POS=""
 if MAIN_SUB_POS="$(resolve_main_subtitle_position)"; then
-  OUTPUT_PATH="${OUTPUT%.*}.mkv"
-  echo "MAIN subtitle detected (s:${MAIN_SUB_POS}); preserving in MKV output: $OUTPUT_PATH"
+  ACTUAL_OUTPUT="${OUTPUT%.*}.mkv"
+  echo "MAIN subtitle detected (s:${MAIN_SUB_POS}); preserving in MKV output: $ACTUAL_OUTPUT"
   ffmpeg -hide_banner -nostdin -y \
     -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
     -i "$INPUT" \
@@ -216,7 +247,7 @@ if MAIN_SUB_POS="$(resolve_main_subtitle_position)"; then
     "${VIDEO_ARGS[@]}" \
     -c:a copy -c:s copy \
     -max_muxing_queue_size 4096 \
-    "$OUTPUT_PATH"
+    "$ACTUAL_OUTPUT"
 else
   MP4_WORK_OUTPUT="${OUTPUT%.*}.packaging_work.mp4"
   echo "No main subtitle detected; generating MP4 encode work file: $MP4_WORK_OUTPUT"
@@ -231,4 +262,12 @@ else
 
   finalize_streamable_mp4 "$MP4_WORK_OUTPUT" "$OUTPUT"
   rm -f "$MP4_WORK_OUTPUT"
+fi
+
+dr_collect_output_state "$ACTUAL_OUTPUT"
+if ! dr_validate_output_against_source "$VFO_DYNAMIC_RANGE_STRICT" "sdr1080"; then
+  exit 1
+fi
+if [ "$VFO_DYNAMIC_RANGE_REPORT" = "1" ]; then
+  dr_write_report "$ACTUAL_OUTPUT" "$(basename "$0")" "sdr1080" "$VFO_DYNAMIC_RANGE_STRICT"
 fi

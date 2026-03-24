@@ -17,11 +17,13 @@ This directory contains end-to-end tests for profile action scripts under:
   - Apple TV HD / Apple TV 4K
   - SDR-target checks run against explicit HDR->SDR H.264 action output
 - optional Dolby Vision metadata retention + P7->8.1 conversion check (skip when no DV P7 fixture is configured)
+- optional 4K main-subtitle action DV retention check (same DV fixture, skip when missing)
 - Assertions for:
   - output is readable by `ffprobe`
   - video codec is HEVC
   - resolution stays within profile ceiling
   - audio stream count is preserved
+  - dynamic-range metadata reports are emitted for subtitle-intent action outputs
   - legacy lane auto-crop can reduce persistent letterbox bars when enabled
   - guardrail skip markers are emitted for skip-path actions
 

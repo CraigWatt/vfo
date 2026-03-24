@@ -5,6 +5,7 @@
 - Netflix-like practical bitrate reduction
 - preserving audio streams
 - preserving one "main subtitle" only when it appears director-intent oriented
+- preserving HDR/DV signaling when source essence supports it (strict by default on 4K lane)
 
 Input guardrails:
 
@@ -37,6 +38,15 @@ Legacy lane processing behavior:
 - deinterlace can run automatically when input is interlaced (`VFO_LEGACY_DEINTERLACE=auto`)
 - stable black-bar auto-crop is enabled by default (`VFO_LEGACY_AUTOCROP=1`)
 - auto-crop is disabled for files where the selected main subtitle stream is bitmap-based
+- metadata notes are emitted per output in `*.dynamic_range_report.txt`
+
+Dynamic-range behavior:
+
+- 4K lane now attempts Dolby Vision retention/conversion (`P7 -> P8.1`) when source signals DV side data.
+- 4K lane defaults to strict DV retention (`VFO_DV_REQUIRE_DOVI=1`) to avoid silent downgrade.
+- HDR/SDR color signaling is preserved with metadata-repair defaults when source tags are incomplete.
+- metadata-repair heuristics can be toggled with `VFO_DYNAMIC_METADATA_REPAIR=1|0`.
+- strict dynamic-range verification can be controlled with `VFO_DYNAMIC_RANGE_STRICT=1|0`.
 
 ## Included active profiles (lane 1)
 
@@ -54,6 +64,7 @@ Legacy lane processing behavior:
 - `transcode_hevc_4k_main_subtitle_preserve_profile.sh`
 - `transcode_hevc_1080_main_subtitle_preserve_profile.sh`
 - `transcode_hevc_legacy_main_subtitle_preserve_profile.sh`
+- `dynamic_range_tools.sh`
 - `profile_guardrail_skip.sh`
 
 Use `vfo_config.preset.conf` as a copy/paste starter block.
