@@ -11,6 +11,10 @@ set -euo pipefail
 # - Selects one "main subtitle" when it appears director-intent oriented:
 #   priority: forced english -> forced untagged/unknown -> optional default english.
 #   non-english forced tracks are intentionally skipped.
+# - Preserves dynamic-range signaling for HDR/DV workflows by default:
+#   applies metadata-repair defaults when source tags are incomplete.
+# - If source signals Dolby Vision side data, attempts DV RPU retention/injection.
+# - If source is DV profile 7.x, attempts profile 8.1 conversion semantics before injection.
 # - If a main subtitle is selected, output container is MKV for reliable subtitle preservation.
 # - If no main subtitle is selected, output container is stream-ready MP4:
 #   fragmented MP4 with init/moov at the start.
@@ -20,6 +24,22 @@ set -euo pipefail
 #   VFO_ENCODER_MODE=auto|hw|cpu
 #   VFO_MP4_STREAM_MODE=fmp4_faststart|fmp4|faststart
 #     default: fmp4_faststart
+#   VFO_DYNAMIC_METADATA_REPAIR=1|0
+#     default: 1
+#   VFO_DYNAMIC_RANGE_STRICT=1|0
+#     default: 1
+#   VFO_DYNAMIC_RANGE_REPORT=1|0
+#     default: 1
+#   VFO_DV_REQUIRE_DOVI=1|0
+#     default: 1
+#   VFO_DV_CONVERT_P7_TO_81=1|0
+#     default: 1
+#   VFO_DV_P7_TO_81_MODE=2|5
+#     default: 2
+#   VFO_DV_REQUIRE_P7_TO_81=1|0
+#     default: 1
+#   VFO_DV_P7_EXTRACT_MODE=auto|mkvextract|ffmpeg
+#     default: auto
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
@@ -34,6 +54,10 @@ if [ ! -f "$INPUT" ]; then
   exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=dynamic_range_tools.sh
+. "$SCRIPT_DIR/dynamic_range_tools.sh"
+
 ENCODER_MODE="${VFO_ENCODER_MODE:-auto}" # auto|hw|cpu
 INCLUDE_DEFAULT_MAIN_SUB="${VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT:-0}"
 MP4_STREAM_MODE="${VFO_MP4_STREAM_MODE:-fmp4_faststart}"
@@ -44,6 +68,15 @@ MAXRATE_K="${MAXRATE_K:-20000}"
 BUFSIZE_K="${BUFSIZE_K:-40000}"
 CRF_4K="${CRF_4K:-18}"
 CPU_PRESET="${CPU_PRESET:-slow}"
+MP4_TIMESCALE="${MP4_TIMESCALE:-24000}"
+VFO_DYNAMIC_METADATA_REPAIR="${VFO_DYNAMIC_METADATA_REPAIR:-1}"
+VFO_DYNAMIC_RANGE_STRICT="${VFO_DYNAMIC_RANGE_STRICT:-1}"
+VFO_DYNAMIC_RANGE_REPORT="${VFO_DYNAMIC_RANGE_REPORT:-1}"
+VFO_DV_REQUIRE_DOVI="${VFO_DV_REQUIRE_DOVI:-1}"
+VFO_DV_CONVERT_P7_TO_81="${VFO_DV_CONVERT_P7_TO_81:-1}"
+VFO_DV_P7_TO_81_MODE="${VFO_DV_P7_TO_81_MODE:-2}"
+VFO_DV_REQUIRE_P7_TO_81="${VFO_DV_REQUIRE_P7_TO_81:-1}"
+VFO_DV_P7_EXTRACT_MODE="${VFO_DV_P7_EXTRACT_MODE:-auto}"
 
 lower_text() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
@@ -167,15 +200,16 @@ resolve_mp4_movflags() {
 }
 
 finalize_streamable_mp4() {
-  local input_mp4="$1"
-  local output_mp4="$2"
+  local input_video_mp4="$1"
+  local input_source_media="$2"
+  local output_mp4="$3"
   local movflags
 
   movflags="$(resolve_mp4_movflags "$MP4_STREAM_MODE")"
   echo "Finalizing MP4 stream packaging mode=${MP4_STREAM_MODE} movflags=${movflags}"
   ffmpeg -hide_banner -nostdin -y \
-    -i "$input_mp4" \
-    -map 0:v -map 0:a? \
+    -i "$input_video_mp4" -i "$input_source_media" \
+    -map 0:v:0 -map 1:a? \
     -sn -dn \
     -c copy \
     -write_tmcd 0 \
@@ -184,49 +218,263 @@ finalize_streamable_mp4() {
     "$output_mp4"
 }
 
-VIDEO_ARGS=()
-if [ "$ENCODER_MODE" = "hw" ] || { [ "$ENCODER_MODE" = "auto" ] && has_videotoolbox_encoder; }; then
-  VIDEO_ARGS=(
-    -c:v hevc_videotoolbox
-    -pix_fmt p010le
-    -b:v "${AVG_K}k"
-    -maxrate "${MAXRATE_K}k"
-    -bufsize "${BUFSIZE_K}k"
-  )
-else
-  VIDEO_ARGS=(
-    -c:v libx265
-    -preset "$CPU_PRESET"
-    -crf "$CRF_4K"
-    -x265-params "vbv-maxrate=${MAXRATE_K}:vbv-bufsize=${BUFSIZE_K}:aq-mode=3"
-    -pix_fmt yuv420p10le
+get_fps() {
+  local src="$1"
+  local fps
+  fps="$(ffprobe -v error -select_streams v:0 \
+    -show_entries stream=avg_frame_rate -of default=nk=1:nw=1 "$src" 2>/dev/null || true)"
+  fps="$(printf '%s' "$fps" | tr -d ' \t\r\n')"
+  [ -n "$fps" ] || fps="24000/1001"
+  printf '%s' "$fps"
+}
+
+has_mkv_input() {
+  case "$(lower_text "$INPUT")" in
+    *.mkv) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+dv_profile_is_7_family() {
+  case "$1" in
+    7|7.*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+resolve_mkv_video_track_id() {
+  mkvmerge -i "$INPUT" 2>/dev/null \
+    | awk -F: '/[Vv]ideo/ { gsub(/Track ID /,"",$1); gsub(/^[[:space:]]+|[[:space:]]+$/,"",$1); print $1; exit }'
+}
+
+extract_source_hevc_for_dv() {
+  local output_hevc="$1"
+  local track_id=""
+
+  case "$VFO_DV_P7_EXTRACT_MODE" in
+    auto|mkvextract|ffmpeg) ;;
+    *)
+      echo "Invalid VFO_DV_P7_EXTRACT_MODE='${VFO_DV_P7_EXTRACT_MODE}' (allowed: auto|mkvextract|ffmpeg)"
+      return 1
+      ;;
+  esac
+
+  if [ "$VFO_DV_P7_EXTRACT_MODE" != "ffmpeg" ] \
+    && has_mkv_input \
+    && command -v mkvextract >/dev/null 2>&1 \
+    && command -v mkvmerge >/dev/null 2>&1; then
+    track_id="$(resolve_mkv_video_track_id || true)"
+    if [ -n "$track_id" ]; then
+      echo "Using mkvextract for DV source extraction (track id ${track_id})"
+      if mkvextract tracks "$INPUT" "${track_id}:${output_hevc}" >/dev/null 2>&1; then
+        [ -s "$output_hevc" ] && return 0
+      fi
+      echo "WARN: mkvextract DV source extraction failed; falling back to ffmpeg extraction"
+    elif [ "$VFO_DV_P7_EXTRACT_MODE" = "mkvextract" ]; then
+      echo "WARN: could not determine MKV video track id; falling back to ffmpeg extraction"
+    fi
+  fi
+
+  ffmpeg -hide_banner -nostdin -y \
+    -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
+    -i "$INPUT" \
+    -map 0:v:0 -c:v copy -bsf:v hevc_mp4toannexb -f hevc \
+    "$output_hevc" >/dev/null 2>&1 || true
+  [ -s "$output_hevc" ]
+}
+
+dr_collect_source_state "$INPUT"
+dr_compute_target_tags "preserve"
+COLOR_ARGS=()
+if [ "$VFO_DYNAMIC_METADATA_REPAIR" = "1" ]; then
+  COLOR_ARGS=(
+    -colorspace "$DR_TARGET_COLOR_SPACE"
+    -color_trc "$DR_TARGET_COLOR_TRC"
+    -color_primaries "$DR_TARGET_COLOR_PRIMARIES"
   )
 fi
+if [ -n "${DR_REPAIR_NOTES:-}" ]; then
+  echo "Dynamic-range metadata repair hints: ${DR_REPAIR_NOTES}"
+fi
+
+HW_VIDEO_ARGS=(
+  -c:v hevc_videotoolbox
+  -pix_fmt p010le
+  -b:v "${AVG_K}k"
+  -maxrate "${MAXRATE_K}k"
+  -bufsize "${BUFSIZE_K}k"
+  "${COLOR_ARGS[@]}"
+)
+
+CPU_VIDEO_ARGS=(
+  -c:v libx265
+  -preset "$CPU_PRESET"
+  -crf "$CRF_4K"
+  -x265-params "vbv-maxrate=${MAXRATE_K}:vbv-bufsize=${BUFSIZE_K}:aq-mode=3"
+  -pix_fmt yuv420p10le
+  "${COLOR_ARGS[@]}"
+)
+
+VIDEO_ARGS=()
+using_hw=0
+if [ "$ENCODER_MODE" = "hw" ] || { [ "$ENCODER_MODE" = "auto" ] && has_videotoolbox_encoder; }; then
+  VIDEO_ARGS=("${HW_VIDEO_ARGS[@]}")
+  using_hw=1
+else
+  VIDEO_ARGS=("${CPU_VIDEO_ARGS[@]}")
+fi
+
+workdir="$(mktemp -d "${TMPDIR:-/tmp}/vfo-main-sub-4k-XXXXXX")"
+trap 'rm -rf "$workdir"' EXIT
+
+enc_mp4="$workdir/enc_video.mp4"
+enc_hevc="$workdir/enc.hevc"
+src_hevc="$workdir/src.hevc"
+rpu_bin="$workdir/rpu.bin"
+dv_hevc="$workdir/dv.hevc"
+dv_mp4="$workdir/dv_video.mp4"
+src_p81_hevc="$workdir/src_p81.hevc"
+fps="$(get_fps "$INPUT")"
 
 MAIN_SUB_POS=""
 if MAIN_SUB_POS="$(resolve_main_subtitle_position)"; then
-  OUTPUT_PATH="${OUTPUT%.*}.mkv"
-  echo "MAIN subtitle detected (s:${MAIN_SUB_POS}); preserving in MKV output: $OUTPUT_PATH"
-  ffmpeg -hide_banner -nostdin -y \
-    -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
-    -i "$INPUT" \
-    -map 0:v:0 -map 0:a? -map "0:s:${MAIN_SUB_POS}" \
-    "${VIDEO_ARGS[@]}" \
-    -c:a copy -c:s copy \
-    -max_muxing_queue_size 4096 \
-    "$OUTPUT_PATH"
+  echo "MAIN subtitle detected (s:${MAIN_SUB_POS}); final container will be MKV"
 else
-  MP4_WORK_OUTPUT="${OUTPUT%.*}.packaging_work.mp4"
-  echo "No main subtitle detected; generating MP4 encode work file: $MP4_WORK_OUTPUT"
-  ffmpeg -hide_banner -nostdin -y \
-    -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
-    -i "$INPUT" \
-    -map 0:v:0 -map 0:a? \
-    "${VIDEO_ARGS[@]}" \
-    -c:a copy \
-    -max_muxing_queue_size 4096 \
-    "$MP4_WORK_OUTPUT"
+  echo "No main subtitle detected; final container will be MP4"
+fi
 
-  finalize_streamable_mp4 "$MP4_WORK_OUTPUT" "$OUTPUT"
-  rm -f "$MP4_WORK_OUTPUT"
+if ! ffmpeg -hide_banner -nostdin -y \
+  -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
+  -i "$INPUT" \
+  -map 0:v:0 \
+  "${VIDEO_ARGS[@]}" \
+  -movflags +faststart \
+  -video_track_timescale "$MP4_TIMESCALE" \
+  "$enc_mp4" >/dev/null 2>&1; then
+  if [ "$ENCODER_MODE" = "auto" ] && [ "$using_hw" -eq 1 ]; then
+    echo "VideoToolbox encode failed; retrying with CPU fallback" >&2
+    ffmpeg -hide_banner -nostdin -y \
+      -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
+      -i "$INPUT" \
+      -map 0:v:0 \
+      "${CPU_VIDEO_ARGS[@]}" \
+      -movflags +faststart \
+      -video_track_timescale "$MP4_TIMESCALE" \
+      "$enc_mp4" >/dev/null 2>&1
+  else
+    echo "Failed to encode source to HEVC for main-subtitle workflow" >&2
+    exit 1
+  fi
+fi
+
+new_video="$enc_mp4"
+source_is_dv=0
+source_dv_profile=""
+p7_to_81_requested=0
+p7_to_81_applied=0
+
+if [ "$DR_SOURCE_CLASS" = "dv" ]; then
+  source_is_dv=1
+  source_dv_profile="${DR_SRC_DV_PROFILE:-}"
+fi
+
+if [ "$source_is_dv" -eq 1 ]; then
+  if ! command -v dovi_tool >/dev/null 2>&1; then
+    if [ "$VFO_DV_REQUIRE_DOVI" = "1" ]; then
+      echo "Source contains Dolby Vision but dovi_tool is not available (VFO_DV_REQUIRE_DOVI=1)"
+      exit 1
+    fi
+    echo "WARN: source contains Dolby Vision but dovi_tool is missing; continuing without DV retention"
+  else
+    if [ "$VFO_DV_P7_TO_81_MODE" != "2" ] && [ "$VFO_DV_P7_TO_81_MODE" != "5" ]; then
+      echo "Invalid VFO_DV_P7_TO_81_MODE='${VFO_DV_P7_TO_81_MODE}' (allowed: 2 or 5)"
+      exit 1
+    fi
+
+    extract_source_hevc_for_dv "$src_hevc" || true
+
+    if dv_profile_is_7_family "$source_dv_profile" && [ "$VFO_DV_CONVERT_P7_TO_81" = "1" ]; then
+      p7_to_81_requested=1
+      if [ -s "$src_hevc" ] && dovi_tool -m "$VFO_DV_P7_TO_81_MODE" extract-rpu -i "$src_hevc" -o "$rpu_bin" >/dev/null 2>&1; then
+        p7_to_81_applied=1
+      elif [ -s "$src_hevc" ] \
+        && dovi_tool -m "$VFO_DV_P7_TO_81_MODE" convert "$src_hevc" -o "$src_p81_hevc" >/dev/null 2>&1 \
+        && [ -s "$src_p81_hevc" ] \
+        && dovi_tool extract-rpu -i "$src_p81_hevc" -o "$rpu_bin" >/dev/null 2>&1; then
+        p7_to_81_applied=1
+        echo "DV P7 fallback path used: convert source bitstream to P8.1 then extract RPU"
+      fi
+    elif [ -s "$src_hevc" ] && dovi_tool extract-rpu -i "$src_hevc" -o "$rpu_bin" >/dev/null 2>&1; then
+      p7_to_81_applied=1
+    fi
+
+    if [ "$p7_to_81_applied" -eq 1 ]; then
+      ffmpeg -hide_banner -nostdin -y \
+        -i "$enc_mp4" \
+        -map 0:v:0 -c:v copy -bsf:v hevc_mp4toannexb -f hevc \
+        "$enc_hevc" >/dev/null 2>&1 || true
+
+      if [ -s "$enc_hevc" ] && dovi_tool inject-rpu -i "$enc_hevc" --rpu-in "$rpu_bin" -o "$dv_hevc" >/dev/null 2>&1; then
+        if ffmpeg -hide_banner -nostdin -y \
+          -fflags +genpts -r "$fps" -f hevc -i "$dv_hevc" \
+          -c:v copy -movflags +faststart \
+          -video_track_timescale "$MP4_TIMESCALE" \
+          "$dv_mp4" >/dev/null 2>&1 \
+          && ffprobe -v error "$dv_mp4" >/dev/null 2>&1; then
+          if [ "$p7_to_81_requested" -eq 1 ]; then
+            output_dv_profile="$(dr_get_dovi_profile "$dv_mp4")"
+            if [ "$output_dv_profile" = "8" ]; then
+              new_video="$dv_mp4"
+            else
+              p7_to_81_applied=0
+            fi
+          else
+            new_video="$dv_mp4"
+          fi
+        fi
+      fi
+    fi
+  fi
+fi
+
+if [ "$p7_to_81_requested" -eq 1 ] && [ "$VFO_DV_REQUIRE_P7_TO_81" = "1" ] && [ "$new_video" != "$dv_mp4" ]; then
+  echo "Source contains Dolby Vision profile 7 but profile 8.1 conversion failed (VFO_DV_REQUIRE_P7_TO_81=1)"
+  exit 1
+fi
+
+if [ "$source_is_dv" -eq 1 ] && [ "$VFO_DV_REQUIRE_DOVI" = "1" ] && [ "$new_video" != "$dv_mp4" ]; then
+  echo "Source contains Dolby Vision but DV retention failed (VFO_DV_REQUIRE_DOVI=1)"
+  exit 1
+fi
+
+ACTUAL_OUTPUT="$OUTPUT"
+if [ -n "$MAIN_SUB_POS" ]; then
+  ACTUAL_OUTPUT="${OUTPUT%.*}.mkv"
+  ffmpeg -hide_banner -nostdin -y \
+    -i "$new_video" -i "$INPUT" \
+    -map 0:v:0 -map 1:a? -map "1:s:${MAIN_SUB_POS}" \
+    -c:v copy -c:a copy -c:s copy \
+    -max_muxing_queue_size 4096 \
+    "$ACTUAL_OUTPUT"
+else
+  finalize_streamable_mp4 "$new_video" "$INPUT" "$ACTUAL_OUTPUT"
+fi
+
+dr_collect_output_state "$ACTUAL_OUTPUT"
+if ! dr_validate_output_against_source "$VFO_DYNAMIC_RANGE_STRICT" "preserve"; then
+  exit 1
+fi
+
+if [ "$source_is_dv" -eq 1 ] && [ "$VFO_DV_REQUIRE_DOVI" = "1" ] && [ "$DR_OUTPUT_CLASS" != "dv" ]; then
+  echo "Dynamic-range validation failed: source is DV but output is ${DR_OUTPUT_CLASS}"
+  exit 1
+fi
+
+if [ "$p7_to_81_requested" -eq 1 ] && [ "$VFO_DV_REQUIRE_P7_TO_81" = "1" ] && [ "$DR_OUT_DV_PROFILE" != "8" ]; then
+  echo "Dynamic-range validation failed: source DV profile 7 was not converted to profile 8.x"
+  exit 1
+fi
+
+if [ "$VFO_DYNAMIC_RANGE_REPORT" = "1" ]; then
+  dr_write_report "$ACTUAL_OUTPUT" "$(basename "$0")" "preserve" "$VFO_DYNAMIC_RANGE_STRICT"
 fi

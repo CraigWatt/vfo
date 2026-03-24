@@ -29,6 +29,7 @@ vfo provides these through scenario command placeholders:
 - `transcode_h264_1080_profile.sh`
 - `transcode_h264_1080_hdr_to_sdr_profile.sh`
 - `transcode_hevc_4k_dv_profile.sh`
+- `dynamic_range_tools.sh`
 - `profile_guardrail_skip.sh`
 
 Core templates:
@@ -65,6 +66,20 @@ Device-target templates:
   - explicitly skips non-english forced tracks
   - emits MKV when a main subtitle is selected
   - otherwise emits stream-ready MP4, defaulting to fragmented MP4 with init/moov at start
+  - preserves dynamic-range signaling with metadata-repair defaults
+  - writes per-output `*.dynamic_range_report.txt` sidecars
+  - 4K lane attempts DV retention/injection when source signals DV side data
+  - 4K lane defaults to strict DV retention (`VFO_DV_REQUIRE_DOVI=1`)
+  - 4K lane supports profile 7 -> 8.1 conversion controls:
+    - `VFO_DV_CONVERT_P7_TO_81=1` (default)
+    - `VFO_DV_P7_TO_81_MODE=2|5` (default: `2`)
+    - `VFO_DV_REQUIRE_P7_TO_81=1` (default)
+    - `VFO_DV_P7_EXTRACT_MODE=auto|mkvextract|ffmpeg` (default: `auto`)
+  - 4K lane can use `mkvextract` for profile-7 MKV track extraction before P8.1 conversion fallback
+  - all subtitle-intent lanes support dynamic-range controls:
+    - `VFO_DYNAMIC_METADATA_REPAIR=1|0` (default: `1`)
+    - `VFO_DYNAMIC_RANGE_STRICT=1|0` (default: `1`)
+    - `VFO_DYNAMIC_RANGE_REPORT=1|0` (default: `1`)
   - legacy lane variant supports optional interlace-aware deinterlace + stable black-bar auto-crop
   - legacy lane automatically disables crop when selected subtitle stream is bitmap-based
   - optional env:

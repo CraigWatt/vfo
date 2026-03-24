@@ -11,6 +11,8 @@ set -euo pipefail
 # - Selects one "main subtitle" when it appears director-intent oriented:
 #   priority: forced english -> forced untagged/unknown -> optional default english.
 #   non-english forced tracks are intentionally skipped.
+# - Preserves dynamic-range signaling for HDR workflows by default:
+#   applies metadata-repair defaults when source tags are incomplete.
 # - Optionally applies deinterlace when input is interlaced (default: auto).
 # - Optionally applies stable black-bar auto-crop for persistent bars.
 # - If selected subtitle is bitmap-based, crop is disabled for subtitle placement safety.
@@ -30,6 +32,12 @@ set -euo pipefail
 #   VFO_LEGACY_CROP_SAMPLE_SECONDS=3
 #   VFO_LEGACY_CROP_DETECT_LIMIT=24
 #   VFO_LEGACY_CROP_MIN_PIXELS=8
+#   VFO_DYNAMIC_METADATA_REPAIR=1|0
+#     default: 1
+#   VFO_DYNAMIC_RANGE_STRICT=1|0
+#     default: 1
+#   VFO_DYNAMIC_RANGE_REPORT=1|0
+#     default: 1
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
@@ -43,6 +51,10 @@ if [ ! -f "$INPUT" ]; then
   echo "Input file not found: $INPUT"
   exit 1
 fi
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=dynamic_range_tools.sh
+. "$SCRIPT_DIR/dynamic_range_tools.sh"
 
 ENCODER_MODE="${VFO_ENCODER_MODE:-auto}" # auto|hw|cpu
 INCLUDE_DEFAULT_MAIN_SUB="${VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT:-0}"
@@ -59,6 +71,9 @@ LEGACY_AUTOCROP="${VFO_LEGACY_AUTOCROP:-1}"
 LEGACY_CROP_SAMPLE_SECONDS="${VFO_LEGACY_CROP_SAMPLE_SECONDS:-3}"
 LEGACY_CROP_DETECT_LIMIT="${VFO_LEGACY_CROP_DETECT_LIMIT:-24}"
 LEGACY_CROP_MIN_PIXELS="${VFO_LEGACY_CROP_MIN_PIXELS:-8}"
+VFO_DYNAMIC_METADATA_REPAIR="${VFO_DYNAMIC_METADATA_REPAIR:-1}"
+VFO_DYNAMIC_RANGE_STRICT="${VFO_DYNAMIC_RANGE_STRICT:-1}"
+VFO_DYNAMIC_RANGE_REPORT="${VFO_DYNAMIC_RANGE_REPORT:-1}"
 
 lower_text() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
@@ -388,6 +403,20 @@ if [ -n "$CROP_FILTER" ]; then
   echo "Applying auto-crop filter: ${CROP_FILTER}"
 fi
 
+dr_collect_source_state "$INPUT"
+dr_compute_target_tags "preserve"
+COLOR_ARGS=()
+if [ "$VFO_DYNAMIC_METADATA_REPAIR" = "1" ]; then
+  COLOR_ARGS=(
+    -colorspace "$DR_TARGET_COLOR_SPACE"
+    -color_trc "$DR_TARGET_COLOR_TRC"
+    -color_primaries "$DR_TARGET_COLOR_PRIMARIES"
+  )
+fi
+if [ -n "${DR_REPAIR_NOTES:-}" ]; then
+  echo "Dynamic-range metadata repair hints: ${DR_REPAIR_NOTES}"
+fi
+
 VIDEO_ARGS=()
 if [ "$ENCODER_MODE" = "hw" ] || { [ "$ENCODER_MODE" = "auto" ] && has_videotoolbox_encoder; }; then
   VIDEO_ARGS=(
@@ -396,6 +425,7 @@ if [ "$ENCODER_MODE" = "hw" ] || { [ "$ENCODER_MODE" = "auto" ] && has_videotool
     -b:v "${AVG_K_LEGACY}k"
     -maxrate "${MAXRATE_K_LEGACY}k"
     -bufsize "${BUFSIZE_K_LEGACY}k"
+    "${COLOR_ARGS[@]}"
   )
 else
   VIDEO_ARGS=(
@@ -404,14 +434,17 @@ else
     -crf "$CRF_LEGACY"
     -x265-params "vbv-maxrate=${MAXRATE_K_LEGACY}:vbv-bufsize=${BUFSIZE_K_LEGACY}:aq-mode=3"
     -pix_fmt yuv420p10le
+    "${COLOR_ARGS[@]}"
   )
 fi
 if [ -n "$VIDEO_FILTER_CHAIN" ]; then
   VIDEO_ARGS=(-vf "$VIDEO_FILTER_CHAIN" "${VIDEO_ARGS[@]}")
 fi
 
+ACTUAL_OUTPUT="$OUTPUT"
 if [ -n "$MAIN_SUB_POS" ]; then
   OUTPUT_PATH="${OUTPUT%.*}.mkv"
+  ACTUAL_OUTPUT="$OUTPUT_PATH"
   echo "MAIN subtitle detected (s:${MAIN_SUB_POS}, codec=${MAIN_SUB_CODEC}); preserving in MKV output: $OUTPUT_PATH"
   ffmpeg -hide_banner -nostdin -y \
     -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
@@ -435,4 +468,12 @@ else
 
   finalize_streamable_mp4 "$MP4_WORK_OUTPUT" "$OUTPUT"
   rm -f "$MP4_WORK_OUTPUT"
+fi
+
+dr_collect_output_state "$ACTUAL_OUTPUT"
+if ! dr_validate_output_against_source "$VFO_DYNAMIC_RANGE_STRICT" "preserve"; then
+  exit 1
+fi
+if [ "$VFO_DYNAMIC_RANGE_REPORT" = "1" ]; then
+  dr_write_report "$ACTUAL_OUTPUT" "$(basename "$0")" "preserve" "$VFO_DYNAMIC_RANGE_STRICT"
 fi

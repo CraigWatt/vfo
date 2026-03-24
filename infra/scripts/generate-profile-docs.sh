@@ -364,7 +364,8 @@ MERMAID
       printf -- '- It does not generate ABR ladders (HLS/DASH); output is a single-file artifact.\n'
       printf -- '- It does not certify playback on every device model; profile criteria are compatibility-oriented guardrails.\n'
       printf -- '- It does not enforce PSNR/SSIM/VMAF thresholds unless quality checks are explicitly enabled and configured.\n'
-      printf -- '- It does not guarantee HDR/DV metadata preservation for every source and toolchain combination.\n'
+      printf -- '- It does not invent missing HDR/DV essence; metadata repair is heuristic and can be disabled.\n'
+      printf -- '- It depends on source integrity and toolchain support for DV/HDR retention; strict mode may fail instead of silently downgrading.\n'
     fi
 
     printf '\n## Source\n\n'
