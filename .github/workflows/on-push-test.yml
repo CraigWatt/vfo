@@ -42,6 +42,15 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      - name: upload e2e toolchain reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-toolchain-${{ github.sha }}
+          path: tests/e2e/.reports/latest/
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: clean test artifacts
         if: always()
         run: make clean_tests

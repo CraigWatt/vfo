@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TMP_DIR="${ROOT_DIR}/tests/e2e/.tmp_device_conformance"
 FIXTURES_DIR="${TMP_DIR}/fixtures"
 OUTPUTS_DIR="${TMP_DIR}/outputs"
+# shellcheck source=lib/e2e_toolchain_report.sh
+. "${ROOT_DIR}/tests/e2e/lib/e2e_toolchain_report.sh"
 
 ASSET_MODE="${VFO_E2E_ASSET_MODE:-auto}" # auto|local|synthetic
 ASSETS_DIR="${VFO_E2E_ASSETS_DIR:-${ROOT_DIR}/tests/e2e/assets/open-source}"
@@ -209,6 +211,10 @@ run_local_suite() {
 main() {
   need ffmpeg
   need ffprobe
+  e2e_write_toolchain_report \
+    "$ROOT_DIR" \
+    "run_device_conformance_e2e" \
+    ffmpeg ffprobe
   [ -x "$ACTION_HEVC_4K" ] || fail "Missing action script: $ACTION_HEVC_4K"
   [ -x "$ACTION_HEVC_1080" ] || fail "Missing action script: $ACTION_HEVC_1080"
   [ -x "$ACTION_H264_1080_HDR_TO_SDR" ] || fail "Missing action script: $ACTION_H264_1080_HDR_TO_SDR"

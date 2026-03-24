@@ -2,6 +2,24 @@
 
 Generated from stock preset pack `device_targets_open_audio`.
 
+## Dependencies
+
+| Tool | Needed | Why |
+| --- | --- | --- |
+| `ffmpeg` | required | scenario execution, encode/transcode, and mux packaging |
+| `ffprobe` | required | criteria probing and stream/metadata inspection |
+| `dovi_tool` | conditional | required for Dolby Vision retention and profile 7 to 8.1 conversion paths |
+
+## E2E Verification
+
+This profile is considered e2e-verified when its mapped suites pass in CI.
+
+| Suite | What it proves | Toolchain version report |
+| --- | --- | --- |
+| `tests/e2e/run_dv_metadata_optional_e2e.sh` | optional DV metadata retention and profile 7 to 8.1 checks | `tests/e2e/.reports/latest/run_dv_metadata_optional_e2e_toolchain_versions.md` |
+
+- Combined toolchain snapshot: `tests/e2e/.reports/latest/toolchain_versions_summary.md`
+
 ## Input Envelope
 
 | Field | Value |
