@@ -33,6 +33,12 @@ Use `vfo visualize` to generate local workflow artifacts (HTML + JSON + Mermaid)
 - No unrestricted auto-merge and no production deploy automation.
 - Setup/guardrails: `infra/docs/codex-autonomous-loop.md`
 - Docs build + Pages deployment lane: `.github/workflows/ci-docs-pages.yml`
+- GHCR package lane: `.github/workflows/ci-package-ghcr.yml` (`ghcr.io/<owner>/vfo`)
+- Release deployment environments: `release-stable` and `release-beta`
+- Delivery model reference: `infra/docs/github-delivery-lanes.md`
+- GHCR quickstart:
+  - `docker pull ghcr.io/craigwatt/vfo:main`
+  - `docker run --rm ghcr.io/craigwatt/vfo:main --version`
 
 ### Documentation site
 - Source: `platform/docs-site/`

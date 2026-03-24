@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  deployments: write
 
 jobs:
   linux-build:
@@ -109,6 +110,9 @@ jobs:
     name: 🧪📦 Beta prerelease
     needs: [apple-pkg]
     runs-on: macos-latest
+    environment:
+      name: release-beta
+      url: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}
 
     steps:
       - name: ⬇️ Checkout repo
