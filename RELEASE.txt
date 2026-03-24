@@ -36,6 +36,7 @@ Use `vfo visualize` to generate local workflow artifacts (HTML + JSON + Mermaid)
 
 ### Documentation site
 - Source: `platform/docs-site/`
+- Docs engine: `zensical` (using `mkdocs.yml` compatibility mode during migration)
 - Generated profile docs script: `infra/scripts/generate-profile-docs.sh`
 - Local build:
   - `make docs-generate`

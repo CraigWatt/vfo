@@ -61,7 +61,7 @@ jobs:
             platform/docs-site/docs/profile-capability-matrix.md
 
       - name: 🏗️ Build docs
-        run: mkdocs build --strict
+        run: zensical build -f mkdocs.yml
 
       - name: ⬆️ Upload Pages artifact
         uses: actions/upload-pages-artifact@v4

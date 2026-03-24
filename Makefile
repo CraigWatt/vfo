@@ -45,7 +45,7 @@ docs-generate:
 	bash infra/scripts/generate-profile-docs.sh
 
 docs-build: docs-generate
-	mkdocs build --strict
+	zensical build -f mkdocs.yml
 
 docs-serve: docs-generate
-	mkdocs serve
+	zensical serve -f mkdocs.yml
