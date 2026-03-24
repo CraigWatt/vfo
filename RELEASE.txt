@@ -107,6 +107,14 @@ Installed paths:
 - `VFO_DV_P7_TO_81_MODE`: conversion mode passed to `dovi_tool` (`2` default, `5` supported).
 - `VFO_DV_REQUIRE_P7_TO_81`: fail when profile 7 input cannot be converted to profile 8.x (`1` default).
 
+### Optional legacy sub-HD subtitle-intent controls
+- `transcode_hevc_legacy_main_subtitle_preserve_profile.sh`: stock lane for old/sub-HD stragglers in the netflixy pack.
+- `VFO_LEGACY_DEINTERLACE`: `auto|always|off` (`auto` default).
+- `VFO_LEGACY_AUTOCROP`: enable/disable stable black-bar crop (`1` default).
+- `VFO_LEGACY_CROP_SAMPLE_SECONDS`: crop-detect probe window per sample (`3` default).
+- `VFO_LEGACY_CROP_DETECT_LIMIT`: crop-detect black threshold (`24` default).
+- `VFO_LEGACY_CROP_MIN_PIXELS`: minimum removed pixels required before applying crop (`8` default).
+
 ### Troubleshooting
 - `required command missing: ffmpeg/ffprobe`:
   - `brew install ffmpeg`

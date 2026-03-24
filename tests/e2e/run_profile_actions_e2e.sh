@@ -16,6 +16,7 @@ ACTION_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_profile.sh"
 ACTION_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_profile.sh"
 ACTION_MAIN_SUB_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_main_subtitle_preserve_profile.sh"
 ACTION_MAIN_SUB_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_main_subtitle_preserve_profile.sh"
+ACTION_MAIN_SUB_LEGACY="${ROOT_DIR}/services/vfo/actions/transcode_hevc_legacy_main_subtitle_preserve_profile.sh"
 ACTION_GUARDRAIL_SKIP="${ROOT_DIR}/services/vfo/actions/profile_guardrail_skip.sh"
 
 log() {
@@ -128,6 +129,19 @@ create_synthetic_fixture() {
     "$output" >/dev/null 2>&1
 }
 
+create_legacy_letterbox_fixture() {
+  local input="$1"
+  local output="$2"
+
+  ffmpeg -hide_banner -nostdin -y \
+    -i "$input" \
+    -map 0:v:0 -map 0:a? \
+    -vf "scale=960:300:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2:black" \
+    -c:v libx264 -preset veryfast -crf 21 -pix_fmt yuv420p \
+    -c:a aac -b:a 128k \
+    "$output" >/dev/null 2>&1
+}
+
 probe_video_codec() {
   ffprobe -v error -select_streams v:0 \
     -show_entries stream=codec_name \
@@ -137,6 +151,12 @@ probe_video_codec() {
 probe_video_height() {
   ffprobe -v error -select_streams v:0 \
     -show_entries stream=height \
+    -of default=nk=1:nw=1 "$1" | tr -d '\r\n'
+}
+
+probe_video_width() {
+  ffprobe -v error -select_streams v:0 \
+    -show_entries stream=width \
     -of default=nk=1:nw=1 "$1" | tr -d '\r\n'
 }
 
@@ -316,6 +336,74 @@ run_main_subtitle_action_assertions() {
   log "${action_name} passed (codec=${codec}, height=${height}, audio_streams=${output_audio_count}, subtitle_streams=${output_subtitle_count}, data_streams=${output_data_count}, container=${expected_container})"
 }
 
+run_legacy_main_subtitle_autocrop_assertions() {
+  local action_name="$1"
+  local input="$2"
+  local requested_output="$3"
+  local expected_container="$4" # mp4|mkv
+  local expected_subtitle_count="$5"
+  local include_default_main_sub="${6:-0}"
+  local input_height="$7"
+  local expected_output="$requested_output"
+
+  [ -x "$ACTION_MAIN_SUB_LEGACY" ] || fail "Action script is not executable: $ACTION_MAIN_SUB_LEGACY"
+  [ -s "$input" ] || fail "Input fixture missing: $input"
+
+  if [ "$expected_container" = "mkv" ]; then
+    expected_output="${requested_output%.*}.mkv"
+  elif [ "$expected_container" != "mp4" ]; then
+    fail "Unsupported expected container '${expected_container}' for ${action_name}"
+  fi
+
+  rm -f "$requested_output" "${requested_output%.*}.mkv"
+
+  local input_audio_count
+  local output_audio_count
+  local output_subtitle_count
+  local output_data_count
+  local codec
+  local width
+  local height
+
+  input_audio_count="$(probe_audio_count "$input")"
+
+  env \
+    VFO_ENCODER_MODE=cpu \
+    VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT="$include_default_main_sub" \
+    VFO_LEGACY_AUTOCROP=1 \
+    VFO_LEGACY_CROP_SAMPLE_SECONDS=1 \
+    VFO_LEGACY_CROP_MIN_PIXELS=8 \
+    VFO_LEGACY_DEINTERLACE=off \
+    CPU_PRESET=ultrafast \
+    CRF_LEGACY=30 \
+    AVG_K_LEGACY=1800 \
+    MAXRATE_K_LEGACY=2600 \
+    BUFSIZE_K_LEGACY=5200 \
+    bash "$ACTION_MAIN_SUB_LEGACY" "$input" "$requested_output"
+
+  [ -s "$expected_output" ] || fail "Output file missing: $expected_output"
+  ffprobe -v error "$expected_output" >/dev/null 2>&1 || fail "ffprobe cannot read output: $expected_output"
+
+  codec="$(probe_video_codec "$expected_output")"
+  width="$(probe_video_width "$expected_output")"
+  height="$(probe_video_height "$expected_output")"
+  output_audio_count="$(probe_audio_count "$expected_output")"
+  output_subtitle_count="$(probe_subtitle_count "$expected_output")"
+  output_data_count="$(probe_data_count "$expected_output")"
+
+  assert_equals "$codec" "hevc" "${action_name} should output HEVC"
+  assert_equals "$output_audio_count" "$input_audio_count" "${action_name} changed audio stream count"
+  assert_equals "$output_subtitle_count" "$expected_subtitle_count" "${action_name} subtitle stream count mismatch"
+  if [ "$expected_container" = "mp4" ]; then
+    assert_equals "$output_data_count" "0" "${action_name} MP4 output should not contain data streams"
+  fi
+  if [ "$height" -ge "$input_height" ]; then
+    fail "${action_name} expected auto-crop to reduce height. input_height=${input_height} output_height=${height}"
+  fi
+
+  log "${action_name} passed (codec=${codec}, width=${width}, height=${height}, audio_streams=${output_audio_count}, subtitle_streams=${output_subtitle_count}, data_streams=${output_data_count}, container=${expected_container})"
+}
+
 run_guardrail_skip_action_assertions() {
   local action_name="$1"
   local input="$2"
@@ -346,6 +434,8 @@ run_seed_from_input() {
   local fixture_2160_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160_forced_sub.mkv"
   local fixture_1080_default_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_default_sub.mkv"
   local fixture_1080_forced_non_english_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_forced_non_english_sub.mkv"
+  local fixture_legacy_letterbox="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_legacy_letterbox.mkv"
+  local fixture_legacy_letterbox_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_legacy_letterbox_forced_sub.mkv"
   local output_1080="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_output.mkv"
   local output_4k="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_output.mkv"
   local output_1080_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_main_sub.mp4"
@@ -353,6 +443,8 @@ run_seed_from_input() {
   local output_1080_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_off.mp4"
   local output_1080_default_sub_on="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_on.mp4"
   local output_1080_forced_non_english_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_forced_non_english_sub.mp4"
+  local output_legacy_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_default_sub_off.mp4"
+  local output_legacy_forced_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_forced_sub.mp4"
   local output_guardrail_skip="${OUTPUTS_DIR}/seed_${seed_index}_profile_guardrail_skip.mp4"
 
   log "Using local open-source asset seed #${seed_index}: ${seed_asset}"
@@ -362,6 +454,8 @@ run_seed_from_input() {
   create_subtitle_fixture "$fixture_2160" "$fixture_2160_forced_sub" forced
   create_subtitle_fixture "$fixture_1080" "$fixture_1080_default_sub" default
   create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_non_english_sub" forced_non_english
+  create_legacy_letterbox_fixture "$fixture_1080" "$fixture_legacy_letterbox"
+  create_subtitle_fixture "$fixture_legacy_letterbox" "$fixture_legacy_letterbox_forced_sub" forced
 
   run_action_assertions \
     "hevc_1080_profile_action(seed_${seed_index})" \
@@ -426,6 +520,24 @@ run_seed_from_input() {
     mp4 \
     0 \
     0
+
+  run_legacy_main_subtitle_autocrop_assertions \
+    "hevc_legacy_main_subtitle_default_off(seed_${seed_index})" \
+    "$fixture_legacy_letterbox" \
+    "$output_legacy_default_sub_off" \
+    mp4 \
+    0 \
+    0 \
+    540
+
+  run_legacy_main_subtitle_autocrop_assertions \
+    "hevc_legacy_main_subtitle_forced(seed_${seed_index})" \
+    "$fixture_legacy_letterbox_forced_sub" \
+    "$output_legacy_forced_sub" \
+    mkv \
+    1 \
+    0 \
+    540
 
   run_guardrail_skip_action_assertions \
     "profile_guardrail_skip_action(seed_${seed_index})" \
@@ -442,6 +554,8 @@ run_seed_synthetic() {
   local fixture_2160_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160_forced_sub.mkv"
   local fixture_1080_default_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_default_sub.mkv"
   local fixture_1080_forced_non_english_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_forced_non_english_sub.mkv"
+  local fixture_legacy_letterbox="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_legacy_letterbox.mkv"
+  local fixture_legacy_letterbox_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_legacy_letterbox_forced_sub.mkv"
   local output_1080="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_output.mkv"
   local output_4k="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_output.mkv"
   local output_1080_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_main_sub.mp4"
@@ -449,6 +563,8 @@ run_seed_synthetic() {
   local output_1080_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_off.mp4"
   local output_1080_default_sub_on="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_on.mp4"
   local output_1080_forced_non_english_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_forced_non_english_sub.mp4"
+  local output_legacy_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_default_sub_off.mp4"
+  local output_legacy_forced_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_forced_sub.mp4"
   local output_guardrail_skip="${OUTPUTS_DIR}/seed_${seed_index}_profile_guardrail_skip.mp4"
 
   log "Using synthetic fixtures for seed #${seed_index} (no local assets required)"
@@ -458,6 +574,8 @@ run_seed_synthetic() {
   create_subtitle_fixture "$fixture_2160" "$fixture_2160_forced_sub" forced
   create_subtitle_fixture "$fixture_1080" "$fixture_1080_default_sub" default
   create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_non_english_sub" forced_non_english
+  create_legacy_letterbox_fixture "$fixture_1080" "$fixture_legacy_letterbox"
+  create_subtitle_fixture "$fixture_legacy_letterbox" "$fixture_legacy_letterbox_forced_sub" forced
 
   run_action_assertions \
     "hevc_1080_profile_action(seed_${seed_index})" \
@@ -522,6 +640,24 @@ run_seed_synthetic() {
     mp4 \
     0 \
     0
+
+  run_legacy_main_subtitle_autocrop_assertions \
+    "hevc_legacy_main_subtitle_default_off(seed_${seed_index})" \
+    "$fixture_legacy_letterbox" \
+    "$output_legacy_default_sub_off" \
+    mp4 \
+    0 \
+    0 \
+    540
+
+  run_legacy_main_subtitle_autocrop_assertions \
+    "hevc_legacy_main_subtitle_forced(seed_${seed_index})" \
+    "$fixture_legacy_letterbox_forced_sub" \
+    "$output_legacy_forced_sub" \
+    mkv \
+    1 \
+    0 \
+    540
 
   run_guardrail_skip_action_assertions \
     "profile_guardrail_skip_action(seed_${seed_index})" \
@@ -566,6 +702,7 @@ main() {
   [ -f "$ACTION_1080" ] || fail "Missing action script: $ACTION_1080"
   [ -f "$ACTION_MAIN_SUB_4K" ] || fail "Missing action script: $ACTION_MAIN_SUB_4K"
   [ -f "$ACTION_MAIN_SUB_1080" ] || fail "Missing action script: $ACTION_MAIN_SUB_1080"
+  [ -f "$ACTION_MAIN_SUB_LEGACY" ] || fail "Missing action script: $ACTION_MAIN_SUB_LEGACY"
   [ -f "$ACTION_GUARDRAIL_SKIP" ] || fail "Missing action script: $ACTION_GUARDRAIL_SKIP"
 
   rm -rf "$TMP_DIR"
