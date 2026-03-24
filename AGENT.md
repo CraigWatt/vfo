@@ -98,6 +98,12 @@ Rules:
   - `profile.*`
   - `stage.*`
 
+### 8) Docs Navigation and Information Architecture
+
+- Any new user-facing docs page must be added to MkDocs navigation in `mkdocs.yml` within the same PR.
+- New generated profile pages under `platform/docs-site/docs/profiles/generated/` must be linked from the relevant profile pack section in nav.
+- Do not merge docs additions that are only reachable by direct URL.
+
 ## Compatibility and Deprecation Rules
 
 - Never break existing CLI/config names in one step.
@@ -136,3 +142,4 @@ Before merge, verify:
 2. new user-facing text uses canonical terms (`mezzanine`, `source`, `profile`)
 3. deprecated terminology is not surfaced in user-facing text
 4. docs and help text remain consistent with implemented command/config names
+5. every new docs page is reachable from `mkdocs.yml` navigation
