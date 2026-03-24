@@ -17,12 +17,13 @@ Focus:
 - preserve one "main subtitle" when it appears director-intent oriented
 - emit MKV when subtitle intent applies, otherwise stream-ready MP4 (fragmented + init/moov at start by default)
 - prioritize viewing-experience intent over single-container uniformity
-- guardrails: 1080 lane is SDR-only (`bt709`); 4K lane accepts SDR/HDR; codec intake is broad (`any`)
+- guardrails: 1080 lane is SDR-only (`bt709`) in 1280x720..1920x1080, 4K lane accepts SDR/HDR in 1920x1080..3840x2160, legacy sub-HD lane is 320x240..1279x719 with broad codec/color intake
 
 Included active profiles:
 
 - `netflixy_preserve_audio_main_subtitle_intent_4k`
 - `netflixy_preserve_audio_main_subtitle_intent_1080p`
+- `netflixy_preserve_audio_main_subtitle_intent_legacy_subhd`
 - details + flow: [Netflixy Main Subtitle Intent Pack](profiles/packs/netflixy-main-subtitle-intent.md)
 
 ## device_targets_open_audio

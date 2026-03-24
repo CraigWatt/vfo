@@ -24,3 +24,4 @@ bash infra/scripts/generate-profile-docs.sh
 - [fire_tv_stick_4k_dv_open_audio](generated/fire-tv-stick-4k-dv-open-audio.md) (pack: device_targets_open_audio)
 - [netflixy_preserve_audio_main_subtitle_intent_4k](generated/netflixy-preserve-audio-main-subtitle-intent-4k.md) (pack: netflixy_main_subtitle_intent)
 - [netflixy_preserve_audio_main_subtitle_intent_1080p](generated/netflixy-preserve-audio-main-subtitle-intent-1080p.md) (pack: netflixy_main_subtitle_intent)
+- [netflixy_preserve_audio_main_subtitle_intent_legacy_subhd](generated/netflixy-preserve-audio-main-subtitle-intent-legacy-subhd.md) (pack: netflixy_main_subtitle_intent)
