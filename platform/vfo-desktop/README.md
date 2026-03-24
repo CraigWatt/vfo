@@ -46,3 +46,13 @@ npm run dev
 - Use explicit command IDs mapped to vetted argument templates.
 - Require operator confirmation for destructive actions.
 - Keep logs and status output transparent and exportable.
+
+## Managed toolchain direction (planned)
+
+`vfo-desktop` is the right place to add an optional managed dependency lane:
+
+- install/pin vetted tool binaries in an app-managed directory
+- prefer managed tools in desktop-launched runs (policy-driven fallback)
+- surface effective tool source and versions in UI + doctor/status views
+
+The CLI engine remains authoritative for all media logic and decisions; desktop only manages runtime ergonomics.

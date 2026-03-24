@@ -47,3 +47,7 @@ Package lane intent:
 - Deployments track where/when published artifacts became active (docs and release lanes).
 - Packages provide pull-based consumption for automation and infra.
 - Releases provide user-facing versioned downloads and changelog context.
+
+See also:
+
+- `infra/docs/deployment-runtime-strategy.md` for runtime-mode recommendations (`local native`, `desktop managed`, `container`).
