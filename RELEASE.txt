@@ -46,6 +46,12 @@ Use `vfo visualize` to generate local workflow artifacts (HTML + JSON + Mermaid)
 - Published URL (after enabling GitHub Pages in repo settings):
   - `https://craigwatt.github.io/vfo/`
 
+### Desktop architecture scaffold (monorepo)
+- `services/vfo/` remains the standalone CLI processing engine.
+- `platform/vfo-desktop/` is scaffolded for Tauri runtime + React UI integration.
+- `platform/vfo-contracts/` contains shared JSON schemas for status/progress/error payload contracts.
+- Desktop bridge command allowlist scaffold: `platform/vfo-desktop/contracts/allowed-cli-commands.json`
+
 ### macOS (recommended: signed package)
 1. Download `vfo_macOS_installer-v*.*.*.pkg` from this release's assets.
 2. If macOS blocks first launch, right-click the package and choose **Open**.

@@ -409,6 +409,12 @@ infra/
   packaging/
     macos/
 platform/
+  docs-site/
+  vfo-desktop/
+    src-tauri/
+    web/
+    contracts/
+  vfo-contracts/
 services/
   vfo/
     src/
@@ -459,6 +465,20 @@ Key visual docs include:
 - `platform/docs-site/docs/flow-levels.md`
 - `platform/docs-site/docs/profile-visual-standard.md`
 - generated stock profile sheets under `platform/docs-site/docs/profiles/generated/`
+
+### Desktop scaffold
+
+The monorepo now includes a desktop-app scaffold intended for:
+
+- `services/vfo/` as the standalone processing engine
+- `platform/vfo-desktop/` as Tauri runtime + React UI shell
+- `platform/vfo-contracts/` as machine-readable schema contracts shared across UI/automation integrations
+
+See:
+
+- `platform/vfo-desktop/README.md`
+- `platform/vfo-desktop/contracts/allowed-cli-commands.json`
+- `platform/vfo-contracts/status-json.schema.json`
 
 Local docs workflow:
 

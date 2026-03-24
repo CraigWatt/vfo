@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "description": "Command allowlist for desktop bridge to execute local vfo commands safely.",
+  "commands": [
+    {
+      "id": "version",
+      "argv": ["vfo", "--version"]
+    },
+    {
+      "id": "doctor",
+      "argv": ["vfo", "doctor"]
+    },
+    {
+      "id": "show",
+      "argv": ["vfo", "show"]
+    },
+    {
+      "id": "status",
+      "argv": ["vfo", "status"]
+    },
+    {
+      "id": "status_json",
+      "argv": ["vfo", "status-json"]
+    },
+    {
+      "id": "wizard",
+      "argv": ["vfo", "wizard"]
+    },
+    {
+      "id": "mezzanine_clean",
+      "argv": ["vfo", "mezzanine-clean"]
+    },
+    {
+      "id": "run",
+      "argv": ["vfo", "run"]
+    },
+    {
+      "id": "visualize",
+      "argv": ["vfo", "visualize"]
+    },
+    {
+      "id": "profiles",
+      "argv": ["vfo", "profiles"]
+    }
+  ],
+  "notes": [
+    "This file is intentionally explicit: no arbitrary command execution from UI.",
+    "Future profile-specific execution can be added as a separate vetted command map."
+  ]
+}
