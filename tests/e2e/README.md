@@ -8,6 +8,7 @@ This directory contains end-to-end tests for profile action scripts under:
 
 - 1080 profile action output (`transcode_hevc_1080_profile.sh`)
 - 4K profile action output (`transcode_hevc_4k_profile.sh`)
+- profile guardrail skip marker behavior (`profile_guardrail_skip.sh`)
 - conservative device conformance checks for stock targets:
   - Roku Express / Roku 4K
   - Fire TV Stick Lite / 4K / 4K Max
@@ -20,6 +21,7 @@ This directory contains end-to-end tests for profile action scripts under:
   - video codec is HEVC
   - resolution stays within profile ceiling
   - audio stream count is preserved
+  - guardrail skip markers are emitted for skip-path actions
 
 ## Running Locally
 

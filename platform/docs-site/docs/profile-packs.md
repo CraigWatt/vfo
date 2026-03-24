@@ -17,6 +17,7 @@ Focus:
 - preserve one "main subtitle" when it appears director-intent oriented
 - emit MKV when subtitle intent applies, otherwise stream-ready MP4 (fragmented + init/moov at start by default)
 - prioritize viewing-experience intent over single-container uniformity
+- guardrails: 1080 lane is SDR-only (`bt709`); 4K lane accepts SDR/HDR; codec intake is broad (`any`)
 
 Included active profiles:
 

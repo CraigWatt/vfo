@@ -180,7 +180,7 @@ make install
 ```
 
 By default this copies the binary under `/usr/local/bin` and copies `services/vfo/src/vfo_config.conf` into `/usr/local/bin/vfo_conf_folder`.
-It also copies stock profile-action scripts (`transcode_*_profile.sh`) into `/usr/local/bin`.
+It also copies stock profile-action scripts (`*.sh`, for example `transcode_*_profile.sh`, `profile_guardrail_skip.sh`) into `/usr/local/bin`.
 
 ## Quick start
 

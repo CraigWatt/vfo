@@ -6,9 +6,9 @@ Generated from stock preset pack `netflixy_main_subtitle_intent`.
 
 | Field | Value |
 | --- | --- |
-| Codec | `hevc` |
-| Bit depth | `10` |
-| Color space | `bt2020nc` |
+| Codec | `any` |
+| Bit depth | `any` |
+| Color space | `any` |
 | Min resolution | `1920x1080` |
 | Max resolution | `3840x2160` |
 
@@ -16,11 +16,13 @@ Generated from stock preset pack `netflixy_main_subtitle_intent`.
 
 | Scenario | Command |
 | --- | --- |
-| `ELSE` | `transcode_hevc_4k_main_subtitle_preserve_profile.sh $vfo_input $vfo_output` |
+| `RES_JUST_RIGHT` | `transcode_hevc_4k_main_subtitle_preserve_profile.sh $vfo_input $vfo_output` |
+| `ELSE` | `profile_guardrail_skip.sh $vfo_input $vfo_output netflixy_4k_guardrail_mismatch_requires_1920x1080_to_3840x2160_input` |
 
 ## Runtime Behavior
 
-- Scenario `ELSE` uses action script `transcode_hevc_4k_main_subtitle_preserve_profile.sh`.
+- Scenario `RES_JUST_RIGHT` uses action script `transcode_hevc_4k_main_subtitle_preserve_profile.sh`.
+- Scenario `ELSE` uses action script `profile_guardrail_skip.sh`.
 
 Action summary from `transcode_hevc_4k_main_subtitle_preserve_profile.sh`:
 
@@ -44,7 +46,7 @@ Operator knobs from `transcode_hevc_4k_main_subtitle_preserve_profile.sh`:
 | Aspect | What this profile expects / does |
 | --- | --- |
 | Starting containers | `mkv, mp4, mov, mxf (anything ffmpeg can demux)` |
-| Required codec envelope | `hevc` / `10-bit` / `bt2020nc` |
+| Required codec envelope | `any` / `any-bit` / `any` |
 | Required resolution range | `1920x1080` to `3840x2160` |
 | If criteria do not match | candidate is routed to another profile or skipped |
 | If criteria match | scenario order is evaluated and first match executes |

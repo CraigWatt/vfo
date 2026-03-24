@@ -6,8 +6,8 @@ Generated from stock preset pack `netflixy_main_subtitle_intent`.
 
 | Field | Value |
 | --- | --- |
-| Codec | `h264` |
-| Bit depth | `8` |
+| Codec | `any` |
+| Bit depth | `any` |
 | Color space | `bt709` |
 | Min resolution | `352x240` |
 | Max resolution | `1920x1080` |
@@ -16,11 +16,13 @@ Generated from stock preset pack `netflixy_main_subtitle_intent`.
 
 | Scenario | Command |
 | --- | --- |
-| `ELSE` | `transcode_hevc_1080_main_subtitle_preserve_profile.sh $vfo_input $vfo_output` |
+| `RES_JUST_RIGHT COLOR_SPACE_JUST_RIGHT` | `transcode_hevc_1080_main_subtitle_preserve_profile.sh $vfo_input $vfo_output` |
+| `ELSE` | `profile_guardrail_skip.sh $vfo_input $vfo_output netflixy_1080_guardrail_requires_sdr_bt709_and_1080p_or_lower_input` |
 
 ## Runtime Behavior
 
-- Scenario `ELSE` uses action script `transcode_hevc_1080_main_subtitle_preserve_profile.sh`.
+- Scenario `RES_JUST_RIGHT COLOR_SPACE_JUST_RIGHT` uses action script `transcode_hevc_1080_main_subtitle_preserve_profile.sh`.
+- Scenario `ELSE` uses action script `profile_guardrail_skip.sh`.
 
 Action summary from `transcode_hevc_1080_main_subtitle_preserve_profile.sh`:
 
@@ -44,7 +46,7 @@ Operator knobs from `transcode_hevc_1080_main_subtitle_preserve_profile.sh`:
 | Aspect | What this profile expects / does |
 | --- | --- |
 | Starting containers | `mkv, mp4, mov, mxf (anything ffmpeg can demux)` |
-| Required codec envelope | `h264` / `8-bit` / `bt709` |
+| Required codec envelope | `any` / `any-bit` / `bt709` |
 | Required resolution range | `352x240` to `1920x1080` |
 | If criteria do not match | candidate is routed to another profile or skipped |
 | If criteria match | scenario order is evaluated and first match executes |

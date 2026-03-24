@@ -55,14 +55,14 @@ Use `vfo visualize` to generate local workflow artifacts (HTML + JSON + Mermaid)
 
 Installed paths:
 - Binary: `/usr/local/bin/vfo`
-- Action scripts: `/usr/local/bin/transcode_*_profile.sh`
+- Action scripts: `/usr/local/bin/*.sh` (for example `transcode_*_profile.sh`, `profile_guardrail_skip.sh`)
 - Config directory: `/usr/local/bin/vfo_conf_folder`
 - Config file: `/usr/local/bin/vfo_conf_folder/vfo_config.conf`
 - Stock presets: `/usr/local/bin/vfo_conf_folder/presets/`
 
 ### macOS (advanced: static build zip)
 1. Download `static_build.zip` from assets and unzip it.
-2. Move `static_build/bin/vfo` and all `static_build/bin/transcode_*_profile.sh` scripts to `/usr/local/bin`.
+2. Move `static_build/bin/vfo` and all `static_build/bin/*.sh` action scripts to `/usr/local/bin`.
 3. Create config directory and copy the default config:
    - `sudo mkdir -p /usr/local/bin/vfo_conf_folder`
    - `sudo cp static_build/vfo_conf_folder/vfo_config.conf /usr/local/bin/vfo_conf_folder/vfo_config.conf`

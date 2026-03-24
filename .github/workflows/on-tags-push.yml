@@ -156,7 +156,7 @@ jobs:
     - name: 💁‍♂️ Generate static_build/README.txt
       run: |
         cat > static_build/README.txt <<'EOF'
-        Place `bin/vfo` and all `bin/transcode_*_profile.sh` scripts in your PATH (for example `/usr/local/bin`).
+        Place `bin/vfo` and all `bin/*.sh` action scripts in your PATH (for example `/usr/local/bin`).
         Place `vfo_conf_folder/vfo_config.conf` at `/usr/local/bin/vfo_conf_folder/vfo_config.conf`.
         Place preset pack files under `/usr/local/bin/vfo_conf_folder/presets/`.
         Then run:
