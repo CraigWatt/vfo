@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TMP_DIR="${ROOT_DIR}/tests/e2e/.tmp"
 FIXTURES_DIR="${TMP_DIR}/fixtures"
 OUTPUTS_DIR="${TMP_DIR}/outputs"
+# shellcheck source=lib/e2e_toolchain_report.sh
+. "${ROOT_DIR}/tests/e2e/lib/e2e_toolchain_report.sh"
 
 ASSET_MODE="${VFO_E2E_ASSET_MODE:-auto}" # auto|local|synthetic
 ASSETS_DIR="${VFO_E2E_ASSETS_DIR:-${ROOT_DIR}/tests/e2e/assets/open-source}"
@@ -830,6 +832,11 @@ run_local_asset_suite() {
 main() {
   require_command ffmpeg
   require_command ffprobe
+  e2e_reset_toolchain_reports "$ROOT_DIR"
+  e2e_write_toolchain_report \
+    "$ROOT_DIR" \
+    "run_profile_actions_e2e" \
+    ffmpeg ffprobe mkvmerge mkvextract dovi_tool
   [ -f "$ACTION_4K" ] || fail "Missing action script: $ACTION_4K"
   [ -f "$ACTION_1080" ] || fail "Missing action script: $ACTION_1080"
   [ -f "$ACTION_MAIN_SUB_4K" ] || fail "Missing action script: $ACTION_MAIN_SUB_4K"

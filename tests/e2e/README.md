@@ -63,6 +63,20 @@ make e2e
 - `VFO_E2E_DV_REQUIRE_P81=1`: fail if input profile 7 is not converted to profile 8.x
 - `VFO_E2E_DV_CLIP_DURATION`: clip length for optional DV test (default: `8`)
 
+## Toolchain Version Capture
+
+Each e2e run now captures:
+
+- `vfo` version (local build when present, otherwise PATH binary)
+- dependency versions for commands used by each e2e suite
+
+Reports are written to:
+
+- `tests/e2e/.reports/latest/run_profile_actions_e2e_toolchain_versions.md`
+- `tests/e2e/.reports/latest/run_device_conformance_e2e_toolchain_versions.md`
+- `tests/e2e/.reports/latest/run_dv_metadata_optional_e2e_toolchain_versions.md`
+- `tests/e2e/.reports/latest/toolchain_versions_summary.md`
+
 ## GitHub Actions (Self-Hosted Media Runner)
 
 Use workflow:
@@ -93,3 +107,4 @@ Notes:
 
 - The optional DV metadata test is non-blocking by default unless a DV fixture path is provided.
 - If no DV fixture is configured, the DV test lane exits with a skip message and success.
+- CI uploads `tests/e2e/.reports/latest/` as an artifact so docs and reviews can reference exact toolchain versions used by that run.

@@ -55,3 +55,7 @@ dkms.conf
 .DS_Store
 .vscode/
 platform/docs-site/site/
+tests/e2e/.tmp/
+tests/e2e/.tmp_device_conformance/
+tests/e2e/.tmp_dv_metadata/
+tests/e2e/.reports/

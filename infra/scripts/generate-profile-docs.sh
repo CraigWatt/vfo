@@ -118,6 +118,47 @@ mermaid_text() {
   printf '%s' "$1" | tr '"' "'" | tr '|' '/'
 }
 
+action_in_suite_profile_actions() {
+  case "$1" in
+    transcode_hevc_1080_profile.sh|\
+    transcode_hevc_4k_profile.sh|\
+    transcode_hevc_1080_main_subtitle_preserve_profile.sh|\
+    transcode_hevc_4k_main_subtitle_preserve_profile.sh|\
+    transcode_hevc_legacy_main_subtitle_preserve_profile.sh|\
+    profile_guardrail_skip.sh)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+action_in_suite_device_conformance() {
+  case "$1" in
+    transcode_hevc_1080_profile.sh|\
+    transcode_hevc_4k_profile.sh|\
+    transcode_h264_1080_hdr_to_sdr_profile.sh)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+action_in_suite_dv_optional() {
+  case "$1" in
+    transcode_hevc_4k_dv_profile.sh|\
+    transcode_hevc_4k_main_subtitle_preserve_profile.sh)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 write_profile_doc() {
   local pack="$1"
   local profile="$2"
@@ -155,6 +196,14 @@ write_profile_doc() {
   local criteria_bits_display
   local criteria_color_display
   local is_netflixy_main_subtitle_pack
+  local dep_ffmpeg
+  local dep_ffprobe
+  local dep_mkvmerge
+  local dep_mkvextract
+  local dep_dovi_tool
+  local covered_by_profile_actions
+  local covered_by_device_conformance
+  local covered_by_dv_optional
 
   slug="$(to_slug "$profile")"
   prefix="$(to_upper_prefix "$profile")"
@@ -198,6 +247,52 @@ write_profile_doc() {
   criteria_codec_display="$(normalize_criteria_codec "$criteria_codec")"
   criteria_bits_display="$(normalize_criteria_bits "$criteria_bits")"
   criteria_color_display="$(normalize_criteria_color "$criteria_color")"
+  dep_ffmpeg="1"
+  dep_ffprobe="1"
+  dep_mkvmerge="0"
+  dep_mkvextract="0"
+  dep_dovi_tool="0"
+  covered_by_profile_actions="0"
+  covered_by_device_conformance="0"
+  covered_by_dv_optional="0"
+
+  i=0
+  while [ "$i" -lt "${#commands[@]}" ]; do
+    command="${commands[$i]}"
+    command_token="${command%% *}"
+
+    if [ "$command_token" = "ffmpeg" ]; then
+      dep_ffmpeg="1"
+    fi
+
+    if [ -n "$command_token" ] && [[ "$command_token" == *.sh ]]; then
+      action_file="$ACTIONS_DIR/$command_token"
+      if [ -f "$action_file" ]; then
+        if grep -q "mkvmerge" "$action_file"; then
+          dep_mkvmerge="1"
+        fi
+        if grep -q "mkvextract" "$action_file"; then
+          dep_mkvextract="1"
+        fi
+        if grep -q "dovi_tool" "$action_file"; then
+          dep_dovi_tool="1"
+        fi
+      fi
+
+      if action_in_suite_profile_actions "$command_token"; then
+        covered_by_profile_actions="1"
+      fi
+      if action_in_suite_device_conformance "$command_token"; then
+        covered_by_device_conformance="1"
+      fi
+      if action_in_suite_dv_optional "$command_token"; then
+        covered_by_dv_optional="1"
+      fi
+    fi
+
+    i=$((i + 1))
+  done
+
   is_netflixy_main_subtitle_pack="0"
   if [ "$pack" = "netflixy_main_subtitle_intent" ] && [ "$mermaid_variant" = "subtitle_intent" ]; then
     is_netflixy_main_subtitle_pack="1"
@@ -216,6 +311,45 @@ write_profile_doc() {
   {
     printf '# %s\n\n' "$profile"
     printf 'Generated from stock preset pack `%s`.\n\n' "$pack"
+    printf '## Dependencies\n\n'
+    printf '| Tool | Needed | Why |\n'
+    printf '| --- | --- | --- |\n'
+    if [ "$dep_ffmpeg" = "1" ]; then
+      printf '| `ffmpeg` | required | scenario execution, encode/transcode, and mux packaging |\n'
+    fi
+    if [ "$dep_ffprobe" = "1" ]; then
+      printf '| `ffprobe` | required | criteria probing and stream/metadata inspection |\n'
+    fi
+    if [ "$dep_mkvmerge" = "1" ]; then
+      printf '| `mkvmerge` | conditional | used by at least one action path in this profile family (MKV/DV helper path) |\n'
+    fi
+    if [ "$dep_mkvextract" = "1" ]; then
+      printf '| `mkvextract` | conditional | optional DV extraction helper path for MKV inputs |\n'
+    fi
+    if [ "$dep_dovi_tool" = "1" ]; then
+      printf '| `dovi_tool` | conditional | required for Dolby Vision retention and profile 7 to 8.1 conversion paths |\n'
+    fi
+    printf '\n'
+
+    printf '## E2E Verification\n\n'
+    printf 'This profile is considered e2e-verified when its mapped suites pass in CI.\n\n'
+    if [ "$covered_by_profile_actions" = "0" ] && [ "$covered_by_device_conformance" = "0" ] && [ "$covered_by_dv_optional" = "0" ]; then
+      printf -- '- No direct stock-suite mapping currently detected for this profile command set.\n'
+    else
+      printf '| Suite | What it proves | Toolchain version report |\n'
+      printf '| --- | --- | --- |\n'
+      if [ "$covered_by_profile_actions" = "1" ]; then
+        printf '| `tests/e2e/run_profile_actions_e2e.sh` | action-level output behavior, guardrails, and subtitle-intent pathways | `tests/e2e/.reports/latest/run_profile_actions_e2e_toolchain_versions.md` |\n'
+      fi
+      if [ "$covered_by_device_conformance" = "1" ]; then
+        printf '| `tests/e2e/run_device_conformance_e2e.sh` | conservative device-target conformance for stock targets | `tests/e2e/.reports/latest/run_device_conformance_e2e_toolchain_versions.md` |\n'
+      fi
+      if [ "$covered_by_dv_optional" = "1" ]; then
+        printf '| `tests/e2e/run_dv_metadata_optional_e2e.sh` | optional DV metadata retention and profile 7 to 8.1 checks | `tests/e2e/.reports/latest/run_dv_metadata_optional_e2e_toolchain_versions.md` |\n'
+      fi
+    fi
+    printf '\n'
+    printf -- '- Combined toolchain snapshot: `tests/e2e/.reports/latest/toolchain_versions_summary.md`\n\n'
 
     if [ "$is_netflixy_main_subtitle_pack" = "1" ]; then
       printf '## Intent\n\n'

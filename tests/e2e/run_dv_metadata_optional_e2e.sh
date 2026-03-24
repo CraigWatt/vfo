@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TMP_DIR="${ROOT_DIR}/tests/e2e/.tmp_dv_metadata"
+# shellcheck source=lib/e2e_toolchain_report.sh
+. "${ROOT_DIR}/tests/e2e/lib/e2e_toolchain_report.sh"
 
 DV_P7_ASSET="${VFO_E2E_DV_P7_ASSET:-}"
 DV_CLIP_DURATION="${VFO_E2E_DV_CLIP_DURATION:-8}"
@@ -54,6 +56,11 @@ require_command() {
 }
 
 main() {
+  e2e_write_toolchain_report \
+    "$ROOT_DIR" \
+    "run_dv_metadata_optional_e2e" \
+    ffmpeg ffprobe dovi_tool
+
   if [ -z "$DV_P7_ASSET" ] || [ ! -f "$DV_P7_ASSET" ]; then
     log "Skipping optional DV metadata test (VFO_E2E_DV_P7_ASSET not set or file missing)"
     exit 0
