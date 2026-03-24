@@ -31,7 +31,6 @@ These Functions and variables should only ever be used internally
 
 /* preprocessor defines general info */
 #define __PROGRAM_NAME__ "vfo"
-#define __PROGRAM_VERSION__ "0.1.0"
 #define __PROGRAM_AUTHOR__ "Craig Watt (craig@webrefine.co.uk)"
 
 /* ANSI color definitions for pretty-print*/

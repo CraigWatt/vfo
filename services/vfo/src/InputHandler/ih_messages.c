@@ -133,9 +133,7 @@ void ih_mes_author () {
  * Input Handler Version message
  */
 void ih_mes_version () {
-    fprintf(stdout, __PROGRAM_NAME__ " version: " GRAY "%s\n" NO_COLOR,
-            __PROGRAM_VERSION__);
-    printf("Real Version: %s\n", VERSION);
+    fprintf(stdout, __PROGRAM_NAME__ " version: " GRAY "%s" NO_COLOR "\n", VERSION);
 }
 
 /*
