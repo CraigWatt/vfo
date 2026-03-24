@@ -26,7 +26,8 @@ Assess current naming conventions across files and code, identify inconsistencie
 
 ### 1) Policy filename ambiguity (resolved)
 
-- The repo now uses `AGENT.md` as the single canonical policy file.
+- The repo now uses `AGENTS.md` as the single canonical policy file.
+- `AGENT.md` is retained only as a compatibility shim that points to `AGENTS.md`.
 - This removes ambiguity and avoids dual-file drift.
 
 ### 2) Legacy/internal naming leaks into UX
@@ -76,8 +77,8 @@ However key families are still centered around legacy terms (`ORIGINAL_*`, `ALIA
 
 ### Immediate (documented now)
 
-1. Establish canonical policy in `AGENT.md` (done).
-2. Keep only `AGENT.md` to avoid policy duplication (done).
+1. Establish canonical policy in `AGENTS.md` (done).
+2. Keep compatibility shim `AGENT.md` pointing to `AGENTS.md` (done).
 3. Require canonical user-facing terminology in new docs/help:
    - `mezzanine`, `source`, `profile`
 4. Keep legacy terms as compatibility surface until formal deprecation.
