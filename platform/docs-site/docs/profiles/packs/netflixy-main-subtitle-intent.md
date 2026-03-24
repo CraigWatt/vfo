@@ -2,11 +2,21 @@
 
 This pack targets practical streaming efficiency while preserving viewer-intent essentials.
 
-## Outcome Target
+## Intent
 
-- reduce bitrate with Netflix-like practical intent
-- preserve full audio set and director-intent "main subtitle" behavior
-- emit container type by viewing-intent need: MKV when subtitle intent applies, fragmented MP4 otherwise
+This pack standardizes mixed-library inputs into streaming-friendly HEVC outputs while preserving mainline viewing intent.
+
+- preserve full audio when possible
+- preserve director-intended english "main subtitle" behavior when detected
+- use MKV when subtitle intent applies, otherwise emit stream-ready fragmented MP4
+
+## What It Optimizes For
+
+- practical "netflixy" bitrate reduction posture
+- consistent HEVC delivery across 4K, 1080p SDR, and legacy sub-HD lanes
+- audio preservation first, without forcing broad audio transcoding
+- subtitle-intent-sensitive container selection
+- optional legacy remediation (deinterlace + stable black-bar crop) in the sub-HD lane
 
 ## Guardrails
 
@@ -59,3 +69,15 @@ flowchart TD
   Gq -->|Yes| Gmkv[MKV output]:::output
   Gq -->|No| Gmp4[Fragmented MP4 output]:::output
 ```
+
+## What This Pack Does Not Do
+
+- It does not normalize frame rate; source cadence/timebase is preserved by default.
+- It does not transcode audio for target-device compatibility by default.
+- It does not guarantee every mezzanine audio codec can be muxed into every output container.
+- It does not semantically understand subtitle meaning; subtitle selection uses metadata/flag heuristics.
+- It does not OCR or convert bitmap subtitles to text subtitles.
+- It does not generate ABR ladders (HLS/DASH); outputs are single-file delivery artifacts.
+- It does not certify playback on every device model; profiles are compatibility-oriented guardrails.
+- It does not enforce PSNR/SSIM/VMAF thresholds unless quality checks are explicitly enabled and configured.
+- It does not guarantee HDR/DV metadata preservation for every source and toolchain combination.

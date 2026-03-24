@@ -154,6 +154,7 @@ write_profile_doc() {
   local criteria_codec_display
   local criteria_bits_display
   local criteria_color_display
+  local is_netflixy_main_subtitle_pack
 
   slug="$(to_slug "$profile")"
   prefix="$(to_upper_prefix "$profile")"
@@ -197,6 +198,10 @@ write_profile_doc() {
   criteria_codec_display="$(normalize_criteria_codec "$criteria_codec")"
   criteria_bits_display="$(normalize_criteria_bits "$criteria_bits")"
   criteria_color_display="$(normalize_criteria_color "$criteria_color")"
+  is_netflixy_main_subtitle_pack="0"
+  if [ "$pack" = "netflixy_main_subtitle_intent" ] && [ "$mermaid_variant" = "subtitle_intent" ]; then
+    is_netflixy_main_subtitle_pack="1"
+  fi
 
   criteria_line="
 | Field | Value |
@@ -211,6 +216,21 @@ write_profile_doc() {
   {
     printf '# %s\n\n' "$profile"
     printf 'Generated from stock preset pack `%s`.\n\n' "$pack"
+
+    if [ "$is_netflixy_main_subtitle_pack" = "1" ]; then
+      printf '## Intent\n\n'
+      printf 'This profile converts candidates into streaming-friendly HEVC outputs while preserving mainline viewing intent where feasible.\n\n'
+      printf '## What It Optimizes For\n\n'
+      printf -- '- practical bitrate efficiency with a consistent HEVC target\n'
+      printf -- '- preserve all audio streams by default when packaging permits\n'
+      printf -- '- preserve one director-intent "main subtitle" when detected\n'
+      printf -- '- conditional container selection: MKV when subtitle intent applies, fragmented MP4 otherwise\n'
+      if printf '%s' "$first_command" | grep -q "legacy_main_subtitle_preserve_profile.sh"; then
+        printf -- '- for legacy sub-HD intake: optional deinterlace and persistent black-bar auto-crop\n'
+      fi
+      printf '\n'
+    fi
+
     printf '## Input Envelope\n'
     printf '%b\n' "$criteria_line"
 
@@ -332,6 +352,19 @@ MERMAID
       printf '  E --> F[Execute: %s]:::stage\n' "${first_command_safe:-command}"
       printf '  F --> G[Write profile output]:::output\n'
       printf '```\n'
+    fi
+
+    if [ "$is_netflixy_main_subtitle_pack" = "1" ]; then
+      printf '\n## What This Profile Does Not Do\n\n'
+      printf -- '- It does not normalize frame rate; source cadence/timebase is preserved by default.\n'
+      printf -- '- It does not transcode audio for target-device compatibility by default.\n'
+      printf -- '- It does not guarantee every input audio codec is valid for every selected output container.\n'
+      printf -- '- It does not semantically understand subtitle meaning; subtitle selection is metadata and flag driven.\n'
+      printf -- '- It does not OCR or convert bitmap subtitles to text subtitles.\n'
+      printf -- '- It does not generate ABR ladders (HLS/DASH); output is a single-file artifact.\n'
+      printf -- '- It does not certify playback on every device model; profile criteria are compatibility-oriented guardrails.\n'
+      printf -- '- It does not enforce PSNR/SSIM/VMAF thresholds unless quality checks are explicitly enabled and configured.\n'
+      printf -- '- It does not guarantee HDR/DV metadata preservation for every source and toolchain combination.\n'
     fi
 
     printf '\n## Source\n\n'

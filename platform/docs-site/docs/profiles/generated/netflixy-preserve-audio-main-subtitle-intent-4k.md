@@ -2,6 +2,17 @@
 
 Generated from stock preset pack `netflixy_main_subtitle_intent`.
 
+## Intent
+
+This profile converts candidates into streaming-friendly HEVC outputs while preserving mainline viewing intent where feasible.
+
+## What It Optimizes For
+
+- practical bitrate efficiency with a consistent HEVC target
+- preserve all audio streams by default when packaging permits
+- preserve one director-intent "main subtitle" when detected
+- conditional container selection: MKV when subtitle intent applies, fragmented MP4 otherwise
+
 ## Input Envelope
 
 | Field | Value |
@@ -72,6 +83,18 @@ flowchart TD
   H --> I[Finalize stream-ready MP4 packaging]:::stage
   I --> J[Emit fragmented MP4 with init/moov at start]:::output
 ```
+
+## What This Profile Does Not Do
+
+- It does not normalize frame rate; source cadence/timebase is preserved by default.
+- It does not transcode audio for target-device compatibility by default.
+- It does not guarantee every input audio codec is valid for every selected output container.
+- It does not semantically understand subtitle meaning; subtitle selection is metadata and flag driven.
+- It does not OCR or convert bitmap subtitles to text subtitles.
+- It does not generate ABR ladders (HLS/DASH); output is a single-file artifact.
+- It does not certify playback on every device model; profile criteria are compatibility-oriented guardrails.
+- It does not enforce PSNR/SSIM/VMAF thresholds unless quality checks are explicitly enabled and configured.
+- It does not guarantee HDR/DV metadata preservation for every source and toolchain combination.
 
 ## Source
 
