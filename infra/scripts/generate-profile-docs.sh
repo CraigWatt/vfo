@@ -450,41 +450,43 @@ write_profile_doc() {
     if [ "$mermaid_variant" = "subtitle_intent" ]; then
       cat <<'MERMAID'
 ```mermaid
-flowchart TD
+flowchart LR
   classDef gate fill:#fff7ed,stroke:#f59e0b,color:#7c2d12,stroke-width:1.5px;
   classDef stage fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,stroke-width:1.2px;
   classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;
   classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;
 
-  A[Input candidate: mkv or mp4 or mov or mxf]:::stage --> B[Probe codec, bits, color, resolution]:::stage
+  A[Input candidate: mkv / mp4 / mov / mxf]:::stage --> B[Probe codec bits color resolution]:::stage
   B --> C{Matches profile criteria envelope?}:::gate
-  C -->|No| Z[Handled by other profile or skipped]:::skip
-  C -->|Yes| D[Run subtitle-intent action script]:::stage
-  D --> E{Main subtitle detected by heuristic?}:::gate
-  E -->|Yes| F[Encode HEVC, copy audio, copy selected subtitle]:::stage
-  F --> G[Emit MKV output]:::output
-  E -->|No| H[Encode HEVC, copy audio]:::stage
-  H --> I[Finalize stream-ready MP4 packaging]:::stage
-  I --> J[Emit fragmented MP4 with init/moov at start]:::output
+  C -->|No| Z[Handled by other profile or guardrail skipped]:::skip
+  C -->|Yes| D{Evaluate scenarios in order}:::gate
+  D --> E[Execute subtitle-intent action]:::stage
+  E --> P[Optional lane-specific pre-processing]:::stage
+  P --> F{Main subtitle intent detected?}:::gate
+  F -->|Yes| G[Encode HEVC + preserve audio + preserve main subtitle]:::stage
+  G --> H[Emit MKV output]:::output
+  F -->|No| I[Encode HEVC + preserve audio]:::stage
+  I --> J[Finalize fragmented MP4 + init/moov at start]:::stage
+  J --> K[Emit MP4 output]:::output
 ```
 MERMAID
     else
       first_scenario_safe="$(mermaid_text "$first_scenario")"
       first_command_safe="$(mermaid_text "$first_command_label")"
       printf '```mermaid\n'
-      printf 'flowchart TD\n'
+      printf 'flowchart LR\n'
       printf '  classDef gate fill:#fff7ed,stroke:#f59e0b,color:#7c2d12,stroke-width:1.5px;\n'
       printf '  classDef stage fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,stroke-width:1.2px;\n'
       printf '  classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;\n'
       printf '  classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;\n'
       printf '\n'
-      printf '  A[Input candidate: mkv or mp4 or mov or mxf]:::stage --> B[Probe codec, bits, color, resolution]:::stage\n'
+      printf '  A[Input candidate: mkv / mp4 / mov / mxf]:::stage --> B[Probe codec bits color resolution]:::stage\n'
       printf '  B --> C{Matches profile criteria envelope?}:::gate\n'
       printf '  C -->|No| Z[Handled by other profile or skipped]:::skip\n'
       printf '  C -->|Yes| D{Evaluate scenarios in order}:::gate\n'
       printf '  D --> E[First match: %s]:::stage\n' "${first_scenario_safe:-ELSE}"
       printf '  E --> F[Execute: %s]:::stage\n' "${first_command_safe:-command}"
-      printf '  F --> G[Write profile output]:::output\n'
+      printf '  F --> G[Write profile output artifact]:::output\n'
       printf '```\n'
     fi
 

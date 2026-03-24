@@ -57,19 +57,19 @@ This profile is considered e2e-verified when its mapped suites pass in CI.
 ## Flow
 
 ```mermaid
-flowchart TD
+flowchart LR
   classDef gate fill:#fff7ed,stroke:#f59e0b,color:#7c2d12,stroke-width:1.5px;
   classDef stage fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,stroke-width:1.2px;
   classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;
   classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;
 
-  A[Input candidate: mkv or mp4 or mov or mxf]:::stage --> B[Probe codec, bits, color, resolution]:::stage
+  A[Input candidate: mkv / mp4 / mov / mxf]:::stage --> B[Probe codec bits color resolution]:::stage
   B --> C{Matches profile criteria envelope?}:::gate
   C -->|No| Z[Handled by other profile or skipped]:::skip
   C -->|Yes| D{Evaluate scenarios in order}:::gate
   D --> E[First match: CODEC_JUST_RIGHT RES_JUST_RIGHT]:::stage
   E --> F[Execute: direct ffmpeg]:::stage
-  F --> G[Write profile output]:::output
+  F --> G[Write profile output artifact]:::output
 ```
 
 ## Source

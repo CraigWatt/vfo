@@ -43,31 +43,39 @@ This pack standardizes mixed-library inputs into streaming-friendly HEVC outputs
 ## Pack Flow
 
 ```mermaid
-flowchart TD
+flowchart LR
   classDef stage fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,stroke-width:1.2px;
   classDef gate fill:#fff7ed,stroke:#f59e0b,color:#7c2d12,stroke-width:1.5px;
   classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;
+  classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;
 
-  A[Candidate media]:::stage --> B{Matches 4K envelope?}:::gate
-  B -->|Yes| C[4K subtitle-intent lane]:::stage
-  B -->|No| D{Matches 1080p envelope?}:::gate
-  D -->|Yes| E[1080p subtitle-intent lane]:::stage
-  D -->|No| F{Matches legacy sub-HD envelope?}:::gate
-  F -->|Yes| G[Legacy sub-HD subtitle-intent lane]:::stage
-  F -->|No| X[Handled by other profile or skipped]:::stage
+  subgraph Intake["Lane Classification"]
+    A[Candidate media]:::stage --> B{Profile envelope match}:::gate
+    B -->|4K 1920x1080..3840x2160| C[4K lane]:::stage
+    B -->|1080 SDR bt709 1280x720..1920x1080| D[1080p lane]:::stage
+    B -->|Legacy sub-HD 320x240..1279x719| E[Legacy lane]:::stage
+    B -->|No match| X[Routed elsewhere or guardrail-skipped]:::skip
+  end
 
-  C --> Cq{Main subtitle intent?}:::gate
-  Cq -->|Yes| Cmkv[MKV output]:::output
-  Cq -->|No| Cmp4[Fragmented MP4 output]:::output
+  subgraph Processing["Per-Lane Processing"]
+    C --> C0[Run subtitle-intent action]:::stage
+    D --> D0[Run subtitle-intent action]:::stage
+    E --> E0[Optional deinterlace and stable auto-crop]:::stage
+    E0 --> E1[Run subtitle-intent action]:::stage
+  end
 
-  E --> Eq{Main subtitle intent?}:::gate
-  Eq -->|Yes| Emkv[MKV output]:::output
-  Eq -->|No| Emp4[Fragmented MP4 output]:::output
+  C0 --> Cq{Main subtitle intent detected?}:::gate
+  D0 --> Dq{Main subtitle intent detected?}:::gate
+  E1 --> Eq{Main subtitle intent detected?}:::gate
 
-  G --> Gprep[Optional deinterlace + stable auto-crop]:::stage
-  Gprep --> Gq{Main subtitle intent?}:::gate
-  Gq -->|Yes| Gmkv[MKV output]:::output
-  Gq -->|No| Gmp4[Fragmented MP4 output]:::output
+  Cq -->|Yes| Cmkv[Emit MKV preserving subtitle intent]:::output
+  Cq -->|No| Cmp4[Emit fragmented MP4 stream-ready]:::output
+
+  Dq -->|Yes| Dmkv[Emit MKV preserving subtitle intent]:::output
+  Dq -->|No| Dmp4[Emit fragmented MP4 stream-ready]:::output
+
+  Eq -->|Yes| Emkv[Emit MKV preserving subtitle intent]:::output
+  Eq -->|No| Emp4[Emit fragmented MP4 stream-ready]:::output
 ```
 
 ## What This Pack Does Not Do

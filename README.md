@@ -150,6 +150,20 @@ CI/CD test integration:
   - setup and guardrails doc: `infra/docs/codex-autonomous-loop.md`
 - Docs site build + Pages deploy is available via:
   - `.github/workflows/ci-docs-pages.yml` (PR build validation + `main` Pages deploy)
+- GHCR package lane is available via:
+  - `.github/workflows/ci-package-ghcr.yml` (publishes `ghcr.io/<owner>/vfo` on `main` and tag pushes)
+- Release publication jobs use explicit deployment environments:
+  - stable: `release-stable`
+  - beta: `release-beta`
+- Delivery model overview:
+  - `infra/docs/github-delivery-lanes.md`
+
+Package quickstart:
+
+```bash
+docker pull ghcr.io/craigwatt/vfo:main
+docker run --rm ghcr.io/craigwatt/vfo:main --version
+```
 
 ### Option 2: build from source
 
