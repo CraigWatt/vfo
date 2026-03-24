@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://craigwatt.github.io/vfo/contracts/run-progress-event.schema.json",
+  "title": "vfo run progress event schema",
+  "type": "object",
+  "required": ["schema_version", "event_type", "state", "component", "message", "ts_unix"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "event_type": {
+      "type": "string",
+      "enum": ["status_update", "log_line", "stage_transition", "run_summary"]
+    },
+    "state": {
+      "type": "string",
+      "enum": ["pending", "in_progress", "complete", "error", "skipped"]
+    },
+    "component": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message": {
+      "type": "string"
+    },
+    "ts_unix": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

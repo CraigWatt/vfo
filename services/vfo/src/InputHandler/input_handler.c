@@ -1647,6 +1647,205 @@ static bool ih_prompt_timecode(const char *prompt, const char *default_value, ch
   }
 }
 
+static bool ih_stdout_is_tty(void) {
+  return isatty(STDOUT_FILENO) == 1;
+}
+
+static void ih_wizard_print_banner(void) {
+  if(ih_stdout_is_tty()) {
+    printf(CYAN "==============================================================\n" NO_COLOR);
+    printf(CYAN "                    vfo onboarding wizard                    \n" NO_COLOR);
+    printf(CYAN "==============================================================\n" NO_COLOR);
+    return;
+  }
+
+  printf("==============================================================\n");
+  printf("vfo onboarding wizard\n");
+  printf("==============================================================\n");
+}
+
+static void ih_wizard_print_step(int current, int total, const char *title, const char *detail) {
+  if(ih_stdout_is_tty())
+    printf(BLUE "\n[step %i/%i] %s" NO_COLOR "\n", current, total, title);
+  else
+    printf("\n[step %i/%i] %s\n", current, total, title);
+
+  if(detail != NULL && detail[0] != '\0')
+    printf("WIZARD INFO: %s\n", detail);
+}
+
+static bool ih_wizard_parse_mode(const char *input, bool *advanced_mode) {
+  char normalized[IH_INPUT_BUFFER_SIZE];
+
+  if(input == NULL || advanced_mode == NULL)
+    return false;
+
+  ih_copy_string(normalized, sizeof(normalized), input);
+  ih_trim_spaces_in_place(normalized);
+  utils_lowercase_string(normalized);
+
+  if(strcmp(normalized, "quickstart") == 0 || strcmp(normalized, "quick") == 0 || strcmp(normalized, "q") == 0) {
+    *advanced_mode = false;
+    return true;
+  }
+
+  if(strcmp(normalized, "advanced") == 0 || strcmp(normalized, "adv") == 0 || strcmp(normalized, "a") == 0) {
+    *advanced_mode = true;
+    return true;
+  }
+
+  return false;
+}
+
+static bool ih_wizard_prompt_mode(bool *advanced_mode) {
+  char mode_input[IH_INPUT_BUFFER_SIZE];
+
+  while(true) {
+    if(!ih_prompt_line("Onboarding mode (quickstart|advanced)", "quickstart", mode_input, sizeof(mode_input), true))
+      return false;
+    if(ih_wizard_parse_mode(mode_input, advanced_mode))
+      return true;
+    printf("WIZARD INFO: choose quickstart or advanced\n");
+  }
+}
+
+static bool ih_extract_parent_dir(const char *path, char *parent, size_t parent_size) {
+  char copy[IH_INPUT_BUFFER_SIZE];
+  char *slash = NULL;
+
+  if(path == NULL || parent == NULL || parent_size == 0)
+    return false;
+
+  ih_copy_string(copy, sizeof(copy), path);
+  ih_trim_spaces_in_place(copy);
+  if(copy[0] == '\0')
+    return false;
+
+  slash = strrchr(copy, '/');
+  if(slash == NULL) {
+    ih_copy_string(parent, parent_size, ".");
+    return true;
+  }
+
+  if(slash == copy) {
+    ih_copy_string(parent, parent_size, "/");
+    return true;
+  }
+
+  *slash = '\0';
+  ih_copy_string(parent, parent_size, copy);
+  return true;
+}
+
+static bool ih_wizard_preflight(const char *config_dir) {
+  bool healthy = true;
+  char parent_dir[IH_INPUT_BUFFER_SIZE];
+
+  printf("WIZARD PREFLIGHT: validating command dependencies\n");
+  healthy = ih_check_command("WIZARD PREFLIGHT", "ffmpeg", true) && healthy;
+  healthy = ih_check_command("WIZARD PREFLIGHT", "ffprobe", true) && healthy;
+  healthy = ih_check_command("WIZARD PREFLIGHT", "mkvmerge", true) && healthy;
+  healthy = ih_check_command("WIZARD PREFLIGHT", "dovi_tool", false) && healthy;
+
+  if(ih_ffmpeg_filter_available("libvmaf"))
+    printf("WIZARD PREFLIGHT INFO: ffmpeg libvmaf filter is available\n");
+  else
+    printf("WIZARD PREFLIGHT INFO: ffmpeg libvmaf filter not detected (optional)\n");
+
+  if(config_dir == NULL || config_dir[0] == '\0') {
+    printf("WIZARD PREFLIGHT ERROR: config directory is empty\n");
+    return false;
+  }
+
+  if(utils_does_folder_exist((char *)config_dir)) {
+    if(access(config_dir, W_OK) != 0) {
+      printf("WIZARD PREFLIGHT ERROR: config directory is not writable: %s\n", config_dir);
+      printf("WIZARD PREFLIGHT INFO: run wizard with sudo or choose a writable VFO_CONFIG_DIR\n");
+      healthy = false;
+    } else {
+      printf("WIZARD PREFLIGHT OK: config directory writable: %s\n", config_dir);
+    }
+  } else {
+    if(!ih_extract_parent_dir(config_dir, parent_dir, sizeof(parent_dir))) {
+      printf("WIZARD PREFLIGHT ERROR: could not determine parent directory for %s\n", config_dir);
+      healthy = false;
+    } else if(access(parent_dir, W_OK) != 0) {
+      printf("WIZARD PREFLIGHT ERROR: parent directory is not writable: %s\n", parent_dir);
+      printf("WIZARD PREFLIGHT INFO: run wizard with sudo or choose a writable VFO_CONFIG_DIR\n");
+      healthy = false;
+    } else {
+      printf("WIZARD PREFLIGHT OK: config directory will be created: %s\n", config_dir);
+    }
+  }
+
+  return healthy;
+}
+
+static bool ih_copy_file(const char *source_path, const char *dest_path) {
+  FILE *source = NULL;
+  FILE *dest = NULL;
+  char buffer[8192];
+  size_t bytes_read = 0;
+
+  if(source_path == NULL || dest_path == NULL)
+    return false;
+
+  source = fopen(source_path, "rb");
+  if(source == NULL)
+    return false;
+
+  dest = fopen(dest_path, "wb");
+  if(dest == NULL) {
+    fclose(source);
+    return false;
+  }
+
+  while((bytes_read = fread(buffer, 1, sizeof(buffer), source)) > 0) {
+    if(fwrite(buffer, 1, bytes_read, dest) != bytes_read) {
+      fclose(dest);
+      fclose(source);
+      return false;
+    }
+  }
+
+  fclose(dest);
+  fclose(source);
+  return true;
+}
+
+static bool ih_create_config_backup_if_present(const char *config_path,
+                                               char *backup_path,
+                                               size_t backup_path_size) {
+  time_t now = 0;
+  struct tm time_info;
+  int written = 0;
+
+  if(backup_path != NULL && backup_path_size > 0)
+    backup_path[0] = '\0';
+
+  if(config_path == NULL || !utils_does_file_exist((char *)config_path))
+    return true;
+
+  now = time(NULL);
+  if(localtime_r(&now, &time_info) == NULL)
+    return false;
+
+  written = snprintf(backup_path,
+                     backup_path_size,
+                     "%s.bak.%04i%02i%02i_%02i%02i%02i",
+                     config_path,
+                     time_info.tm_year + 1900,
+                     time_info.tm_mon + 1,
+                     time_info.tm_mday,
+                     time_info.tm_hour,
+                     time_info.tm_min,
+                     time_info.tm_sec);
+  if(written < 0 || (size_t)written >= backup_path_size)
+    return false;
+
+  return ih_copy_file(config_path, backup_path);
+}
+
 static int ih_suggest_max_usage_pct_for_location(const char *location) {
   unsigned long long total_bytes = 0ULL;
   unsigned long long free_bytes = 0ULL;
@@ -2239,6 +2438,8 @@ static int ih_run_wizard(const char *config_dir) {
   char default_original_caps[IH_INPUT_BUFFER_SIZE];
   char default_source_caps[IH_INPUT_BUFFER_SIZE];
   char default_alias_caps[IH_INPUT_BUFFER_SIZE];
+  char config_temp_path[IH_INPUT_BUFFER_SIZE];
+  char backup_config_path[IH_INPUT_BUFFER_SIZE];
   char *config_path = NULL;
   FILE *config_file = NULL;
   bool keep_source = true;
@@ -2264,11 +2465,33 @@ static int ih_run_wizard(const char *config_dir) {
   bool selected_stock_presets[IH_STOCK_PRESET_COUNT];
   int selected_stock_preset_count = 0;
   bool use_stock_presets = true;
+  bool advanced_mode = false;
+  bool write_config = true;
+  int wizard_step = 0;
+  int wizard_total_steps = 0;
 
+  ih_wizard_print_banner();
   printf("WIZARD ALERT: guided setup for %s\n", IH_CONFIG_FILENAME);
   printf("WIZARD INFO: press Enter to accept defaults\n");
   printf("WIZARD INFO: target config directory: %s\n", config_dir);
 
+  if(!ih_wizard_prompt_mode(&advanced_mode))
+    return EXIT_FAILURE;
+
+  wizard_total_steps = advanced_mode ? 7 : 6;
+  printf("WIZARD INFO: onboarding mode selected: %s\n", advanced_mode ? "advanced" : "quickstart");
+
+  ih_wizard_print_step(++wizard_step,
+                       wizard_total_steps,
+                       "Preflight",
+                       "Checking command availability and config path permissions");
+  if(!ih_wizard_preflight(config_dir))
+    return EXIT_FAILURE;
+
+  ih_wizard_print_step(++wizard_step,
+                       wizard_total_steps,
+                       "Storage roots",
+                       "Configure mezzanine and source locations, including per-root capacity caps");
   if(!ih_prompt_line("Mezzanine location", "/Users/craigwatt/Downloads/PRACTICE101/mezzanine", original_location, sizeof(original_location), true))
     return EXIT_FAILURE;
   if(!ih_prompt_line("Mezzanine locations (semicolon list)", original_location, original_locations, sizeof(original_locations), true))
@@ -2291,89 +2514,126 @@ static int ih_run_wizard(const char *config_dir) {
   if(!ih_first_location_from_list(source_locations, source_location, sizeof(source_location)))
     return EXIT_FAILURE;
 
-  if(!ih_prompt_bool("Keep source outputs?", true, &keep_source))
-    return EXIT_FAILURE;
-
-  if(!ih_prompt_bool("Enable source test clipping?", true, &source_test_active))
-    return EXIT_FAILURE;
-
-  if(source_test_active) {
-    if(!ih_prompt_timecode("Source test trim start", "00:00:20", source_test_trim_start, sizeof(source_test_trim_start)))
+  ih_wizard_print_step(++wizard_step,
+                       wizard_total_steps,
+                       "Pipeline defaults",
+                       advanced_mode
+                         ? "Choose detailed runtime behavior, hygiene policy, and quality scoring thresholds"
+                         : "Applying recommended quickstart defaults for runtime toggles");
+  if(advanced_mode) {
+    if(!ih_prompt_bool("Keep source outputs?", true, &keep_source))
       return EXIT_FAILURE;
-    if(!ih_prompt_timecode("Source test trim duration", "00:01:00", source_test_trim_duration, sizeof(source_test_trim_duration)))
+
+    if(!ih_prompt_bool("Enable source test clipping?", true, &source_test_active))
       return EXIT_FAILURE;
+
+    if(source_test_active) {
+      if(!ih_prompt_timecode("Source test trim start", "00:00:20", source_test_trim_start, sizeof(source_test_trim_start)))
+        return EXIT_FAILURE;
+      if(!ih_prompt_timecode("Source test trim duration", "00:01:00", source_test_trim_duration, sizeof(source_test_trim_duration)))
+        return EXIT_FAILURE;
+    } else {
+      ih_copy_string(source_test_trim_start, sizeof(source_test_trim_start), "00:00:20");
+      ih_copy_string(source_test_trim_duration, sizeof(source_test_trim_duration), "00:01:00");
+    }
+
+    if(!ih_prompt_bool("Enable mezzanine-clean hygiene checks?", true, &mezzanine_clean_enabled))
+      return EXIT_FAILURE;
+    if(!ih_prompt_bool("Apply mezzanine-clean renames/moves automatically?", true, &mezzanine_clean_apply_changes))
+      return EXIT_FAILURE;
+    if(!ih_prompt_bool("Append probe-derived media tags to mezzanine filenames?", true, &mezzanine_clean_append_media_tags))
+      return EXIT_FAILURE;
+    if(!ih_prompt_bool("Fail mezzanine-clean when warnings are found (strict gate)?", true, &mezzanine_clean_strict_quality_gate))
+      return EXIT_FAILURE;
+
+    if(!ih_prompt_bool("Enable post-profile quality scoring (PSNR/SSIM)?", true, &quality_check_enabled))
+      return EXIT_FAILURE;
+    if(!ih_prompt_bool("Include VMAF in quality scoring (requires ffmpeg libvmaf)?", true, &quality_check_include_vmaf))
+      return EXIT_FAILURE;
+    if(!ih_prompt_bool("Fail run when quality checks fail (strict gate)?", true, &quality_check_strict_gate))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Quality reference layer (auto|source|mezzanine)", "auto", quality_check_reference_layer, sizeof(quality_check_reference_layer), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Quality minimum PSNR (0 disables threshold)", "0", quality_check_min_psnr, sizeof(quality_check_min_psnr), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Quality minimum SSIM (0 disables threshold)", "0", quality_check_min_ssim, sizeof(quality_check_min_ssim), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Quality minimum VMAF (0 disables threshold)", "0", quality_check_min_vmaf, sizeof(quality_check_min_vmaf), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Quality max files per profile to score (0 means all)", "0", quality_check_max_files_per_profile, sizeof(quality_check_max_files_per_profile), true))
+      return EXIT_FAILURE;
+
+    if(strcasecmp(quality_check_reference_layer, "auto") != 0
+       && strcasecmp(quality_check_reference_layer, "source") != 0
+       && strcasecmp(quality_check_reference_layer, "mezzanine") != 0) {
+      printf("WIZARD ERROR: quality reference layer must be auto, source, or mezzanine\n");
+      return EXIT_FAILURE;
+    }
+    utils_lowercase_string(quality_check_reference_layer);
+
+    {
+      char *end_ptr = NULL;
+      double parsed_double = 0.0;
+      long parsed_int = 0;
+
+      parsed_double = strtod(quality_check_min_psnr, &end_ptr);
+      if(end_ptr == quality_check_min_psnr || *end_ptr != '\0' || parsed_double < 0.0) {
+        printf("WIZARD ERROR: Quality minimum PSNR must be a non-negative number\n");
+        return EXIT_FAILURE;
+      }
+
+      end_ptr = NULL;
+      parsed_double = strtod(quality_check_min_ssim, &end_ptr);
+      if(end_ptr == quality_check_min_ssim || *end_ptr != '\0' || parsed_double < 0.0) {
+        printf("WIZARD ERROR: Quality minimum SSIM must be a non-negative number\n");
+        return EXIT_FAILURE;
+      }
+
+      end_ptr = NULL;
+      parsed_double = strtod(quality_check_min_vmaf, &end_ptr);
+      if(end_ptr == quality_check_min_vmaf || *end_ptr != '\0' || parsed_double < 0.0) {
+        printf("WIZARD ERROR: Quality minimum VMAF must be a non-negative number\n");
+        return EXIT_FAILURE;
+      }
+
+      end_ptr = NULL;
+      parsed_int = strtol(quality_check_max_files_per_profile, &end_ptr, 10);
+      if(end_ptr == quality_check_max_files_per_profile || *end_ptr != '\0' || parsed_int < 0) {
+        printf("WIZARD ERROR: Quality max files per profile must be a non-negative integer\n");
+        return EXIT_FAILURE;
+      }
+    }
   } else {
+    keep_source = true;
+    source_test_active = false;
     ih_copy_string(source_test_trim_start, sizeof(source_test_trim_start), "00:00:20");
     ih_copy_string(source_test_trim_duration, sizeof(source_test_trim_duration), "00:01:00");
+
+    mezzanine_clean_enabled = true;
+    mezzanine_clean_apply_changes = false;
+    mezzanine_clean_append_media_tags = true;
+    mezzanine_clean_strict_quality_gate = false;
+
+    quality_check_enabled = false;
+    quality_check_include_vmaf = false;
+    quality_check_strict_gate = false;
+    ih_copy_string(quality_check_reference_layer, sizeof(quality_check_reference_layer), "auto");
+    ih_copy_string(quality_check_min_psnr, sizeof(quality_check_min_psnr), "0");
+    ih_copy_string(quality_check_min_ssim, sizeof(quality_check_min_ssim), "0");
+    ih_copy_string(quality_check_min_vmaf, sizeof(quality_check_min_vmaf), "0");
+    ih_copy_string(quality_check_max_files_per_profile, sizeof(quality_check_max_files_per_profile), "0");
+
+    printf("WIZARD INFO: quickstart defaults applied:\n");
+    printf("  KEEP_SOURCE=true\n");
+    printf("  SOURCE_TEST_ACTIVE=false\n");
+    printf("  MEZZANINE_CLEAN_ENABLED=true (apply=false)\n");
+    printf("  QUALITY_CHECK_ENABLED=false\n");
   }
 
-  if(!ih_prompt_bool("Enable mezzanine-clean hygiene checks?", true, &mezzanine_clean_enabled))
-    return EXIT_FAILURE;
-  if(!ih_prompt_bool("Apply mezzanine-clean renames/moves automatically?", true, &mezzanine_clean_apply_changes))
-    return EXIT_FAILURE;
-  if(!ih_prompt_bool("Append probe-derived media tags to mezzanine filenames?", true, &mezzanine_clean_append_media_tags))
-    return EXIT_FAILURE;
-  if(!ih_prompt_bool("Fail mezzanine-clean when warnings are found (strict gate)?", true, &mezzanine_clean_strict_quality_gate))
-    return EXIT_FAILURE;
-
-  if(!ih_prompt_bool("Enable post-profile quality scoring (PSNR/SSIM)?", true, &quality_check_enabled))
-    return EXIT_FAILURE;
-  if(!ih_prompt_bool("Include VMAF in quality scoring (requires ffmpeg libvmaf)?", true, &quality_check_include_vmaf))
-    return EXIT_FAILURE;
-  if(!ih_prompt_bool("Fail run when quality checks fail (strict gate)?", true, &quality_check_strict_gate))
-    return EXIT_FAILURE;
-  if(!ih_prompt_line("Quality reference layer (auto|source|mezzanine)", "auto", quality_check_reference_layer, sizeof(quality_check_reference_layer), true))
-    return EXIT_FAILURE;
-  if(!ih_prompt_line("Quality minimum PSNR (0 disables threshold)", "0", quality_check_min_psnr, sizeof(quality_check_min_psnr), true))
-    return EXIT_FAILURE;
-  if(!ih_prompt_line("Quality minimum SSIM (0 disables threshold)", "0", quality_check_min_ssim, sizeof(quality_check_min_ssim), true))
-    return EXIT_FAILURE;
-  if(!ih_prompt_line("Quality minimum VMAF (0 disables threshold)", "0", quality_check_min_vmaf, sizeof(quality_check_min_vmaf), true))
-    return EXIT_FAILURE;
-  if(!ih_prompt_line("Quality max files per profile to score (0 means all)", "0", quality_check_max_files_per_profile, sizeof(quality_check_max_files_per_profile), true))
-    return EXIT_FAILURE;
-
-  if(strcasecmp(quality_check_reference_layer, "auto") != 0
-     && strcasecmp(quality_check_reference_layer, "source") != 0
-     && strcasecmp(quality_check_reference_layer, "mezzanine") != 0) {
-    printf("WIZARD ERROR: quality reference layer must be auto, source, or mezzanine\n");
-    return EXIT_FAILURE;
-  }
-  utils_lowercase_string(quality_check_reference_layer);
-
-  {
-    char *end_ptr = NULL;
-    double parsed_double = 0.0;
-    long parsed_int = 0;
-
-    parsed_double = strtod(quality_check_min_psnr, &end_ptr);
-    if(end_ptr == quality_check_min_psnr || *end_ptr != '\0' || parsed_double < 0.0) {
-      printf("WIZARD ERROR: Quality minimum PSNR must be a non-negative number\n");
-      return EXIT_FAILURE;
-    }
-
-    end_ptr = NULL;
-    parsed_double = strtod(quality_check_min_ssim, &end_ptr);
-    if(end_ptr == quality_check_min_ssim || *end_ptr != '\0' || parsed_double < 0.0) {
-      printf("WIZARD ERROR: Quality minimum SSIM must be a non-negative number\n");
-      return EXIT_FAILURE;
-    }
-
-    end_ptr = NULL;
-    parsed_double = strtod(quality_check_min_vmaf, &end_ptr);
-    if(end_ptr == quality_check_min_vmaf || *end_ptr != '\0' || parsed_double < 0.0) {
-      printf("WIZARD ERROR: Quality minimum VMAF must be a non-negative number\n");
-      return EXIT_FAILURE;
-    }
-
-    end_ptr = NULL;
-    parsed_int = strtol(quality_check_max_files_per_profile, &end_ptr, 10);
-    if(end_ptr == quality_check_max_files_per_profile || *end_ptr != '\0' || parsed_int < 0) {
-      printf("WIZARD ERROR: Quality max files per profile must be a non-negative integer\n");
-      return EXIT_FAILURE;
-    }
-  }
-
+  ih_wizard_print_step(++wizard_step,
+                       wizard_total_steps,
+                       "Library and profile mode",
+                       "Choose library folder metadata and whether to use stock presets or custom profile authoring");
   if(!ih_prompt_line("First library folder name", "Movies", custom_folder_name, sizeof(custom_folder_name), true))
     return EXIT_FAILURE;
 
@@ -2385,21 +2645,33 @@ static int ih_run_wizard(const char *config_dir) {
     printf("WIZARD INFO: folder type must be 'films' or 'tv'\n");
   }
 
-  if(!ih_prompt_line("Profile setup mode (stock|custom)", "stock", profile_setup_mode, sizeof(profile_setup_mode), true))
-    return EXIT_FAILURE;
-  ih_trim_spaces_in_place(profile_setup_mode);
-  utils_lowercase_string(profile_setup_mode);
-  if(strcmp(profile_setup_mode, "stock") == 0
-     || strcmp(profile_setup_mode, "presets") == 0
-     || strcmp(profile_setup_mode, "preset") == 0) {
-    use_stock_presets = true;
-  } else if(strcmp(profile_setup_mode, "custom") == 0) {
-    use_stock_presets = false;
+  if(advanced_mode) {
+    if(!ih_prompt_line("Profile setup mode (stock|custom)", "stock", profile_setup_mode, sizeof(profile_setup_mode), true))
+      return EXIT_FAILURE;
+    ih_trim_spaces_in_place(profile_setup_mode);
+    utils_lowercase_string(profile_setup_mode);
+    if(strcmp(profile_setup_mode, "stock") == 0
+       || strcmp(profile_setup_mode, "presets") == 0
+       || strcmp(profile_setup_mode, "preset") == 0) {
+      use_stock_presets = true;
+    } else if(strcmp(profile_setup_mode, "custom") == 0) {
+      use_stock_presets = false;
+    } else {
+      printf("WIZARD ERROR: profile setup mode must be stock or custom\n");
+      return EXIT_FAILURE;
+    }
   } else {
-    printf("WIZARD ERROR: profile setup mode must be stock or custom\n");
-    return EXIT_FAILURE;
+    use_stock_presets = true;
+    ih_copy_string(profile_setup_mode, sizeof(profile_setup_mode), "stock");
+    printf("WIZARD INFO: quickstart mode uses stock presets\n");
   }
 
+  ih_wizard_print_step(++wizard_step,
+                       wizard_total_steps,
+                       "Profile details",
+                       use_stock_presets
+                         ? "Choose stock preset packs and configure profile output roots"
+                         : "Configure one custom profile with criteria and execution command");
   if(use_stock_presets) {
     ih_print_stock_preset_menu();
     while(true) {
@@ -2465,6 +2737,28 @@ static int ih_run_wizard(const char *config_dir) {
     }
   }
 
+  ih_wizard_print_step(++wizard_step,
+                       wizard_total_steps,
+                       "Review and write",
+                       "Confirm configuration preview before writing");
+  printf("WIZARD REVIEW: mode=%s\n", advanced_mode ? "advanced" : "quickstart");
+  ih_print_preview("WIZARD REVIEW: MEZZANINE_LOCATIONS=", original_locations);
+  ih_print_preview("WIZARD REVIEW: SOURCE_LOCATIONS=", source_locations);
+  ih_print_preview("WIZARD REVIEW: PROFILE_ROOT_LOCATIONS=",
+                   use_stock_presets ? stock_profile_locations : alias_locations);
+  printf("WIZARD REVIEW: profile_setup_mode=%s\n", use_stock_presets ? "stock" : "custom");
+  if(use_stock_presets)
+    printf("WIZARD REVIEW: stock_preset_count=%i\n", selected_stock_preset_count);
+  else
+    printf("WIZARD REVIEW: custom_profile=%s\n", alias_name);
+
+  if(!ih_prompt_bool("Write config file now?", true, &write_config))
+    return EXIT_FAILURE;
+  if(!write_config) {
+    printf("WIZARD ALERT: onboarding canceled before writing changes\n");
+    return EXIT_SUCCESS;
+  }
+
   if(!ih_create_config_dir_if_needed(config_dir)) {
     printf("WIZARD ERROR: could not create config directory: %s\n", config_dir);
     printf("WIZARD INFO: if this path requires elevated permissions, run wizard with sudo\n");
@@ -2472,9 +2766,21 @@ static int ih_run_wizard(const char *config_dir) {
   }
 
   config_path = utils_combine_to_full_path(config_dir, IH_CONFIG_FILENAME);
-  config_file = fopen(config_path, "w");
+  if(config_path == NULL) {
+    printf("WIZARD ERROR: could not resolve config path for directory: %s\n", config_dir);
+    return EXIT_FAILURE;
+  }
+
+  if(snprintf(config_temp_path, sizeof(config_temp_path), "%s.tmp", config_path) < 0
+     || strlen(config_temp_path) >= sizeof(config_temp_path) - 1) {
+    printf("WIZARD ERROR: temporary config path is too long\n");
+    free(config_path);
+    return EXIT_FAILURE;
+  }
+
+  config_file = fopen(config_temp_path, "w");
   if(config_file == NULL) {
-    printf("WIZARD ERROR: could not write config file: %s\n", config_path);
+    printf("WIZARD ERROR: could not write config file: %s\n", config_temp_path);
     printf("WIZARD INFO: if this path requires elevated permissions, run wizard with sudo\n");
     free(config_path);
     return EXIT_FAILURE;
@@ -2513,7 +2819,7 @@ static int ih_run_wizard(const char *config_dir) {
                                          stock_profile_locations,
                                          stock_profile_location_max_usage_pct)) {
       fclose(config_file);
-      remove(config_path);
+      remove(config_temp_path);
       printf("WIZARD ERROR: failed to append selected stock presets\n");
       free(config_path);
       return EXIT_FAILURE;
@@ -2538,11 +2844,26 @@ static int ih_run_wizard(const char *config_dir) {
   }
 
   fclose(config_file);
+  backup_config_path[0] = '\0';
+  if(!ih_create_config_backup_if_present(config_path, backup_config_path, sizeof(backup_config_path))) {
+    printf("WIZARD ERROR: could not create backup for existing config: %s\n", config_path);
+    remove(config_temp_path);
+    free(config_path);
+    return EXIT_FAILURE;
+  }
+
+  if(rename(config_temp_path, config_path) != 0) {
+    printf("WIZARD ERROR: could not replace config file: %s\n", config_path);
+    printf("WIZARD INFO: temporary config retained at %s\n", config_temp_path);
+    free(config_path);
+    return EXIT_FAILURE;
+  }
 
   printf("WIZARD ALERT: config written to %s\n", config_path);
-  if(use_stock_presets) {
+  if(backup_config_path[0] != '\0')
+    printf("WIZARD INFO: backup saved to %s\n", backup_config_path);
+  if(use_stock_presets)
     printf("WIZARD INFO: selected stock preset packs: %i\n", selected_stock_preset_count);
-  }
   printf("WIZARD NEXT: run `vfo show`, then `vfo doctor`, then `vfo mezzanine-clean`, then `vfo run`\n");
 
   free(config_path);

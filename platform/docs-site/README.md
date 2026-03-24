@@ -13,12 +13,12 @@ Local workflow:
 
 ```bash
 bash infra/scripts/generate-profile-docs.sh
-mkdocs serve
+zensical serve -f mkdocs.yml
 ```
 
 Build static site:
 
 ```bash
 bash infra/scripts/generate-profile-docs.sh
-mkdocs build --strict
+zensical build -f mkdocs.yml
 ```

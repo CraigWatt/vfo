@@ -253,6 +253,14 @@ A useful mental model is:
 - use `visualize` for local workflow artifacts (`status.json`, Mermaid, HTML)
 - use `mezzanine-clean` for optional mezzanine filename/folder hygiene and recommendations
 - use `run` for the default pipeline (mezzanine -> source if enabled -> profiles -> optional quality scoring)
+- use `wizard` as onboarding: choose `quickstart` for recommended defaults or `advanced` for full tuning
+
+Wizard behavior highlights:
+
+- preflight checks for required tools and config-path write permissions
+- step-based onboarding flow with explicit review before write
+- safe config writes (temporary file + atomic replace + timestamped backup)
+- stock preset multi-select (`balanced_open_audio`, `device_targets_open_audio`, `netflixy_main_subtitle_intent`)
 
 ## Configuration guide
 
@@ -401,6 +409,12 @@ infra/
   packaging/
     macos/
 platform/
+  docs-site/
+  vfo-desktop/
+    src-tauri/
+    web/
+    contracts/
+  vfo-contracts/
 services/
   vfo/
     src/
@@ -451,6 +465,20 @@ Key visual docs include:
 - `platform/docs-site/docs/flow-levels.md`
 - `platform/docs-site/docs/profile-visual-standard.md`
 - generated stock profile sheets under `platform/docs-site/docs/profiles/generated/`
+
+### Desktop scaffold
+
+The monorepo now includes a desktop-app scaffold intended for:
+
+- `services/vfo/` as the standalone processing engine
+- `platform/vfo-desktop/` as Tauri runtime + React UI shell
+- `platform/vfo-contracts/` as machine-readable schema contracts shared across UI/automation integrations
+
+See:
+
+- `platform/vfo-desktop/README.md`
+- `platform/vfo-desktop/contracts/allowed-cli-commands.json`
+- `platform/vfo-contracts/status-json.schema.json`
 
 Local docs workflow:
 

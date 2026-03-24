@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://craigwatt.github.io/vfo/contracts/error-envelope.schema.json",
+  "title": "vfo adapter error envelope schema",
+  "type": "object",
+  "required": ["schema_version", "code", "message", "source"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "code": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "string",
+      "enum": ["cli", "bridge", "ui"]
+    },
+    "details": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
