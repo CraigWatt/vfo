@@ -253,6 +253,14 @@ A useful mental model is:
 - use `visualize` for local workflow artifacts (`status.json`, Mermaid, HTML)
 - use `mezzanine-clean` for optional mezzanine filename/folder hygiene and recommendations
 - use `run` for the default pipeline (mezzanine -> source if enabled -> profiles -> optional quality scoring)
+- use `wizard` as onboarding: choose `quickstart` for recommended defaults or `advanced` for full tuning
+
+Wizard behavior highlights:
+
+- preflight checks for required tools and config-path write permissions
+- step-based onboarding flow with explicit review before write
+- safe config writes (temporary file + atomic replace + timestamped backup)
+- stock preset multi-select (`balanced_open_audio`, `device_targets_open_audio`, `netflixy_main_subtitle_intent`)
 
 ## Configuration guide
 

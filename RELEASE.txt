@@ -74,7 +74,10 @@ Installed paths:
 
 ### First-run workflow
 1. `vfo wizard` to generate or update config interactively.
-   - wizard now supports stock preset pack multi-select (`balanced_open_audio`, `device_targets_open_audio`, `netflixy_main_subtitle_intent`)
+   - wizard now supports onboarding modes: `quickstart` (recommended defaults) and `advanced` (full control)
+   - wizard includes preflight checks (tool availability + config path permissions)
+   - wizard writes config atomically and creates a timestamped backup before replacing an existing config
+   - wizard supports stock preset pack multi-select (`balanced_open_audio`, `device_targets_open_audio`, `netflixy_main_subtitle_intent`)
 2. `vfo show` to review active config values.
 3. `vfo doctor` to validate paths and required tools.
 4. `vfo status` (or `vfo status-json`) to confirm engine readiness.
