@@ -8,6 +8,7 @@ Core pages:
 - `docs/flow-levels.md`
 - `docs/profile-visual-standard.md`
 - `docs/profiles/generated/*.md` (generated)
+- `docs/stylesheets/vfo-theme.css` (brand palette/theme overrides)
 
 Local workflow:
 
