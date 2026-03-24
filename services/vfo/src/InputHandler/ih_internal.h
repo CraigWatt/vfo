@@ -74,6 +74,16 @@ void ih_mes_user_provided_version_option();
 
 #ifdef TESTING
 void ih_resolve_config_dir_for_test(char *output, size_t output_size, bool wizard_mode);
+void ih_evaluate_tier_states_for_test(bool ffmpeg_available,
+                                      bool ffprobe_available,
+                                      bool mkvmerge_available,
+                                      bool dovi_tool_available,
+                                      bool quality_enabled,
+                                      bool quality_include_vmaf,
+                                      bool libvmaf_available,
+                                      status_state_t *base_state_out,
+                                      status_state_t *dv_state_out,
+                                      status_state_t *quality_state_out);
 #endif
 
 #endif // IH_INTERNAL_H

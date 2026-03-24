@@ -264,6 +264,145 @@ static bool ih_ffmpeg_filter_available(const char *filter_name) {
   return system(shell_command) == 0;
 }
 
+static void ih_append_csv_token(char *buffer, size_t buffer_size, const char *token) {
+  size_t used = 0;
+
+  if(buffer == NULL || token == NULL || token[0] == '\0' || buffer_size == 0)
+    return;
+
+  used = strlen(buffer);
+  if(used >= buffer_size - 1)
+    return;
+
+  if(used > 0)
+    snprintf(buffer + used, buffer_size - used, ",%s", token);
+  else
+    snprintf(buffer, buffer_size, "%s", token);
+}
+
+static status_state_t ih_resolve_base_tier_state(bool ffmpeg_available,
+                                                 bool ffprobe_available,
+                                                 bool mkvmerge_available,
+                                                 char *detail,
+                                                 size_t detail_size) {
+  char missing[128];
+
+  if(detail != NULL && detail_size > 0)
+    detail[0] = '\0';
+  missing[0] = '\0';
+
+  if(!ffmpeg_available)
+    ih_append_csv_token(missing, sizeof(missing), "ffmpeg");
+  if(!ffprobe_available)
+    ih_append_csv_token(missing, sizeof(missing), "ffprobe");
+  if(!mkvmerge_available)
+    ih_append_csv_token(missing, sizeof(missing), "mkvmerge");
+
+  if(missing[0] == '\0') {
+    if(detail != NULL && detail_size > 0)
+      snprintf(detail, detail_size, "ffmpeg+ffprobe+mkvmerge ready");
+    return STATUS_STATE_COMPLETE;
+  }
+
+  if(detail != NULL && detail_size > 0)
+    snprintf(detail, detail_size, "missing required tools: %s", missing);
+  return STATUS_STATE_ERROR;
+}
+
+static status_state_t ih_resolve_dv_tier_state(bool dovi_tool_available,
+                                               char *detail,
+                                               size_t detail_size) {
+  if(dovi_tool_available) {
+    if(detail != NULL && detail_size > 0)
+      snprintf(detail, detail_size, "dovi_tool available");
+    return STATUS_STATE_COMPLETE;
+  }
+
+  if(detail != NULL && detail_size > 0)
+    snprintf(detail, detail_size, "dovi_tool missing (DV workflows unavailable)");
+  return STATUS_STATE_SKIPPED;
+}
+
+static status_state_t ih_resolve_quality_tier_state(bool quality_enabled,
+                                                    bool quality_include_vmaf,
+                                                    bool ffmpeg_available,
+                                                    bool libvmaf_available,
+                                                    char *detail,
+                                                    size_t detail_size) {
+  if(!quality_enabled) {
+    if(detail != NULL && detail_size > 0)
+      snprintf(detail, detail_size, "QUALITY_CHECK_ENABLED=false");
+    return STATUS_STATE_SKIPPED;
+  }
+
+  if(!ffmpeg_available) {
+    if(detail != NULL && detail_size > 0)
+      snprintf(detail, detail_size, "ffmpeg missing (quality scoring unavailable)");
+    return STATUS_STATE_ERROR;
+  }
+
+  if(quality_include_vmaf && !libvmaf_available) {
+    if(detail != NULL && detail_size > 0)
+      snprintf(detail, detail_size, "QUALITY_CHECK_INCLUDE_VMAF=true but libvmaf unavailable");
+    return STATUS_STATE_ERROR;
+  }
+
+  if(quality_include_vmaf) {
+    if(detail != NULL && detail_size > 0)
+      snprintf(detail, detail_size, "PSNR+SSIM+VMAF ready");
+  } else {
+    if(detail != NULL && detail_size > 0)
+      snprintf(detail, detail_size, "PSNR+SSIM ready (VMAF optional disabled)");
+  }
+  return STATUS_STATE_COMPLETE;
+}
+
+static const char* ih_tier_label_from_state(status_state_t state) {
+  switch(state) {
+    case STATUS_STATE_COMPLETE:
+      return "PASS";
+    case STATUS_STATE_ERROR:
+      return "FAIL";
+    case STATUS_STATE_SKIPPED:
+      return "WARN";
+    case STATUS_STATE_PENDING:
+    case STATUS_STATE_IN_PROGRESS:
+    default:
+      return "WARN";
+  }
+}
+
+#ifdef TESTING
+void ih_evaluate_tier_states_for_test(bool ffmpeg_available,
+                                      bool ffprobe_available,
+                                      bool mkvmerge_available,
+                                      bool dovi_tool_available,
+                                      bool quality_enabled,
+                                      bool quality_include_vmaf,
+                                      bool libvmaf_available,
+                                      status_state_t *base_state_out,
+                                      status_state_t *dv_state_out,
+                                      status_state_t *quality_state_out) {
+  if(base_state_out != NULL)
+    *base_state_out = ih_resolve_base_tier_state(ffmpeg_available,
+                                                 ffprobe_available,
+                                                 mkvmerge_available,
+                                                 NULL,
+                                                 0);
+
+  if(dv_state_out != NULL)
+    *dv_state_out = ih_resolve_dv_tier_state(dovi_tool_available, NULL, 0);
+
+  if(quality_state_out != NULL)
+    *quality_state_out = ih_resolve_quality_tier_state(quality_enabled,
+                                                       quality_include_vmaf,
+                                                       ffmpeg_available,
+                                                       libvmaf_available,
+                                                       NULL,
+                                                       0);
+}
+#endif
+
 static bool ih_doctor_check_command(const char *command_name, bool required) {
   return ih_check_command("DOCTOR", command_name, required);
 }
@@ -309,6 +448,17 @@ static bool ih_run_doctor(config_t *config, const char *config_dir) {
   bool healthy = true;
   ih_toolchain_mode_t toolchain_mode = IH_TOOLCHAIN_MODE_SYSTEM;
   char toolchain_mode_value[64];
+  bool ffmpeg_available = false;
+  bool ffprobe_available = false;
+  bool mkvmerge_available = false;
+  bool dovi_tool_available = false;
+  bool libvmaf_available = false;
+  status_state_t tier_base_state = STATUS_STATE_PENDING;
+  status_state_t tier_dv_state = STATUS_STATE_PENDING;
+  status_state_t tier_quality_state = STATUS_STATE_PENDING;
+  char tier_base_detail[256];
+  char tier_dv_detail[256];
+  char tier_quality_detail[256];
 
   printf("DOCTOR ALERT: running environment and configuration checks\n");
   if(ih_validate_toolchain_mode("DOCTOR",
@@ -352,14 +502,42 @@ static bool ih_run_doctor(config_t *config, const char *config_dir) {
   printf("DOCTOR INFO: QUALITY_CHECK_MIN_VMAF=%.3f\n", config->svc->quality_check_min_vmaf);
   printf("DOCTOR INFO: QUALITY_CHECK_MAX_FILES_PER_PROFILE=%i\n", config->svc->quality_check_max_files_per_profile);
 
-  if(config->svc->quality_check_enabled && config->svc->quality_check_include_vmaf) {
-    if(ih_ffmpeg_filter_available("libvmaf"))
-      printf("DOCTOR OK: ffmpeg libvmaf filter is available\n");
-    else {
-      printf("DOCTOR WARN: ffmpeg libvmaf filter is unavailable; VMAF scoring will be skipped\n");
-      healthy = false;
-    }
-  }
+  ffmpeg_available = ih_command_exists("ffmpeg");
+  ffprobe_available = ih_command_exists("ffprobe");
+  mkvmerge_available = ih_command_exists("mkvmerge");
+  dovi_tool_available = ih_command_exists("dovi_tool");
+  libvmaf_available = ih_ffmpeg_filter_available("libvmaf");
+
+  tier_base_state = ih_resolve_base_tier_state(ffmpeg_available,
+                                               ffprobe_available,
+                                               mkvmerge_available,
+                                               tier_base_detail,
+                                               sizeof(tier_base_detail));
+  tier_dv_state = ih_resolve_dv_tier_state(dovi_tool_available,
+                                           tier_dv_detail,
+                                           sizeof(tier_dv_detail));
+  tier_quality_state = ih_resolve_quality_tier_state(config->svc->quality_check_enabled,
+                                                     config->svc->quality_check_include_vmaf,
+                                                     ffmpeg_available,
+                                                     libvmaf_available,
+                                                     tier_quality_detail,
+                                                     sizeof(tier_quality_detail));
+
+  printf("DOCTOR TIER SUMMARY:\n");
+  printf("DOCTOR TIER: base => %s (%s)\n",
+         ih_tier_label_from_state(tier_base_state),
+         tier_base_detail);
+  printf("DOCTOR TIER: dv => %s (%s)\n",
+         ih_tier_label_from_state(tier_dv_state),
+         tier_dv_detail);
+  printf("DOCTOR TIER: quality => %s (%s)\n",
+         ih_tier_label_from_state(tier_quality_state),
+         tier_quality_detail);
+
+  if(tier_base_state == STATUS_STATE_ERROR
+     || tier_dv_state == STATUS_STATE_ERROR
+     || tier_quality_state == STATUS_STATE_ERROR)
+    healthy = false;
 
   ca_node_t *alias_profile = config->ca_head;
   while(alias_profile != NULL) {
@@ -847,6 +1025,17 @@ static bool ih_collect_status_snapshot(config_t *config, const char *config_dir,
   char toolchain_mode_value[64];
   char toolchain_detail[512];
   bool toolchain_mode_supported = false;
+  bool ffmpeg_available = false;
+  bool ffprobe_available = false;
+  bool mkvmerge_available = false;
+  bool dovi_tool_available = false;
+  bool libvmaf_available = false;
+  status_state_t tier_base_state = STATUS_STATE_PENDING;
+  status_state_t tier_dv_state = STATUS_STATE_PENDING;
+  status_state_t tier_quality_state = STATUS_STATE_PENDING;
+  char tier_base_detail[256];
+  char tier_dv_detail[256];
+  char tier_quality_detail[256];
 
   status_report_update(report, "engine.snapshot", STATUS_STATE_IN_PROGRESS, "collecting component status");
 
@@ -891,12 +1080,18 @@ static bool ih_collect_status_snapshot(config_t *config, const char *config_dir,
   }
 
   if(toolchain_mode_supported) {
+    ffmpeg_available = ih_command_exists("ffmpeg");
+    ffprobe_available = ih_command_exists("ffprobe");
+    mkvmerge_available = ih_command_exists("mkvmerge");
+    dovi_tool_available = ih_command_exists("dovi_tool");
+
     healthy = ih_status_check_command(report, "ffmpeg", true) && healthy;
     healthy = ih_status_check_command(report, "ffprobe", true) && healthy;
     healthy = ih_status_check_command(report, "mkvmerge", true) && healthy;
     healthy = ih_status_check_command(report, "dovi_tool", false) && healthy;
     if(config->svc->quality_check_enabled && config->svc->quality_check_include_vmaf) {
-      if(ih_ffmpeg_filter_available("libvmaf")) {
+      libvmaf_available = ih_ffmpeg_filter_available("libvmaf");
+      if(libvmaf_available) {
         status_report_update(report,
                              "dependency.libvmaf",
                              STATUS_STATE_COMPLETE,
@@ -936,6 +1131,28 @@ static bool ih_collect_status_snapshot(config_t *config, const char *config_dir,
                          STATUS_STATE_SKIPPED,
                          "libvmaf check blocked because toolchain mode is not usable");
   }
+
+  tier_base_state = ih_resolve_base_tier_state(ffmpeg_available,
+                                               ffprobe_available,
+                                               mkvmerge_available,
+                                               tier_base_detail,
+                                               sizeof(tier_base_detail));
+  tier_dv_state = ih_resolve_dv_tier_state(dovi_tool_available,
+                                           tier_dv_detail,
+                                           sizeof(tier_dv_detail));
+  tier_quality_state = ih_resolve_quality_tier_state(config->svc->quality_check_enabled,
+                                                     config->svc->quality_check_include_vmaf,
+                                                     ffmpeg_available,
+                                                     libvmaf_available,
+                                                     tier_quality_detail,
+                                                     sizeof(tier_quality_detail));
+
+  status_report_update(report, "engine.tier.base", tier_base_state, tier_base_detail);
+  status_report_update(report, "engine.tier.dv", tier_dv_state, tier_dv_detail);
+  status_report_update(report, "engine.tier.quality", tier_quality_state, tier_quality_detail);
+
+  if(tier_base_state == STATUS_STATE_ERROR || tier_quality_state == STATUS_STATE_ERROR)
+    healthy = false;
 
   originals_healthy = ih_status_check_location_list(report,
                                                     "storage.mezzanine",

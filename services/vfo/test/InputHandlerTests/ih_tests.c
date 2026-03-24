@@ -171,6 +171,41 @@ void test_ih_arguments_parser_detects_auto_command(void **state) {
   free(arguments);
 }
 
+void test_ih_tier_state_evaluation(void **state) {
+  status_state_t base_state = STATUS_STATE_PENDING;
+  status_state_t dv_state = STATUS_STATE_PENDING;
+  status_state_t quality_state = STATUS_STATE_PENDING;
+  (void)state;
+
+  ih_evaluate_tier_states_for_test(true,
+                                   true,
+                                   true,
+                                   false,
+                                   true,
+                                   true,
+                                   false,
+                                   &base_state,
+                                   &dv_state,
+                                   &quality_state);
+  assert_int_equal(base_state, STATUS_STATE_COMPLETE);
+  assert_int_equal(dv_state, STATUS_STATE_SKIPPED);
+  assert_int_equal(quality_state, STATUS_STATE_ERROR);
+
+  ih_evaluate_tier_states_for_test(true,
+                                   true,
+                                   true,
+                                   true,
+                                   true,
+                                   false,
+                                   false,
+                                   &base_state,
+                                   &dv_state,
+                                   &quality_state);
+  assert_int_equal(base_state, STATUS_STATE_COMPLETE);
+  assert_int_equal(dv_state, STATUS_STATE_COMPLETE);
+  assert_int_equal(quality_state, STATUS_STATE_COMPLETE);
+}
+
 void test_quality_reference_mode_parser_accepts_valid_values(void **state) {
   bool valid = false;
   (void)state;

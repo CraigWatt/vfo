@@ -32,6 +32,16 @@
 #include "../../src/Status/status_engine.h"
 
 void ih_resolve_config_dir_for_test(char *output, size_t output_size, bool wizard_mode);
+void ih_evaluate_tier_states_for_test(bool ffmpeg_available,
+                                      bool ffprobe_available,
+                                      bool mkvmerge_available,
+                                      bool dovi_tool_available,
+                                      bool quality_enabled,
+                                      bool quality_include_vmaf,
+                                      bool libvmaf_available,
+                                      status_state_t *base_state_out,
+                                      status_state_t *dv_state_out,
+                                      status_state_t *quality_state_out);
 
 void test_status_report_update_and_summary(void **state);
 void test_status_report_update_overwrites_existing_component(void **state);
@@ -44,5 +54,6 @@ void test_quality_reference_mode_parser_accepts_valid_values(void **state);
 void test_quality_reference_mode_parser_rejects_invalid_values(void **state);
 void test_ih_resolve_config_dir_prefers_env_override(void **state);
 void test_ih_resolve_config_dir_uses_user_dir_for_wizard(void **state);
+void test_ih_tier_state_evaluation(void **state);
 
 #endif // IH_TESTS_H
