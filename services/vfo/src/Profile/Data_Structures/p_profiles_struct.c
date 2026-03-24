@@ -237,8 +237,8 @@ int a_verify_alias_crit_bits(char *alias_crit_bits, char *alias_name) {
   //convert char to int
   int tmp_int = utils_convert_string_to_integer(alias_crit_bits);
   //verify int
-  if(tmp_int != 8 && tmp_int != 10) {
-    printf("PROFILE %s ERROR: vfo is reading %s criteria bits from config file NOT equal to 8 or 10. config file variable: %s int conversion: %i\n", alias_name, alias_name, alias_crit_bits, tmp_int);
+  if(tmp_int != 0 && tmp_int != 8 && tmp_int != 10) {
+    printf("PROFILE %s ERROR: vfo is reading %s criteria bits from config file NOT equal to 0, 8, or 10. config file variable: %s int conversion: %i\n", alias_name, alias_name, alias_crit_bits, tmp_int);
     exit(EXIT_FAILURE);
   }
   printf("PROFILE %s ALERT: reading criteria bits as: %i\n", alias_name, tmp_int);

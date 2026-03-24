@@ -25,6 +25,30 @@ to_slug() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr '_' '-' | tr -cd 'a-z0-9-'
 }
 
+normalize_criteria_codec() {
+  local value="${1:-}"
+  case "$value" in
+    ''|any|ANY|Any|'*') printf '%s' "any" ;;
+    *) printf '%s' "$value" ;;
+  esac
+}
+
+normalize_criteria_bits() {
+  local value="${1:-}"
+  case "$value" in
+    ''|0|any|ANY|Any|'*') printf '%s' "any" ;;
+    *) printf '%s' "$value" ;;
+  esac
+}
+
+normalize_criteria_color() {
+  local value="${1:-}"
+  case "$value" in
+    ''|any|ANY|Any|'*') printf '%s' "any" ;;
+    *) printf '%s' "$value" ;;
+  esac
+}
+
 parse_behavior_block() {
   local action_file="$1"
   local behavior
@@ -127,6 +151,9 @@ write_profile_doc() {
   local mermaid_variant
   local typical_input_containers
   local output_intent
+  local criteria_codec_display
+  local criteria_bits_display
+  local criteria_color_display
 
   slug="$(to_slug "$profile")"
   prefix="$(to_upper_prefix "$profile")"
@@ -142,16 +169,6 @@ write_profile_doc() {
     commands+=("$line")
   done < <(grep -E "^${prefix}_FFMPEG_COMMAND=\"" "$file_path" | extract_value || true)
   scenario_count="${#scenarios[@]}"
-
-  criteria_line="
-| Field | Value |
-| --- | --- |
-| Codec | \`${criteria_codec:-any}\` |
-| Bit depth | \`${criteria_bits:-any}\` |
-| Color space | \`${criteria_color:-any}\` |
-| Min resolution | \`${min_w:-0}x${min_h:-0}\` |
-| Max resolution | \`${max_w:-any}x${max_h:-any}\` |
-"
 
   first_command=""
   if [ "${#commands[@]}" -gt 0 ]; then
@@ -176,6 +193,20 @@ write_profile_doc() {
   elif printf '%s' "$first_command" | grep -q "ffmpeg"; then
     output_intent="output container and streams are defined directly by the ffmpeg command"
   fi
+
+  criteria_codec_display="$(normalize_criteria_codec "$criteria_codec")"
+  criteria_bits_display="$(normalize_criteria_bits "$criteria_bits")"
+  criteria_color_display="$(normalize_criteria_color "$criteria_color")"
+
+  criteria_line="
+| Field | Value |
+| --- | --- |
+| Codec | \`${criteria_codec_display}\` |
+| Bit depth | \`${criteria_bits_display}\` |
+| Color space | \`${criteria_color_display}\` |
+| Min resolution | \`${min_w:-0}x${min_h:-0}\` |
+| Max resolution | \`${max_w:-any}x${max_h:-any}\` |
+"
 
   {
     printf '# %s\n\n' "$profile"
@@ -254,7 +285,7 @@ write_profile_doc() {
     printf '| Aspect | What this profile expects / does |\n'
     printf '| --- | --- |\n'
     printf '| Starting containers | `%s` |\n' "$typical_input_containers"
-    printf '| Required codec envelope | `%s` / `%s-bit` / `%s` |\n' "${criteria_codec:-any}" "${criteria_bits:-any}" "${criteria_color:-any}"
+    printf '| Required codec envelope | `%s` / `%s-bit` / `%s` |\n' "$criteria_codec_display" "$criteria_bits_display" "$criteria_color_display"
     printf '| Required resolution range | `%sx%s` to `%sx%s` |\n' "${min_w:-0}" "${min_h:-0}" "${max_w:-any}" "${max_h:-any}"
     printf '| If criteria do not match | candidate is routed to another profile or skipped |\n'
     printf '| If criteria match | scenario order is evaluated and first match executes |\n'
@@ -311,9 +342,9 @@ MERMAID
   printf '%s|%s|%s|%s|%s|%s|%s|%s|%s\n' \
     "$profile" \
     "$pack" \
-    "${criteria_codec:-any}" \
-    "${criteria_bits:-any}" \
-    "${criteria_color:-any}" \
+    "$criteria_codec_display" \
+    "$criteria_bits_display" \
+    "$criteria_color_display" \
     "${min_w:-0}x${min_h:-0}" \
     "${max_w:-any}x${max_h:-any}" \
     "$slug" \

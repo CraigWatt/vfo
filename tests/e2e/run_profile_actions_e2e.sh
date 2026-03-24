@@ -16,6 +16,7 @@ ACTION_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_profile.sh"
 ACTION_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_profile.sh"
 ACTION_MAIN_SUB_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_main_subtitle_preserve_profile.sh"
 ACTION_MAIN_SUB_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_main_subtitle_preserve_profile.sh"
+ACTION_GUARDRAIL_SKIP="${ROOT_DIR}/services/vfo/actions/profile_guardrail_skip.sh"
 
 log() {
   printf '[e2e] %s\n' "$*"
@@ -315,6 +316,27 @@ run_main_subtitle_action_assertions() {
   log "${action_name} passed (codec=${codec}, height=${height}, audio_streams=${output_audio_count}, subtitle_streams=${output_subtitle_count}, data_streams=${output_data_count}, container=${expected_container})"
 }
 
+run_guardrail_skip_action_assertions() {
+  local action_name="$1"
+  local input="$2"
+  local output="$3"
+  local reason="$4"
+  local marker_path="${output%.*}.guardrail_skipped.txt"
+
+  [ -x "$ACTION_GUARDRAIL_SKIP" ] || fail "Action script is not executable: $ACTION_GUARDRAIL_SKIP"
+  [ -s "$input" ] || fail "Input fixture missing: $input"
+
+  rm -f "$output" "${output%.*}.mkv" "$marker_path"
+
+  bash "$ACTION_GUARDRAIL_SKIP" "$input" "$output" "$reason"
+
+  [ -f "$marker_path" ] || fail "${action_name} did not create guardrail skip marker: $marker_path"
+  [ ! -f "$output" ] || fail "${action_name} unexpectedly created output media: $output"
+
+  grep -q "reason=${reason}" "$marker_path" || fail "${action_name} marker missing reason line"
+  log "${action_name} passed (marker=${marker_path})"
+}
+
 run_seed_from_input() {
   local seed_index="$1"
   local seed_asset="$2"
@@ -331,6 +353,7 @@ run_seed_from_input() {
   local output_1080_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_off.mp4"
   local output_1080_default_sub_on="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_on.mp4"
   local output_1080_forced_non_english_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_forced_non_english_sub.mp4"
+  local output_guardrail_skip="${OUTPUTS_DIR}/seed_${seed_index}_profile_guardrail_skip.mp4"
 
   log "Using local open-source asset seed #${seed_index}: ${seed_asset}"
   create_fixture_from_input "$seed_asset" 1920 1080 "$fixture_1080"
@@ -403,6 +426,12 @@ run_seed_from_input() {
     mp4 \
     0 \
     0
+
+  run_guardrail_skip_action_assertions \
+    "profile_guardrail_skip_action(seed_${seed_index})" \
+    "$fixture_1080" \
+    "$output_guardrail_skip" \
+    "e2e_guardrail_skip_seed_${seed_index}"
 }
 
 run_seed_synthetic() {
@@ -420,6 +449,7 @@ run_seed_synthetic() {
   local output_1080_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_off.mp4"
   local output_1080_default_sub_on="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_on.mp4"
   local output_1080_forced_non_english_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_forced_non_english_sub.mp4"
+  local output_guardrail_skip="${OUTPUTS_DIR}/seed_${seed_index}_profile_guardrail_skip.mp4"
 
   log "Using synthetic fixtures for seed #${seed_index} (no local assets required)"
   create_synthetic_fixture 1920 1080 "$fixture_1080"
@@ -492,6 +522,12 @@ run_seed_synthetic() {
     mp4 \
     0 \
     0
+
+  run_guardrail_skip_action_assertions \
+    "profile_guardrail_skip_action(seed_${seed_index})" \
+    "$fixture_1080" \
+    "$output_guardrail_skip" \
+    "e2e_guardrail_skip_seed_${seed_index}"
 }
 
 run_local_asset_suite() {
@@ -530,6 +566,7 @@ main() {
   [ -f "$ACTION_1080" ] || fail "Missing action script: $ACTION_1080"
   [ -f "$ACTION_MAIN_SUB_4K" ] || fail "Missing action script: $ACTION_MAIN_SUB_4K"
   [ -f "$ACTION_MAIN_SUB_1080" ] || fail "Missing action script: $ACTION_MAIN_SUB_1080"
+  [ -f "$ACTION_GUARDRAIL_SKIP" ] || fail "Missing action script: $ACTION_GUARDRAIL_SKIP"
 
   rm -rf "$TMP_DIR"
   mkdir -p "$FIXTURES_DIR" "$OUTPUTS_DIR"

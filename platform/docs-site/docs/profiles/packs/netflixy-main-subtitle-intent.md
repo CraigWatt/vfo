@@ -8,6 +8,13 @@ This pack targets practical streaming efficiency while preserving viewer-intent 
 - preserve full audio set and director-intent "main subtitle" behavior
 - emit container type by viewing-intent need: MKV when subtitle intent applies, fragmented MP4 otherwise
 
+## Guardrails
+
+- 1080 profile lane is SDR-gated (`bt709`) and intentionally skips HDR candidates for that lane.
+- 4K profile lane accepts SDR or HDR candidates in the configured 4K envelope.
+- Codec intake is broad for both lanes (`any`), so HEVC, H.264 (including rare 10-bit), AV1, and VP9 mezzanines can be processed.
+- Guardrail misses are written as `*.guardrail_skipped.txt` markers by `profile_guardrail_skip.sh`.
+
 ## Focus
 
 - preserve all audio streams

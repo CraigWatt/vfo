@@ -6,6 +6,12 @@
 - preserving audio streams
 - preserving one "main subtitle" only when it appears director-intent oriented
 
+Input guardrails:
+
+- 1080 lane accepts SDR (`bt709`) inputs up to 1080p and skips HDR candidates for this lane.
+- 4K lane accepts SDR or HDR candidates in the 1920x1080 to 3840x2160 envelope.
+- Codec intake is intentionally broad (`any`) so mezzanines such as HEVC, H.264 (including rare 10-bit), AV1, and VP9 can be processed.
+
 Main-subtitle heuristic (implemented in action scripts):
 
 - forced english first
@@ -19,6 +25,10 @@ Container behavior:
 - no main subtitle selected -> stream-ready MP4 output:
   - default mode: fragmented MP4 + init/moov at start (`VFO_MP4_STREAM_MODE=fmp4_faststart`)
   - optional modes: `fmp4` or `faststart`
+
+Guardrail mismatch behavior:
+
+- candidates that do not satisfy the lane guardrails are marked with a sidecar `*.guardrail_skipped.txt` marker via `profile_guardrail_skip.sh`
 
 ## Included active profiles (lane 1)
 
