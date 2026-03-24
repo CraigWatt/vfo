@@ -165,6 +165,21 @@ docker pull ghcr.io/craigwatt/vfo:main
 docker run --rm ghcr.io/craigwatt/vfo:main --version
 ```
 
+### Toolchain mode (CLI)
+
+`vfo` now supports runtime toolchain mode selection via environment variable:
+
+- `TOOLCHAIN_MODE=system` (default): use host PATH tools.
+- `TOOLCHAIN_MODE=auto`: currently falls back to host PATH tools (managed lane reserved).
+- `TOOLCHAIN_MODE=managed`: currently hard-fails with a clear message (managed CLI lane not active yet).
+
+Examples:
+
+```bash
+TOOLCHAIN_MODE=system vfo doctor
+TOOLCHAIN_MODE=auto vfo status-json
+```
+
 ### Option 2: build from source
 
 Prerequisites:

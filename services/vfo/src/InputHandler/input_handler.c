@@ -44,12 +44,20 @@
 #define IH_ASSUME_YES_ENV "VFO_ASSUME_YES"
 #define IH_AUTO_INTERVAL_SECONDS_ENV "VFO_AUTO_INTERVAL_SECONDS"
 #define IH_AUTO_MAX_ITERATIONS_ENV "VFO_AUTO_MAX_ITERATIONS"
+#define IH_TOOLCHAIN_MODE_ENV "TOOLCHAIN_MODE"
 
 typedef struct ih_stock_preset_option {
   const char *key;
   const char *display_name;
   const char *relative_path;
 } ih_stock_preset_option_t;
+
+typedef enum ih_toolchain_mode {
+  IH_TOOLCHAIN_MODE_SYSTEM = 0,
+  IH_TOOLCHAIN_MODE_AUTO,
+  IH_TOOLCHAIN_MODE_MANAGED,
+  IH_TOOLCHAIN_MODE_INVALID
+} ih_toolchain_mode_t;
 
 static const ih_stock_preset_option_t IH_STOCK_PRESET_OPTIONS[] = {
   {"balanced_open_audio", "Balanced Open Audio", "balanced_open_audio/vfo_config.preset.conf"},
@@ -98,6 +106,108 @@ static void ih_suppress_stdout_end(int saved_stdout_fd) {
   fflush(stdout);
   dup2(saved_stdout_fd, STDOUT_FILENO);
   close(saved_stdout_fd);
+}
+
+static void ih_copy_trimmed_string(const char *input, char *output, size_t output_size) {
+  const char *start = input;
+  const char *end = NULL;
+  size_t length = 0;
+
+  if(output == NULL || output_size == 0)
+    return;
+
+  output[0] = '\0';
+  if(input == NULL)
+    return;
+
+  while(*start != '\0' && isspace((unsigned char)*start))
+    start++;
+
+  end = start + strlen(start);
+  while(end > start && isspace((unsigned char)*(end - 1)))
+    end--;
+
+  length = (size_t)(end - start);
+  if(length >= output_size)
+    length = output_size - 1;
+
+  if(length > 0)
+    memcpy(output, start, length);
+  output[length] = '\0';
+}
+
+static ih_toolchain_mode_t ih_resolve_toolchain_mode(char *mode_value_out, size_t mode_value_out_size) {
+  const char *raw_mode = getenv(IH_TOOLCHAIN_MODE_ENV);
+  char normalized_mode[64];
+
+  if(mode_value_out != NULL && mode_value_out_size > 0)
+    mode_value_out[0] = '\0';
+
+  if(raw_mode == NULL) {
+    if(mode_value_out != NULL && mode_value_out_size > 0)
+      snprintf(mode_value_out, mode_value_out_size, "system");
+    return IH_TOOLCHAIN_MODE_SYSTEM;
+  }
+
+  ih_copy_trimmed_string(raw_mode, normalized_mode, sizeof(normalized_mode));
+  if(normalized_mode[0] == '\0') {
+    if(mode_value_out != NULL && mode_value_out_size > 0)
+      snprintf(mode_value_out, mode_value_out_size, "system");
+    return IH_TOOLCHAIN_MODE_SYSTEM;
+  }
+
+  for(size_t i = 0; normalized_mode[i] != '\0'; i++)
+    normalized_mode[i] = (char)tolower((unsigned char)normalized_mode[i]);
+
+  if(mode_value_out != NULL && mode_value_out_size > 0)
+    snprintf(mode_value_out, mode_value_out_size, "%s", normalized_mode);
+
+  if(strcmp(normalized_mode, "system") == 0)
+    return IH_TOOLCHAIN_MODE_SYSTEM;
+  if(strcmp(normalized_mode, "auto") == 0)
+    return IH_TOOLCHAIN_MODE_AUTO;
+  if(strcmp(normalized_mode, "managed") == 0)
+    return IH_TOOLCHAIN_MODE_MANAGED;
+
+  return IH_TOOLCHAIN_MODE_INVALID;
+}
+
+static bool ih_validate_toolchain_mode(const char *context,
+                                       ih_toolchain_mode_t *mode_out,
+                                       char *mode_value_out,
+                                       size_t mode_value_out_size,
+                                       bool emit_logs) {
+  ih_toolchain_mode_t mode = ih_resolve_toolchain_mode(mode_value_out, mode_value_out_size);
+  const char *context_safe = context == NULL ? "TOOLCHAIN" : context;
+  const char *mode_value = (mode_value_out == NULL || mode_value_out[0] == '\0') ? "unknown" : mode_value_out;
+
+  if(mode_out != NULL)
+    *mode_out = mode;
+
+  if(mode == IH_TOOLCHAIN_MODE_INVALID) {
+    if(emit_logs) {
+      printf("%s ERROR: unsupported %s=%s\n", context_safe, IH_TOOLCHAIN_MODE_ENV, mode_value);
+      printf("%s INFO: supported values are system|auto|managed\n", context_safe);
+    }
+    return false;
+  }
+
+  if(mode == IH_TOOLCHAIN_MODE_MANAGED) {
+    if(emit_logs) {
+      printf("%s ERROR: %s=managed is not available yet in vfo CLI runtime\n", context_safe, IH_TOOLCHAIN_MODE_ENV);
+      printf("%s INFO: use %s=system or %s=auto for now\n", context_safe, IH_TOOLCHAIN_MODE_ENV, IH_TOOLCHAIN_MODE_ENV);
+    }
+    return false;
+  }
+
+  if(emit_logs) {
+    if(mode == IH_TOOLCHAIN_MODE_AUTO)
+      printf("%s INFO: %s=auto (managed lane not active yet; using host PATH commands)\n", context_safe, IH_TOOLCHAIN_MODE_ENV);
+    else
+      printf("%s INFO: %s=system (using host PATH commands)\n", context_safe, IH_TOOLCHAIN_MODE_ENV);
+  }
+
+  return true;
 }
 
 static bool ih_command_exists(const char *command_name) {
@@ -197,8 +307,18 @@ static bool ih_doctor_check_location_list(const char *label, char *locations_csv
 
 static bool ih_run_doctor(config_t *config, const char *config_dir) {
   bool healthy = true;
+  ih_toolchain_mode_t toolchain_mode = IH_TOOLCHAIN_MODE_SYSTEM;
+  char toolchain_mode_value[64];
 
   printf("DOCTOR ALERT: running environment and configuration checks\n");
+  if(ih_validate_toolchain_mode("DOCTOR",
+                                &toolchain_mode,
+                                toolchain_mode_value,
+                                sizeof(toolchain_mode_value),
+                                true) == false) {
+    printf("DOCTOR ALERT: checks completed with errors\n");
+    return false;
+  }
   healthy = ih_doctor_check_command("ffmpeg", true) && healthy;
   healthy = ih_doctor_check_command("ffprobe", true) && healthy;
   healthy = ih_doctor_check_command("mkvmerge", true) && healthy;
@@ -297,6 +417,25 @@ static bool ih_status_check_command(status_report_t *report, const char *command
     snprintf(detail, sizeof(detail), "%s missing", command_name);
   status_report_update(report, component, STATUS_STATE_SKIPPED, detail);
   return true;
+}
+
+static void ih_status_mark_dependency_blocked(status_report_t *report,
+                                              const char *command_name,
+                                              bool required,
+                                              const char *reason) {
+  char component[256];
+  char detail[512];
+
+  snprintf(component, sizeof(component), "dependency.%s", command_name);
+  snprintf(detail,
+           sizeof(detail),
+           "%s check blocked: %s",
+           command_name,
+           reason == NULL ? "toolchain mode unavailable" : reason);
+  status_report_update(report,
+                       component,
+                       required ? STATUS_STATE_ERROR : STATUS_STATE_SKIPPED,
+                       detail);
 }
 
 static bool ih_status_check_location_list(status_report_t *report,
@@ -704,6 +843,10 @@ static bool ih_collect_status_snapshot(config_t *config, const char *config_dir,
   bool originals_healthy = true;
   bool source_healthy = true;
   bool profiles_healthy = true;
+  ih_toolchain_mode_t toolchain_mode = IH_TOOLCHAIN_MODE_SYSTEM;
+  char toolchain_mode_value[64];
+  char toolchain_detail[512];
+  bool toolchain_mode_supported = false;
 
   status_report_update(report, "engine.snapshot", STATUS_STATE_IN_PROGRESS, "collecting component status");
 
@@ -714,28 +857,84 @@ static bool ih_collect_status_snapshot(config_t *config, const char *config_dir,
     healthy = false;
   }
 
-  healthy = ih_status_check_command(report, "ffmpeg", true) && healthy;
-  healthy = ih_status_check_command(report, "ffprobe", true) && healthy;
-  healthy = ih_status_check_command(report, "mkvmerge", true) && healthy;
-  healthy = ih_status_check_command(report, "dovi_tool", false) && healthy;
-  if(config->svc->quality_check_enabled && config->svc->quality_check_include_vmaf) {
-    if(ih_ffmpeg_filter_available("libvmaf")) {
-      status_report_update(report,
-                           "dependency.libvmaf",
-                           STATUS_STATE_COMPLETE,
-                           "ffmpeg libvmaf filter available");
+  toolchain_mode_supported = ih_validate_toolchain_mode("STATUS",
+                                                        &toolchain_mode,
+                                                        toolchain_mode_value,
+                                                        sizeof(toolchain_mode_value),
+                                                        false);
+  if(toolchain_mode_supported) {
+    if(toolchain_mode == IH_TOOLCHAIN_MODE_AUTO)
+      snprintf(toolchain_detail,
+               sizeof(toolchain_detail),
+               "%s=auto (managed lane not active yet; using host PATH commands)",
+               IH_TOOLCHAIN_MODE_ENV);
+    else
+      snprintf(toolchain_detail,
+               sizeof(toolchain_detail),
+               "%s=system (using host PATH commands)",
+               IH_TOOLCHAIN_MODE_ENV);
+    status_report_update(report, "config.toolchain_mode", STATUS_STATE_COMPLETE, toolchain_detail);
+  } else {
+    healthy = false;
+    if(toolchain_mode == IH_TOOLCHAIN_MODE_MANAGED)
+      snprintf(toolchain_detail,
+               sizeof(toolchain_detail),
+               "%s=managed requested but managed CLI toolchain is not available yet",
+               IH_TOOLCHAIN_MODE_ENV);
+    else
+      snprintf(toolchain_detail,
+               sizeof(toolchain_detail),
+               "unsupported %s=%s (supported: system|auto|managed)",
+               IH_TOOLCHAIN_MODE_ENV,
+               toolchain_mode_value[0] == '\0' ? "unknown" : toolchain_mode_value);
+    status_report_update(report, "config.toolchain_mode", STATUS_STATE_ERROR, toolchain_detail);
+  }
+
+  if(toolchain_mode_supported) {
+    healthy = ih_status_check_command(report, "ffmpeg", true) && healthy;
+    healthy = ih_status_check_command(report, "ffprobe", true) && healthy;
+    healthy = ih_status_check_command(report, "mkvmerge", true) && healthy;
+    healthy = ih_status_check_command(report, "dovi_tool", false) && healthy;
+    if(config->svc->quality_check_enabled && config->svc->quality_check_include_vmaf) {
+      if(ih_ffmpeg_filter_available("libvmaf")) {
+        status_report_update(report,
+                             "dependency.libvmaf",
+                             STATUS_STATE_COMPLETE,
+                             "ffmpeg libvmaf filter available");
+      } else {
+        status_report_update(report,
+                             "dependency.libvmaf",
+                             STATUS_STATE_ERROR,
+                             "ffmpeg libvmaf filter missing (QUALITY_CHECK_INCLUDE_VMAF=true)");
+        healthy = false;
+      }
     } else {
       status_report_update(report,
                            "dependency.libvmaf",
-                           STATUS_STATE_ERROR,
-                           "ffmpeg libvmaf filter missing (QUALITY_CHECK_INCLUDE_VMAF=true)");
-      healthy = false;
+                           STATUS_STATE_SKIPPED,
+                           "VMAF scoring disabled");
     }
   } else {
+    ih_status_mark_dependency_blocked(report,
+                                      "ffmpeg",
+                                      true,
+                                      "toolchain mode is not usable");
+    ih_status_mark_dependency_blocked(report,
+                                      "ffprobe",
+                                      true,
+                                      "toolchain mode is not usable");
+    ih_status_mark_dependency_blocked(report,
+                                      "mkvmerge",
+                                      true,
+                                      "toolchain mode is not usable");
+    ih_status_mark_dependency_blocked(report,
+                                      "dovi_tool",
+                                      false,
+                                      "toolchain mode is not usable");
     status_report_update(report,
                          "dependency.libvmaf",
                          STATUS_STATE_SKIPPED,
-                         "VMAF scoring disabled");
+                         "libvmaf check blocked because toolchain mode is not usable");
   }
 
   originals_healthy = ih_status_check_location_list(report,
@@ -793,7 +992,13 @@ static bool ih_collect_status_snapshot(config_t *config, const char *config_dir,
     status_report_update(report, "stage.quality", STATUS_STATE_SKIPPED, "QUALITY_CHECK_ENABLED=false");
   }
 
-  status_report_update(report, "stage.execute", STATUS_STATE_PENDING, "run `vfo run` to execute the pipeline");
+  if(toolchain_mode_supported)
+    status_report_update(report, "stage.execute", STATUS_STATE_PENDING, "run `vfo run` to execute the pipeline");
+  else
+    status_report_update(report,
+                         "stage.execute",
+                         STATUS_STATE_ERROR,
+                         "run blocked by TOOLCHAIN_MODE configuration");
 
   status_report_update(report,
                        "engine.snapshot",
@@ -928,8 +1133,21 @@ static bool ih_run_visualize(config_t *config, const char *config_dir, bool open
 
 static bool ih_run_runtime_dependency_precheck() {
   bool healthy = true;
+  ih_toolchain_mode_t toolchain_mode = IH_TOOLCHAIN_MODE_SYSTEM;
+  char toolchain_mode_value[64];
 
   printf("PRECHECK ALERT: validating required commands before execution\n");
+  if(ih_validate_toolchain_mode("PRECHECK",
+                                &toolchain_mode,
+                                toolchain_mode_value,
+                                sizeof(toolchain_mode_value),
+                                true) == false) {
+    printf("PRECHECK ALERT: dependency checks failed\n");
+    printf("PRECHECK INFO: run with %s=system or %s=auto until managed toolchain support lands\n",
+           IH_TOOLCHAIN_MODE_ENV,
+           IH_TOOLCHAIN_MODE_ENV);
+    return false;
+  }
   healthy = ih_check_command("PRECHECK", "ffmpeg", true) && healthy;
   healthy = ih_check_command("PRECHECK", "ffprobe", true) && healthy;
   healthy = ih_check_command("PRECHECK", "mkvmerge", true) && healthy;
@@ -947,8 +1165,18 @@ static bool ih_run_runtime_dependency_precheck() {
 
 static bool ih_run_mezzanine_clean_dependency_precheck() {
   bool healthy = true;
+  ih_toolchain_mode_t toolchain_mode = IH_TOOLCHAIN_MODE_SYSTEM;
+  char toolchain_mode_value[64];
 
   printf("PRECHECK ALERT: validating mezzanine-clean dependencies\n");
+  if(ih_validate_toolchain_mode("PRECHECK",
+                                &toolchain_mode,
+                                toolchain_mode_value,
+                                sizeof(toolchain_mode_value),
+                                true) == false) {
+    printf("PRECHECK ALERT: mezzanine-clean dependency checks failed\n");
+    return false;
+  }
   healthy = ih_check_command("PRECHECK", "ffprobe", true) && healthy;
 
   if(healthy) {
@@ -1740,8 +1968,16 @@ static bool ih_extract_parent_dir(const char *path, char *parent, size_t parent_
 static bool ih_wizard_preflight(const char *config_dir) {
   bool healthy = true;
   char parent_dir[IH_INPUT_BUFFER_SIZE];
+  ih_toolchain_mode_t toolchain_mode = IH_TOOLCHAIN_MODE_SYSTEM;
+  char toolchain_mode_value[64];
 
   printf("WIZARD PREFLIGHT: validating command dependencies\n");
+  if(ih_validate_toolchain_mode("WIZARD PREFLIGHT",
+                                &toolchain_mode,
+                                toolchain_mode_value,
+                                sizeof(toolchain_mode_value),
+                                true) == false)
+    return false;
   healthy = ih_check_command("WIZARD PREFLIGHT", "ffmpeg", true) && healthy;
   healthy = ih_check_command("WIZARD PREFLIGHT", "ffprobe", true) && healthy;
   healthy = ih_check_command("WIZARD PREFLIGHT", "mkvmerge", true) && healthy;

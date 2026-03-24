@@ -70,7 +70,8 @@ void ih_mes_description () {
             "gives you the power of automation when it comes to encoding\n"
             "your video files in bulk in preparation for video streaming.\n"
             "Use `status`/`status-json` for component-level visibility.\n"
-            "Pipeline terminology: mezzanine -> source -> profile.\n");
+            "Pipeline terminology: mezzanine -> source -> profile.\n"
+            "Runtime toolchain mode env: TOOLCHAIN_MODE=system|auto|managed (managed reserved).\n");
 }
 
 /*
