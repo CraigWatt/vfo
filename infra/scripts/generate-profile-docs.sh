@@ -349,7 +349,7 @@ write_profile_doc() {
       fi
     fi
     printf '\n'
-    printf -- '- Combined toolchain snapshot: `tests/e2e/.reports/latest/toolchain_versions_summary.md`\n\n'
+    printf -- '- Combined toolchain snapshot: [Latest E2E Toolchain Report](../../e2e-toolchain-latest.md)\n\n'
 
     if [ "$is_netflixy_main_subtitle_pack" = "1" ]; then
       printf '## Intent\n\n'
