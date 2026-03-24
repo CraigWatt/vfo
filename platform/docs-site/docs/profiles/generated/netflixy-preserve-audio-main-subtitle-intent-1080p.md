@@ -41,6 +41,7 @@ Action summary from `transcode_hevc_1080_main_subtitle_preserve_profile.sh`:
 - Selects one "main subtitle" when it appears director-intent oriented:
 -   priority: forced english -> forced untagged/unknown -> optional default english.
 -   non-english forced tracks are intentionally skipped.
+- Enforces SDR-oriented 1080 policy metadata on output (`bt709` signaling).
 - If a main subtitle is selected, output container is MKV for reliable subtitle preservation.
 - If no main subtitle is selected, output container is stream-ready MP4:
 -   fragmented MP4 with init/moov at the start.
@@ -51,6 +52,12 @@ Operator knobs from `transcode_hevc_1080_main_subtitle_preserve_profile.sh`:
 - `VFO_ENCODER_MODE=auto|hw|cpu`
 - `VFO_MP4_STREAM_MODE=fmp4_faststart|fmp4|faststart`
 - `default: fmp4_faststart`
+- `VFO_DYNAMIC_METADATA_REPAIR=1|0`
+- `default: 1`
+- `VFO_DYNAMIC_RANGE_STRICT=1|0`
+- `default: 1`
+- `VFO_DYNAMIC_RANGE_REPORT=1|0`
+- `default: 1`
 
 ## Starting Inputs And Expected Outputs
 
@@ -94,7 +101,8 @@ flowchart TD
 - It does not generate ABR ladders (HLS/DASH); output is a single-file artifact.
 - It does not certify playback on every device model; profile criteria are compatibility-oriented guardrails.
 - It does not enforce PSNR/SSIM/VMAF thresholds unless quality checks are explicitly enabled and configured.
-- It does not guarantee HDR/DV metadata preservation for every source and toolchain combination.
+- It does not invent missing HDR/DV essence; metadata repair is heuristic and can be disabled.
+- It depends on source integrity and toolchain support for DV/HDR retention; strict mode may fail instead of silently downgrading.
 
 ## Source
 

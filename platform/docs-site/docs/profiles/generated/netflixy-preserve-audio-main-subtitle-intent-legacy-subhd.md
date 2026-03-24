@@ -42,6 +42,8 @@ Action summary from `transcode_hevc_legacy_main_subtitle_preserve_profile.sh`:
 - Selects one "main subtitle" when it appears director-intent oriented:
 -   priority: forced english -> forced untagged/unknown -> optional default english.
 -   non-english forced tracks are intentionally skipped.
+- Preserves dynamic-range signaling for HDR workflows by default:
+-   applies metadata-repair defaults when source tags are incomplete.
 - Optionally applies deinterlace when input is interlaced (default: auto).
 - Optionally applies stable black-bar auto-crop for persistent bars.
 - If selected subtitle is bitmap-based, crop is disabled for subtitle placement safety.
@@ -62,6 +64,12 @@ Operator knobs from `transcode_hevc_legacy_main_subtitle_preserve_profile.sh`:
 - `VFO_LEGACY_CROP_SAMPLE_SECONDS=3`
 - `VFO_LEGACY_CROP_DETECT_LIMIT=24`
 - `VFO_LEGACY_CROP_MIN_PIXELS=8`
+- `VFO_DYNAMIC_METADATA_REPAIR=1|0`
+- `default: 1`
+- `VFO_DYNAMIC_RANGE_STRICT=1|0`
+- `default: 1`
+- `VFO_DYNAMIC_RANGE_REPORT=1|0`
+- `default: 1`
 
 ## Starting Inputs And Expected Outputs
 
@@ -105,7 +113,8 @@ flowchart TD
 - It does not generate ABR ladders (HLS/DASH); output is a single-file artifact.
 - It does not certify playback on every device model; profile criteria are compatibility-oriented guardrails.
 - It does not enforce PSNR/SSIM/VMAF thresholds unless quality checks are explicitly enabled and configured.
-- It does not guarantee HDR/DV metadata preservation for every source and toolchain combination.
+- It does not invent missing HDR/DV essence; metadata repair is heuristic and can be disabled.
+- It depends on source integrity and toolchain support for DV/HDR retention; strict mode may fail instead of silently downgrading.
 
 ## Source
 
