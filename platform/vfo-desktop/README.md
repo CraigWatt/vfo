@@ -4,6 +4,7 @@ Desktop shell for `vfo` using:
 
 - Tauri for local runtime/process bridge
 - React for user interaction
+- React Flow for interactive pipeline/status canvases
 - `vfo` CLI as the only media-processing engine
 
 ## Architecture contract
@@ -28,8 +29,16 @@ Desktop shell for `vfo` using:
 ## Directory scaffold
 
 - `src-tauri/` runtime host, process bridge, permission model
-- `web/` React UI
+- `web/` React + React Flow UI
 - `contracts/` desktop-side command allowlist and IPC payload notes
+
+## Web shell quick run
+
+```bash
+cd platform/vfo-desktop/web
+npm install
+npm run dev
+```
 
 ## Security and safety guardrails
 

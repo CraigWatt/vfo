@@ -463,7 +463,7 @@ The monorepo docs site source is in `platform/docs-site/`.
 Key visual docs include:
 
 - `platform/docs-site/docs/pipeline-end-to-end.md`
-- `platform/docs-site/docs/flow-levels.md`
+- `platform/docs-site/docs/flow-levels.md` (interactive React Flow canvases)
 - `platform/docs-site/docs/profile-visual-standard.md`
 - generated stock profile sheets under `platform/docs-site/docs/profiles/generated/`
 
@@ -472,12 +472,13 @@ Key visual docs include:
 The monorepo now includes a desktop-app scaffold intended for:
 
 - `services/vfo/` as the standalone processing engine
-- `platform/vfo-desktop/` as Tauri runtime + React UI shell
+- `platform/vfo-desktop/` as Tauri runtime + React UI shell (with React Flow web scaffold)
 - `platform/vfo-contracts/` as machine-readable schema contracts shared across UI/automation integrations
 
 See:
 
 - `platform/vfo-desktop/README.md`
+- `platform/vfo-desktop/web/README.md`
 - `platform/vfo-desktop/contracts/allowed-cli-commands.json`
 - `platform/vfo-contracts/status-json.schema.json`
 

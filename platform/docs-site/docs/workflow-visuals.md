@@ -17,6 +17,7 @@ Generated assets include:
 
 - `vfo visualize` reflects your **current runtime state**.
 - docs-site flow pages reflect **reference operating models** for onboarding and profile understanding.
+- `flow-levels.md` now uses interactive React Flow canvases for zoom/pan exploration in-browser.
 - use both together: docs for expected behavior, `vfo visualize` for current run behavior.
 
 Suggested sequence:
