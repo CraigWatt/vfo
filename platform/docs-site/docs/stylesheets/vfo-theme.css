@@ -85,3 +85,16 @@ div.mermaid {
   padding: 0.75rem;
   background: var(--vfo-surface);
 }
+
+.reactflow-diagram {
+  width: 100%;
+  height: 380px;
+  border-radius: var(--vfo-radius);
+  border: 1px solid var(--vfo-border);
+  background: var(--vfo-surface);
+  overflow: hidden;
+}
+
+.reactflow-diagram .react-flow__node {
+  white-space: normal;
+}

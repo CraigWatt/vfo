@@ -9,6 +9,9 @@ Core pages:
 - `docs/profile-visual-standard.md`
 - `docs/profiles/generated/*.md` (generated)
 - `docs/stylesheets/vfo-theme.css` (brand palette/theme overrides)
+- `docs/javascripts/reactflow-viewer.js` (interactive React Flow renderer for docs)
+
+Note: interactive React Flow docs diagrams load runtime libraries from CDN (`esm.sh` + `unpkg.com`).
 
 Local workflow:
 

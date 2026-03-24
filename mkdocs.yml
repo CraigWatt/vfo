@@ -80,8 +80,10 @@ markdown_extensions:
 extra_javascript:
   - https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js
   - javascripts/mermaid-init.js
+  - javascripts/reactflow-viewer.js
 
 extra_css:
+  - https://unpkg.com/@xyflow/react@12.9.2/dist/style.css
   - stylesheets/vfo-theme.css
 
 plugins:

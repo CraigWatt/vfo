@@ -31,6 +31,7 @@ e2e_resolve_vfo_version() {
   local root_dir="$1"
   local local_vfo="${root_dir}/services/vfo/bin/vfo"
   local version=""
+  local parsed_version=""
 
   if [ -x "$local_vfo" ]; then
     version="$("$local_vfo" --version 2>/dev/null || true)"
@@ -40,6 +41,17 @@ e2e_resolve_vfo_version() {
 
   version="$(e2e_strip_ansi "$version")"
   version="$(printf '%s' "$version" | tr '\n' ' ' | sed -E 's/[[:space:]]+/ /g' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')"
+
+  # Prefer canonical version token in reports so table values stay stable.
+  parsed_version="$(printf '%s' "$version" | sed -nE 's/.*Real Version:[[:space:]]*([^[:space:]]+).*/\1/p')"
+  if [ -z "$parsed_version" ]; then
+    parsed_version="$(printf '%s' "$version" | sed -nE 's/.*[Vv][Ff][Oo][[:space:]]+version:[[:space:]]*([^[:space:]]+).*/\1/p')"
+  fi
+  if [ -n "$parsed_version" ]; then
+    printf '%s\n' "$parsed_version"
+    return 0
+  fi
+
   if [ -n "$version" ]; then
     printf '%s\n' "$version"
     return 0
