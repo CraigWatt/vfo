@@ -42,6 +42,21 @@ theme:
   name: material
   logo: assets/vfo-mark.svg
   favicon: assets/vfo-mark.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
   features:
     - navigation.instant
     - navigation.sections
@@ -64,6 +79,9 @@ markdown_extensions:
 extra_javascript:
   - https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js
   - javascripts/mermaid-init.js
+
+extra_css:
+  - stylesheets/vfo-theme.css
 
 plugins:
   - search
