@@ -25,9 +25,11 @@ vfo provides these through scenario command placeholders:
 - `transcode_hevc_1080_profile.sh`
 - `transcode_hevc_4k_main_subtitle_preserve_profile.sh`
 - `transcode_hevc_1080_main_subtitle_preserve_profile.sh`
+- `transcode_hevc_legacy_main_subtitle_preserve_profile.sh`
 - `transcode_h264_1080_profile.sh`
 - `transcode_h264_1080_hdr_to_sdr_profile.sh`
 - `transcode_hevc_4k_dv_profile.sh`
+- `profile_guardrail_skip.sh`
 
 Core templates:
 
@@ -56,15 +58,20 @@ Device-target templates:
     - `VFO_DV_REQUIRE_P7_TO_81=1` (default)
 - `transcode_hevc_4k_main_subtitle_preserve_profile.sh`
 - `transcode_hevc_1080_main_subtitle_preserve_profile.sh`
+- `transcode_hevc_legacy_main_subtitle_preserve_profile.sh`
   - preserves all audio streams
   - selects one "main subtitle" using english-speaker heuristics:
     forced english -> forced untagged/unknown -> optional default english
   - explicitly skips non-english forced tracks
   - emits MKV when a main subtitle is selected
   - otherwise emits stream-ready MP4, defaulting to fragmented MP4 with init/moov at start
+  - legacy lane variant supports optional interlace-aware deinterlace + stable black-bar auto-crop
+  - legacy lane automatically disables crop when selected subtitle stream is bitmap-based
   - optional env:
     - `VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT=1`
     - `VFO_MP4_STREAM_MODE=fmp4_faststart|fmp4|faststart` (default: `fmp4_faststart`)
+    - `VFO_LEGACY_DEINTERLACE=auto|always|off` (legacy script, default: `auto`)
+    - `VFO_LEGACY_AUTOCROP=1|0` (legacy script, default: `1`)
 
 ## Hardware selection override
 

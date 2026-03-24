@@ -8,8 +8,9 @@
 
 Input guardrails:
 
-- 1080 lane accepts SDR (`bt709`) inputs up to 1080p and skips HDR candidates for this lane.
+- 1080 lane accepts SDR (`bt709`) inputs in the 1280x720..1920x1080 envelope and skips HDR candidates for this lane.
 - 4K lane accepts SDR or HDR candidates in the 1920x1080 to 3840x2160 envelope.
+- Legacy sub-HD lane accepts broad codec/color intake in the 320x240..1279x719 envelope.
 - Codec intake is intentionally broad (`any`) so mezzanines such as HEVC, H.264 (including rare 10-bit), AV1, and VP9 can be processed.
 
 Main-subtitle heuristic (implemented in action scripts):
@@ -30,10 +31,18 @@ Guardrail mismatch behavior:
 
 - candidates that do not satisfy the lane guardrails are marked with a sidecar `*.guardrail_skipped.txt` marker via `profile_guardrail_skip.sh`
 
+Legacy lane processing behavior:
+
+- preserves source frame rate by default (no forced frame-rate conversion)
+- deinterlace can run automatically when input is interlaced (`VFO_LEGACY_DEINTERLACE=auto`)
+- stable black-bar auto-crop is enabled by default (`VFO_LEGACY_AUTOCROP=1`)
+- auto-crop is disabled for files where the selected main subtitle stream is bitmap-based
+
 ## Included active profiles (lane 1)
 
 - `netflixy_preserve_audio_main_subtitle_intent_4k`
 - `netflixy_preserve_audio_main_subtitle_intent_1080p`
+- `netflixy_preserve_audio_main_subtitle_intent_legacy_subhd`
 
 ## Reserved profile names (lane 2 scaffold, not enabled by default)
 
@@ -44,5 +53,7 @@ Guardrail mismatch behavior:
 
 - `transcode_hevc_4k_main_subtitle_preserve_profile.sh`
 - `transcode_hevc_1080_main_subtitle_preserve_profile.sh`
+- `transcode_hevc_legacy_main_subtitle_preserve_profile.sh`
+- `profile_guardrail_skip.sh`
 
 Use `vfo_config.preset.conf` as a copy/paste starter block.
