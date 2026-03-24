@@ -18,7 +18,7 @@ This profile is considered e2e-verified when its mapped suites pass in CI.
 | --- | --- | --- |
 | `tests/e2e/run_dv_metadata_optional_e2e.sh` | optional DV metadata retention and profile 7 to 8.1 checks | `tests/e2e/.reports/latest/run_dv_metadata_optional_e2e_toolchain_versions.md` |
 
-- Combined toolchain snapshot: `tests/e2e/.reports/latest/toolchain_versions_summary.md`
+- Combined toolchain snapshot: [Latest E2E Toolchain Report](../../e2e-toolchain-latest.md)
 
 ## Input Envelope
 

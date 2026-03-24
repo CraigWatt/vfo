@@ -13,6 +13,7 @@ nav:
   - Profile Visual Standard: profile-visual-standard.md
   - Profile Packs: profile-packs.md
   - Capability Matrix: profile-capability-matrix.md
+  - Latest E2E Toolchain: e2e-toolchain-latest.md
   - Profiles:
       - Overview: profiles/index.md
       - Netflixy Main Subtitle Intent:

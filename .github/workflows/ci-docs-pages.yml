@@ -11,6 +11,7 @@ on:
       - "services/vfo/presets/**"
       - "services/vfo/actions/**"
       - ".github/workflows/ci-docs-pages.yml"
+      - "infra/scripts/render-e2e-toolchain-doc.sh"
   push:
     branches:
       - "main"
@@ -21,25 +22,54 @@ on:
       - "services/vfo/presets/**"
       - "services/vfo/actions/**"
       - ".github/workflows/ci-docs-pages.yml"
+      - "infra/scripts/render-e2e-toolchain-doc.sh"
+  workflow_run:
+    workflows:
+      - "Validate (PR + main)"
+      - "🧪 Full E2E (self-hosted media)"
+    types:
+      - completed
+    branches:
+      - "main"
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
 
 concurrency:
-  group: docs-pages-${{ github.ref }}
+  group: docs-pages-${{ github.workflow }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
   build:
     name: Build docs site
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
 
     steps:
       - name: ⬇️ Checkout repo
         uses: actions/checkout@v6
+
+      - name: 🧭 Set workflow_run source metadata
+        if: ${{ github.event_name == 'workflow_run' }}
+        run: |
+          echo "E2E_TOOLCHAIN_SOURCE_WORKFLOW=${{ github.event.workflow_run.name }}" >> "$GITHUB_ENV"
+          echo "E2E_TOOLCHAIN_SOURCE_RUN_URL=${{ github.event.workflow_run.html_url }}" >> "$GITHUB_ENV"
+
+      - name: 📥 Download e2e toolchain artifact from triggering run
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/download-artifact@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+          pattern: "*e2e-toolchain*"
+          path: tests/e2e/.reports/latest
+          merge-multiple: true
+        continue-on-error: true
 
       - name: 🐍 Setup Python
         uses: actions/setup-python@v6
@@ -53,6 +83,9 @@ jobs:
 
       - name: 🧬 Regenerate profile docs
         run: bash infra/scripts/generate-profile-docs.sh
+
+      - name: 🧾 Render latest e2e toolchain docs page
+        run: bash infra/scripts/render-e2e-toolchain-doc.sh
 
       - name: 🔒 Ensure generated docs are committed
         run: |
@@ -70,7 +103,7 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     needs: build
     runs-on: ubuntu-latest
     environment:

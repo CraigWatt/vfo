@@ -25,6 +25,7 @@ This site is built to answer three practical questions quickly:
 2. Read [Flow Levels](flow-levels.md) for executive/operator/engine visuals.
 3. Check [Capability Matrix](profile-capability-matrix.md) to see what each stock profile targets.
 4. Open [Profile Info Sheets](profiles/index.md) for deep behavior details per profile.
+5. Review [Latest E2E Toolchain Report](e2e-toolchain-latest.md) for the dependency versions used in recent CI verification.
 
 ## Install and Verify
 

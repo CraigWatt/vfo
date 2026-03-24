@@ -465,6 +465,7 @@ Key visual docs include:
 - `platform/docs-site/docs/pipeline-end-to-end.md`
 - `platform/docs-site/docs/flow-levels.md`
 - `platform/docs-site/docs/profile-visual-standard.md`
+- `platform/docs-site/docs/e2e-toolchain-latest.md`
 - generated stock profile sheets under `platform/docs-site/docs/profiles/generated/`
 
 ### Desktop scaffold

@@ -17,7 +17,7 @@ This profile is considered e2e-verified when its mapped suites pass in CI.
 | --- | --- | --- |
 | `tests/e2e/run_profile_actions_e2e.sh` | action-level output behavior, guardrails, and subtitle-intent pathways | `tests/e2e/.reports/latest/run_profile_actions_e2e_toolchain_versions.md` |
 
-- Combined toolchain snapshot: `tests/e2e/.reports/latest/toolchain_versions_summary.md`
+- Combined toolchain snapshot: [Latest E2E Toolchain Report](../../e2e-toolchain-latest.md)
 
 ## Intent
 
