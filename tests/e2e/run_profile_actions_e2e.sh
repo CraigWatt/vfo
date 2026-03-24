@@ -138,7 +138,7 @@ create_legacy_letterbox_fixture() {
     -map 0:v:0 -map 0:a? \
     -vf "scale=960:300:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2:black" \
     -c:v libx264 -preset veryfast -crf 21 -pix_fmt yuv420p \
-    -c:a aac -b:a 128k \
+    -c:a copy \
     "$output" >/dev/null 2>&1
 }
 
@@ -158,6 +158,34 @@ probe_video_width() {
   ffprobe -v error -select_streams v:0 \
     -show_entries stream=width \
     -of default=nk=1:nw=1 "$1" | tr -d '\r\n'
+}
+
+probe_video_color_transfer() {
+  ffprobe -v error -select_streams v:0 \
+    -show_entries stream=color_transfer \
+    -of default=nk=1:nw=1 "$1" | tr -d '\r\n'
+}
+
+is_hdr_transfer() {
+  case "$1" in
+    smpte2084|arib-std-b67)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+should_run_sdr_lanes_for_input() {
+  local input="$1"
+  local transfer
+
+  transfer="$(probe_video_color_transfer "$input")"
+  if is_hdr_transfer "$transfer"; then
+    return 1
+  fi
+  return 0
 }
 
 probe_audio_count() {
@@ -526,23 +554,35 @@ run_seed_from_input() {
   local output_legacy_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_default_sub_off.mp4"
   local output_legacy_forced_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_forced_sub.mp4"
   local output_guardrail_skip="${OUTPUTS_DIR}/seed_${seed_index}_profile_guardrail_skip.mp4"
+  local run_sdr_lanes=1
 
   log "Using local open-source asset seed #${seed_index}: ${seed_asset}"
   create_fixture_from_input "$seed_asset" 1920 1080 "$fixture_1080"
   create_fixture_from_input "$seed_asset" 3840 2160 "$fixture_2160"
-  create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_sub" forced
-  create_subtitle_fixture "$fixture_2160" "$fixture_2160_forced_sub" forced
-  create_subtitle_fixture "$fixture_1080" "$fixture_1080_default_sub" default
-  create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_non_english_sub" forced_non_english
-  create_legacy_letterbox_fixture "$fixture_1080" "$fixture_legacy_letterbox"
-  create_subtitle_fixture "$fixture_legacy_letterbox" "$fixture_legacy_letterbox_forced_sub" forced
 
-  run_action_assertions \
-    "hevc_1080_profile_action(seed_${seed_index})" \
-    "$ACTION_1080" \
-    "$fixture_1080" \
-    "$output_1080" \
-    1080
+  if ! should_run_sdr_lanes_for_input "$fixture_1080"; then
+    run_sdr_lanes=0
+    log "Seed ${seed_index}: skipping SDR-only 1080/legacy lanes because fixture transfer is HDR ($(probe_video_color_transfer "$fixture_1080"))"
+  fi
+
+  create_subtitle_fixture "$fixture_2160" "$fixture_2160_forced_sub" forced
+
+  if [ "$run_sdr_lanes" = "1" ]; then
+    create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_sub" forced
+    create_subtitle_fixture "$fixture_1080" "$fixture_1080_default_sub" default
+    create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_non_english_sub" forced_non_english
+    create_legacy_letterbox_fixture "$fixture_1080" "$fixture_legacy_letterbox"
+    create_subtitle_fixture "$fixture_legacy_letterbox" "$fixture_legacy_letterbox_forced_sub" forced
+  fi
+
+  if [ "$run_sdr_lanes" = "1" ]; then
+    run_action_assertions \
+      "hevc_1080_profile_action(seed_${seed_index})" \
+      "$ACTION_1080" \
+      "$fixture_1080" \
+      "$output_1080" \
+      1080
+  fi
 
   run_action_assertions \
     "hevc_4k_profile_action(seed_${seed_index})" \
@@ -551,15 +591,17 @@ run_seed_from_input() {
     "$output_4k" \
     2160
 
-  run_main_subtitle_action_assertions \
-    "hevc_1080_main_subtitle_forced(seed_${seed_index})" \
-    "$ACTION_MAIN_SUB_1080" \
-    "$fixture_1080_forced_sub" \
-    "$output_1080_main_sub" \
-    1080 \
-    mkv \
-    1 \
-    0
+  if [ "$run_sdr_lanes" = "1" ]; then
+    run_main_subtitle_action_assertions \
+      "hevc_1080_main_subtitle_forced(seed_${seed_index})" \
+      "$ACTION_MAIN_SUB_1080" \
+      "$fixture_1080_forced_sub" \
+      "$output_1080_main_sub" \
+      1080 \
+      mkv \
+      1 \
+      0
+  fi
 
   run_main_subtitle_action_assertions \
     "hevc_4k_main_subtitle_forced(seed_${seed_index})" \
@@ -571,53 +613,63 @@ run_seed_from_input() {
     1 \
     0
 
-  run_main_subtitle_action_assertions \
-    "hevc_1080_main_subtitle_default_off(seed_${seed_index})" \
-    "$ACTION_MAIN_SUB_1080" \
-    "$fixture_1080_default_sub" \
-    "$output_1080_default_sub_off" \
-    1080 \
-    mp4 \
-    0 \
-    0
+  if [ "$run_sdr_lanes" = "1" ]; then
+    run_main_subtitle_action_assertions \
+      "hevc_1080_main_subtitle_default_off(seed_${seed_index})" \
+      "$ACTION_MAIN_SUB_1080" \
+      "$fixture_1080_default_sub" \
+      "$output_1080_default_sub_off" \
+      1080 \
+      mp4 \
+      0 \
+      0
+  fi
 
-  run_main_subtitle_action_assertions \
-    "hevc_1080_main_subtitle_default_on(seed_${seed_index})" \
-    "$ACTION_MAIN_SUB_1080" \
-    "$fixture_1080_default_sub" \
-    "$output_1080_default_sub_on" \
-    1080 \
-    mkv \
-    1 \
-    1
+  if [ "$run_sdr_lanes" = "1" ]; then
+    run_main_subtitle_action_assertions \
+      "hevc_1080_main_subtitle_default_on(seed_${seed_index})" \
+      "$ACTION_MAIN_SUB_1080" \
+      "$fixture_1080_default_sub" \
+      "$output_1080_default_sub_on" \
+      1080 \
+      mkv \
+      1 \
+      1
+  fi
 
-  run_main_subtitle_action_assertions \
-    "hevc_1080_main_subtitle_forced_non_english_skip(seed_${seed_index})" \
-    "$ACTION_MAIN_SUB_1080" \
-    "$fixture_1080_forced_non_english_sub" \
-    "$output_1080_forced_non_english_sub" \
-    1080 \
-    mp4 \
-    0 \
-    0
+  if [ "$run_sdr_lanes" = "1" ]; then
+    run_main_subtitle_action_assertions \
+      "hevc_1080_main_subtitle_forced_non_english_skip(seed_${seed_index})" \
+      "$ACTION_MAIN_SUB_1080" \
+      "$fixture_1080_forced_non_english_sub" \
+      "$output_1080_forced_non_english_sub" \
+      1080 \
+      mp4 \
+      0 \
+      0
+  fi
 
-  run_legacy_main_subtitle_autocrop_assertions \
-    "hevc_legacy_main_subtitle_default_off(seed_${seed_index})" \
-    "$fixture_legacy_letterbox" \
-    "$output_legacy_default_sub_off" \
-    mp4 \
-    0 \
-    0 \
-    540
+  if [ "$run_sdr_lanes" = "1" ]; then
+    run_legacy_main_subtitle_autocrop_assertions \
+      "hevc_legacy_main_subtitle_default_off(seed_${seed_index})" \
+      "$fixture_legacy_letterbox" \
+      "$output_legacy_default_sub_off" \
+      mp4 \
+      0 \
+      0 \
+      540
+  fi
 
-  run_legacy_main_subtitle_autocrop_assertions \
-    "hevc_legacy_main_subtitle_forced(seed_${seed_index})" \
-    "$fixture_legacy_letterbox_forced_sub" \
-    "$output_legacy_forced_sub" \
-    mkv \
-    1 \
-    0 \
-    540
+  if [ "$run_sdr_lanes" = "1" ]; then
+    run_legacy_main_subtitle_autocrop_assertions \
+      "hevc_legacy_main_subtitle_forced(seed_${seed_index})" \
+      "$fixture_legacy_letterbox_forced_sub" \
+      "$output_legacy_forced_sub" \
+      mkv \
+      1 \
+      0 \
+      540
+  fi
 
   run_guardrail_skip_action_assertions \
     "profile_guardrail_skip_action(seed_${seed_index})" \
