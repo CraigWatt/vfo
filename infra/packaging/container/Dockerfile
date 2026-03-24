@@ -3,7 +3,9 @@ FROM ubuntu:24.04 AS build
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     build-essential \
+    git \
     make \
+    zsh \
     ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
