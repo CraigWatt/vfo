@@ -100,6 +100,92 @@ e2e_resolve_command_version() {
   printf '%s\n' "installed_version_unavailable"
 }
 
+e2e_version_is_available() {
+  local version="$1"
+
+  case "$version" in
+    ""|not_installed|not_installed_or_not_built|installed_version_unavailable)
+      return 1
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+}
+
+e2e_detect_libvmaf() {
+  if ! command -v ffmpeg >/dev/null 2>&1; then
+    printf '%s\n' "not_available"
+    return 0
+  fi
+
+  if ffmpeg -hide_banner -filters 2>/dev/null | grep -E -q '(^| )libvmaf( |$)'; then
+    printf '%s\n' "available"
+    return 0
+  fi
+
+  printf '%s\n' "missing"
+}
+
+e2e_tier_base_outcome() {
+  local ffmpeg_version="$1"
+  local ffprobe_version="$2"
+  local mkvmerge_version="$3"
+  local missing=""
+
+  if ! e2e_version_is_available "$ffmpeg_version"; then
+    missing="ffmpeg"
+  fi
+  if ! e2e_version_is_available "$ffprobe_version"; then
+    if [ -n "$missing" ]; then
+      missing="${missing},ffprobe"
+    else
+      missing="ffprobe"
+    fi
+  fi
+  if ! e2e_version_is_available "$mkvmerge_version"; then
+    if [ -n "$missing" ]; then
+      missing="${missing},mkvmerge"
+    else
+      missing="mkvmerge"
+    fi
+  fi
+
+  if [ -z "$missing" ]; then
+    printf '%s\n' "pass (ffmpeg+ffprobe+mkvmerge ready)"
+  else
+    printf '%s\n' "fail (missing: ${missing})"
+  fi
+}
+
+e2e_tier_dv_outcome() {
+  local dovi_tool_version="$1"
+
+  if e2e_version_is_available "$dovi_tool_version"; then
+    printf '%s\n' "pass (dovi_tool available)"
+    return 0
+  fi
+
+  printf '%s\n' "warn (dovi_tool missing)"
+}
+
+e2e_tier_quality_outcome() {
+  local ffmpeg_version="$1"
+  local libvmaf_status="$2"
+
+  if ! e2e_version_is_available "$ffmpeg_version"; then
+    printf '%s\n' "fail (ffmpeg missing)"
+    return 0
+  fi
+
+  if [ "$libvmaf_status" = "available" ]; then
+    printf '%s\n' "pass (PSNR+SSIM+VMAF ready)"
+    return 0
+  fi
+
+  printf '%s\n' "warn (PSNR+SSIM only; libvmaf unavailable)"
+}
+
 e2e_write_toolchain_report() {
   local root_dir="$1"
   local suite_name="$2"
@@ -111,6 +197,14 @@ e2e_write_toolchain_report() {
   local tools=()
   local tool=""
   local version=""
+  local ffmpeg_version=""
+  local ffprobe_version=""
+  local mkvmerge_version=""
+  local dovi_tool_version=""
+  local libvmaf_status=""
+  local tier_base=""
+  local tier_dv=""
+  local tier_quality=""
 
   report_dir="$(e2e_reports_dir "$root_dir")"
   mkdir -p "$report_dir"
@@ -138,7 +232,27 @@ e2e_write_toolchain_report() {
         version="$(e2e_resolve_command_version "$tool")"
       fi
       printf '%s\t%s\n' "$tool" "$version"
+      case "$tool" in
+        ffmpeg) ffmpeg_version="$version" ;;
+        ffprobe) ffprobe_version="$version" ;;
+        mkvmerge) mkvmerge_version="$version" ;;
+        dovi_tool) dovi_tool_version="$version" ;;
+      esac
     done
+
+    [ -n "$ffmpeg_version" ] || ffmpeg_version="$(e2e_resolve_command_version ffmpeg)"
+    [ -n "$ffprobe_version" ] || ffprobe_version="$(e2e_resolve_command_version ffprobe)"
+    [ -n "$mkvmerge_version" ] || mkvmerge_version="$(e2e_resolve_command_version mkvmerge)"
+    [ -n "$dovi_tool_version" ] || dovi_tool_version="$(e2e_resolve_command_version dovi_tool)"
+
+    libvmaf_status="$(e2e_detect_libvmaf)"
+    tier_base="$(e2e_tier_base_outcome "$ffmpeg_version" "$ffprobe_version" "$mkvmerge_version")"
+    tier_dv="$(e2e_tier_dv_outcome "$dovi_tool_version")"
+    tier_quality="$(e2e_tier_quality_outcome "$ffmpeg_version" "$libvmaf_status")"
+
+    printf 'tier.base\t%s\n' "$tier_base"
+    printf 'tier.dv\t%s\n' "$tier_dv"
+    printf 'tier.quality\t%s\n' "$tier_quality"
   } > "$tsv_path"
 
   {
