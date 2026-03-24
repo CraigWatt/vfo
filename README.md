@@ -419,7 +419,7 @@ Testing convention:
 
 Naming conventions and terminology policy:
 
-- canonical policy: `AGENT.md`
+- canonical policy: `AGENTS.md`
 - latest audit snapshot: `infra/docs/naming-conventions-audit.md`
 
 ### Build commands
