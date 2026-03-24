@@ -157,6 +157,8 @@ CI/CD test integration:
   - beta: `release-beta`
 - Delivery model overview:
   - `infra/docs/github-delivery-lanes.md`
+- Deployment/runtime strategy:
+  - `infra/docs/deployment-runtime-strategy.md`
 
 Package quickstart:
 
