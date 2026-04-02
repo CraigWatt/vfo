@@ -6,7 +6,8 @@ Core pages:
 
 - `docs/pipeline-end-to-end.md`
 - `docs/flow-levels.md`
-- `docs/vfo-web-app.md`
+- `docs/vfo-web-app/` (standalone browser app)
+- `docs/vfo-web-app-launch.md`
 - `docs/profile-visual-standard.md`
 - `docs/profiles/generated/*.md` (generated)
 - `docs/stylesheets/vfo-theme.css` (brand palette/theme overrides)
