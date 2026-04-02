@@ -204,6 +204,7 @@ run_local_suite() {
     if [ "$ASSET_MODE" = "auto" ]; then
       log "No local asset found in ${ASSETS_DIR}; using synthetic device conformance seed"
       run_synthetic_seed 1
+      printf '%s\n' "$WEB_APP_SELECTED_ASSET" > "$seed_list"
       processed=1
     else
       fail "ASSET_MODE=local but no video assets found in ${ASSETS_DIR}"
@@ -234,15 +235,19 @@ main() {
   WEB_APP_DASHBOARD_JSON="$(e2e_reports_dir "$ROOT_DIR")/run_device_conformance_e2e_web_app.json"
   WEB_APP_SELECTED_ASSET=""
   WEB_APP_ASSET_STATUS="Complete"
+  WEB_APP_ASSET_LIST_FILE=""
 
   log "asset_mode=${ASSET_MODE} assets_dir=${ASSETS_DIR} clip_duration=${CLIP_DURATION}s max_seeds=${MAX_SEEDS}"
 
   case "$ASSET_MODE" in
     auto|local)
       run_local_suite
+      WEB_APP_ASSET_LIST_FILE="${TMP_DIR}/seed_assets.txt"
       ;;
     synthetic)
       run_synthetic_seed 1
+      WEB_APP_ASSET_LIST_FILE="${TMP_DIR}/seed_assets.txt"
+      printf '%s\n' "$WEB_APP_SELECTED_ASSET" > "$WEB_APP_ASSET_LIST_FILE"
       log "Processed 1 seed asset(s)"
       ;;
     *)
@@ -261,7 +266,8 @@ main() {
     "" \
     "${WEB_APP_SELECTED_ASSET:-seed_1_input_2160.mkv}" \
     "device_conformance" \
-    "$WEB_APP_ASSET_STATUS"
+    "$WEB_APP_ASSET_STATUS" \
+    "$WEB_APP_ASSET_LIST_FILE"
 
   log "All device conformance e2e checks passed"
 }

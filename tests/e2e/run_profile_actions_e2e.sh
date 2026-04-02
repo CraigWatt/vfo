@@ -826,6 +826,7 @@ run_local_asset_suite() {
     if [ "$ASSET_MODE" = "auto" ]; then
         log "No local asset found in ${ASSETS_DIR}; generating synthetic CI fixtures"
       run_seed_synthetic 1
+      printf '%s\n' "$WEB_APP_SELECTED_ASSET" > "$seed_list"
       processed=1
     else
       fail "ASSET_MODE=local but no video assets found in ${ASSETS_DIR}"
@@ -857,6 +858,7 @@ main() {
   WEB_APP_DASHBOARD_JSON="$(e2e_reports_dir "$ROOT_DIR")/run_profile_actions_e2e_web_app.json"
   WEB_APP_SELECTED_ASSET=""
   WEB_APP_ASSET_STATUS="Complete"
+  WEB_APP_ASSET_LIST_FILE=""
 
   assert_positive_int "$MAX_SEEDS" "VFO_E2E_MAX_SEEDS"
 
@@ -865,9 +867,12 @@ main() {
   case "$ASSET_MODE" in
     auto|local)
       run_local_asset_suite
+      WEB_APP_ASSET_LIST_FILE="${TMP_DIR}/seed_assets.txt"
       ;;
     synthetic)
       run_seed_synthetic 1
+      WEB_APP_ASSET_LIST_FILE="${TMP_DIR}/seed_assets.txt"
+      printf '%s\n' "$WEB_APP_SELECTED_ASSET" > "$WEB_APP_ASSET_LIST_FILE"
       log "Processed 1 seed asset(s)"
       ;;
     *)
@@ -886,7 +891,8 @@ main() {
     "" \
     "${WEB_APP_SELECTED_ASSET:-mezzanine_asset.mkv}" \
     "profile_actions" \
-    "$WEB_APP_ASSET_STATUS"
+    "$WEB_APP_ASSET_STATUS" \
+    "$WEB_APP_ASSET_LIST_FILE"
 
   log "All e2e profile action checks passed"
 }
