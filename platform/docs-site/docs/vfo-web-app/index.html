@@ -41,6 +41,23 @@
       .vfo-web-app__source a {
         color: #7dd3fc;
       }
+
+      .vfo-web-app__source.has-live::after {
+        content: "live e2e data";
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid rgba(52, 211, 153, 0.3);
+        border-radius: 999px;
+        padding: 0.2rem 0.55rem;
+        color: #86efac;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .vfo-web-app__source[data-live="1"]::after {
+        content: "live e2e data";
+      }
     </style>
   </head>
   <body>
@@ -54,7 +71,7 @@
               <h2>Pipeline: UHD SDR Ladder</h2>
               <p>Run: 2026-04-02 18:42</p>
             </div>
-            <div class="vfo-web-app__source">
+            <div class="vfo-web-app__source" data-vfo-web-app-source>
               <span>Demo payload</span>
               <strong>Desktop + Pages view</strong>
             </div>
@@ -257,5 +274,73 @@ result=failed</pre>
         </div>
       </div>
     </main>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var sourceNode = document.querySelector("[data-vfo-web-app-source]");
+        var pageRoot = document.querySelector(".vfo-web-app");
+        var fallback = {
+          sourceLabel: "Demo payload",
+          sourceWorkflow: "Desktop + Pages view",
+          assets: [
+            ["movie_01.mxf", "Failed", "✖"],
+            ["movie_02.mxf", "Complete", "✔"],
+            ["movie_03.mxf", "Running", "⏳"],
+            ["movie_04.mxf", "Waiting", "○"],
+            ["movie_05.mxf", "Complete", "✔"],
+            ["movie_06.mxf", "Failed", "✖"],
+            ["movie_07.mxf", "Complete", "✔"],
+            ["movie_08.mxf", "Waiting", "○"]
+          ]
+        };
+
+        function fetchJson(url) {
+          return fetch(url, { cache: "no-store" }).then(function (response) {
+            if (!response.ok) {
+              throw new Error("request failed");
+            }
+            return response.json();
+          });
+        }
+
+        function applyData(data) {
+          if (!data) {
+            return;
+          }
+
+          sourceNode.classList.add("has-live");
+          sourceNode.innerHTML = [
+            '<span>' + escapeHtml(data.sourceLabel || fallback.sourceLabel) + '</span>',
+            data.sourceWorkflow ? '<strong>' + escapeHtml(data.sourceWorkflow) + '</strong>' : '<strong>' + escapeHtml(fallback.sourceWorkflow) + '</strong>',
+            data.sourceRunUrl ? '<a href="' + escapeHtml(data.sourceRunUrl) + '" target="_blank" rel="noreferrer">source run</a>' : ''
+          ].join("");
+
+          sourceNode.dataset.live = "1";
+          if (data.title) {
+            pageRoot.querySelector("h2").textContent = data.title;
+          }
+          if (data.runLabel) {
+            pageRoot.querySelector(".vfo-web-app__topbar p").textContent = data.runLabel;
+          }
+        }
+
+        function escapeHtml(value) {
+          return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        }
+
+        fetchJson("../e2e-toolchain-artifacts/vfo-web-app.json")
+          .then(applyData)
+          .catch(function () {
+            applyData(fallback);
+          });
+      })();
+    </script>
   </body>
 </html>
