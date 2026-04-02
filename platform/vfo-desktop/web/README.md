@@ -2,7 +2,7 @@
 
 React web shell for `vfo-desktop` (Tauri frontend).
 
-The wireframe layout is intentionally shared in spirit with the docs-site demo page under `platform/docs-site/docs/vfo-web-app.md`.
+The wireframe layout is intentionally shared in spirit with the standalone docs-site demo page under `platform/docs-site/docs/vfo-web-app/`.
 
 ## Current v1
 
