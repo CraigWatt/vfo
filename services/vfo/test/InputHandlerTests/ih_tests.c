@@ -110,8 +110,8 @@ void test_status_report_print_json_contract(void **state) {
 
 void test_ih_arguments_parser_detects_status_commands(void **state) {
   arguments_t *arguments = NULL;
-  char *argv[] = {"vfo", "status", "status-json", "status_json", "doctor"};
-  int argc = 5;
+  char *argv[] = {"vfo", "status", "status-json", "doctor"};
+  int argc = 4;
   (void)state;
 
   arguments = arguments_create_new_struct();
@@ -125,9 +125,9 @@ void test_ih_arguments_parser_detects_status_commands(void **state) {
   free(arguments);
 }
 
-void test_ih_arguments_parser_detects_mezzanine_clean_commands(void **state) {
+void test_ih_arguments_parser_detects_mezzanine_and_profiles_commands(void **state) {
   arguments_t *arguments = NULL;
-  char *argv[] = {"vfo", "mezzanine-clean", "mezzanine_clean"};
+  char *argv[] = {"vfo", "mezzanine", "profiles"};
   int argc = 3;
   (void)state;
 
@@ -135,7 +135,8 @@ void test_ih_arguments_parser_detects_mezzanine_clean_commands(void **state) {
   assert_non_null(arguments);
 
   ih_arguments_parser(argc, argv, arguments);
-  assert_true(arguments->mezzanine_clean_detected);
+  assert_true(arguments->mezzanine_detected);
+  assert_true(arguments->profiles_detected);
 
   free(arguments);
 }

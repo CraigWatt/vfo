@@ -346,12 +346,12 @@ config_t* con_init(const char *config_dir, char **revised_argv, int revised_argc
   /* assess uw words.  this is being done here BECAUSE ca nodes have to 
   be populated first before determining if a word*/
   bool activate_uw_work = false;
-  char *pre_alias_approved_words[] = {"vfo", "mezzanine", "original", "source", "revert", "wipe", "profiles", "all_aliases", "do_it_all", "run", "auto", "doctor", "wizard", "show", "status", "status-json", "status_json", "visualize", "mezzanine-clean", "mezzanine_clean", "-o", "--open"};
-  int pre_array_length = (sizeof pre_alias_approved_words / sizeof(char*));
+  char *pre_approved_words[] = {"vfo", "mezzanine", "source", "revert", "wipe", "profiles", "run", "auto", "doctor", "wizard", "show", "status", "status-json", "visualize", "mezzanine-clean", "profile", "-o", "--open"};
+  int pre_array_length = (sizeof pre_approved_words / sizeof(char*));
   for(int i = 0; i < revised_argc; i++) {
     bool pre_approved_word_found = false;
     for(int j = 0; j < pre_array_length; j++) {
-      if (strcmp(revised_argv[i], pre_alias_approved_words[j]) == 0) {
+      if (strcmp(revised_argv[i], pre_approved_words[j]) == 0) {
         // word matches pre approved word, all good
         pre_approved_word_found = true;
       } 

@@ -24,9 +24,9 @@
 
 #include "p_tests.h"
 
-void test_a_source_to_aliases(void **state) {
+void test_p_source_to_profiles(void **state) {
   aliases_t *test_alias = NULL;
-  // a_source_to_aliases();
+  // p_source_to_profiles();
   int duck = 1;
   assert_int_equal(duck, 1);
 }

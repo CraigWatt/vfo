@@ -28,6 +28,7 @@
 #include "Config/Data_Structures/c_cf_ll_struct.h"
 #include "Source/Data_Structures/s_source_struct.h"
 
+void s_mezzanine_to_source(source_t *source);
 void s_original_to_source(source_t *source);
 void s_wipe_source(source_t *source);
 #endif // SOURCE_H

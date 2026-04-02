@@ -26,9 +26,9 @@
 #include "cmocka.h"
 #include <string.h>
 
-void test_o_original_null_ptr(void **state) {
+void test_m_mezzanine_null_ptr(void **state) {
   original_t *test_original = NULL;
-  // o_original(test_original);
+  // m_mezzanine(test_original);
   // add a comment and a second bit a third bit fourth fifth
   int duck = 1;
   (void)test_original;
