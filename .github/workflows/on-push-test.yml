@@ -26,6 +26,9 @@ jobs:
           if ! command -v ffmpeg >/dev/null 2>&1; then
             brew install ffmpeg
           fi
+          if ! command -v mkvmerge >/dev/null 2>&1; then
+            brew install mkvtoolnix
+          fi
 
       - name: build + unit + hosted synthetic e2e smoke
         env:
