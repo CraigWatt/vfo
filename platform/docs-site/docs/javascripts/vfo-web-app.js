@@ -259,7 +259,7 @@
 
     return [
       '<label class="vfo-web-app__pipeline-select">',
-      '  <span>Pipeline</span>',
+      '  <span>Suite</span>',
       '  <select data-vfo-pipeline-select>',
       state.pipelines.map(function (pipeline) {
         return '<option value="' + escapeHtml(pipeline.id) + '">' + escapeHtml(pipeline.label) + '</option>';
@@ -288,6 +288,13 @@
     var selectedPipeline = getSelectedPipeline(state);
     var pipelineOptions = buildPipelineOptions(state);
     var replayMeter = buildReplayMeter(state);
+    var headerTitle = state.title || "VFO Workflow Replay";
+    var headerSubtitle = selectedPipeline.title === headerTitle
+      ? selectedPipeline.runLabel
+      : selectedPipeline.title + "  |  " + selectedPipeline.runLabel;
+    var assetRailSummary = selectedPipeline.assets.length === 1
+      ? "1 mezzanine source in this run"
+      : String(selectedPipeline.assets.length) + " mezzanine sources in this run";
     var liveAttr = selectedPipeline.sourceRunUrl ? ' data-live="1"' : "";
     var sourceWorkflowHtml = selectedPipeline.sourceWorkflow
       ? '<strong>' + escapeHtml(selectedPipeline.sourceWorkflow) + '</strong>'
@@ -300,8 +307,8 @@
       '<div class="vfo-web-app__shell">',
       '  <header class="vfo-web-app__topbar">',
       '    <div>',
-      '      <h2>' + escapeHtml(selectedPipeline.title) + "</h2>",
-      '      <p>' + escapeHtml(selectedPipeline.runLabel) + "</p>",
+      '      <h2>' + escapeHtml(headerTitle) + "</h2>",
+      '      <p>' + escapeHtml(headerSubtitle) + "</p>",
       "    </div>",
       '    <div class="vfo-web-app__topbar-actions">',
       pipelineOptions,
@@ -315,7 +322,7 @@
       "  </header>",
       '  <section class="vfo-web-app__workspace">',
       '    <aside class="vfo-web-app__panel vfo-web-app__assets">',
-      '      <div class="vfo-web-app__panel-head"><h3>Assets</h3><span>Mezzanine folder</span></div>',
+      '      <div class="vfo-web-app__panel-head"><h3>Assets</h3><span>' + escapeHtml(assetRailSummary) + '</span></div>',
       '      <label class="vfo-web-app__search">',
       '        <span>Search assets...</span>',
       '        <input type="text" value="" aria-label="Search assets" />',
@@ -397,8 +404,9 @@
     var workflowNodes = container.querySelector(".vfo-web-app__workflow-nodes");
     var workflowEdges = container.querySelector(".vfo-web-app__workflow-edges");
     var bounds = { width: 0, height: 0 };
+    var laidOutNodes = applyNodeLayout(pipeline.workflow.nodes);
 
-    workflowNodes.innerHTML = pipeline.workflow.nodes.map(function (node) {
+    workflowNodes.innerHTML = laidOutNodes.map(function (node) {
       bounds.width = Math.max(bounds.width, node.x + 220);
       bounds.height = Math.max(bounds.height, node.y + 128);
       return [
@@ -416,10 +424,10 @@
 
     workflowEdges.setAttribute("viewBox", "0 0 " + Math.max(bounds.width, 1200) + " " + Math.max(bounds.height, 460));
     workflowEdges.innerHTML = pipeline.workflow.edges.map(function (edge) {
-      var source = pipeline.workflow.nodes.find(function (node) {
+      var source = laidOutNodes.find(function (node) {
         return node.id === edge.source;
       });
-      var target = pipeline.workflow.nodes.find(function (node) {
+      var target = laidOutNodes.find(function (node) {
         return node.id === edge.target;
       });
       if (!source || !target) {
@@ -432,6 +440,30 @@
       var midX = Math.round((x1 + x2) / 2);
       return '<path d="M ' + x1 + " " + y1 + " C " + midX + " " + y1 + ", " + midX + " " + y2 + ", " + x2 + " " + y2 + '" />';
     }).join("");
+  }
+
+  function applyNodeLayout(nodes) {
+    var layoutById = {
+      input: { x: 48, y: 146 },
+      probe: { x: 280, y: 146 },
+      deint: { x: 510, y: 146 },
+      encode: { x: 742, y: 146 },
+      hls: { x: 994, y: 236 },
+      qc: { x: 770, y: 302 },
+      metadata: { x: 512, y: 302 },
+      validate: { x: 770, y: 146 },
+      report: { x: 1000, y: 146 }
+    };
+
+    return nodes.map(function (node, index) {
+      var next = JSON.parse(JSON.stringify(node));
+      var fallbackX = 48 + (index * 230);
+      var fallbackY = 146;
+      var layout = layoutById[next.id] || {};
+      next.x = typeof next.x === "number" ? next.x : (typeof layout.x === "number" ? layout.x : fallbackX);
+      next.y = typeof next.y === "number" ? next.y : (typeof layout.y === "number" ? layout.y : fallbackY);
+      return next;
+    });
   }
 
   function renderInspector(container, pipeline) {
