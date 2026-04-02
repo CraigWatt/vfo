@@ -15,6 +15,7 @@ nav:
   - Profile Packs: profile-packs.md
   - Capability Matrix: profile-capability-matrix.md
   - Latest E2E Toolchain: e2e-toolchain-latest.md
+  - Observability Contract: observability-contract.md
   - Web App Demo: vfo-web-app-launch.md
   - Profiles:
       - Overview: profiles/index.md

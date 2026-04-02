@@ -26,8 +26,9 @@ This site is built to answer three practical questions quickly:
 3. Check [Capability Matrix](profile-capability-matrix.md) to see what each stock profile targets.
 4. Open [Profile Info Sheets](profiles/index.md) for deep behavior details per profile.
 5. Review [Latest E2E Toolchain Report](e2e-toolchain-latest.md) for the dependency versions used in recent CI verification.
-6. Read [Deployment Modes](deployment-modes.md) to choose between local native, desktop-managed, and container lanes.
-7. Open [Web App Demo](vfo-web-app/) for the shareable browser view of the desktop wireframe.
+6. Read [Observability Contract](observability-contract.md) for the event model that feeds the browser app, logs, metrics, and traces.
+7. Read [Deployment Modes](deployment-modes.md) to choose between local native, desktop-managed, and container lanes.
+8. Open [Web App Demo](vfo-web-app/) for the shareable browser view of the desktop wireframe.
 
 ## Install and Verify
 
