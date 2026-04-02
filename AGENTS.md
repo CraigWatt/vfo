@@ -105,6 +105,22 @@ Rules:
 - New generated profile pages under `platform/docs-site/docs/profiles/generated/` must be linked from the relevant profile pack section in nav.
 - Do not merge docs additions that are only reachable by direct URL.
 
+### 9) AI Task Packet Conventions
+
+- New AI workflow docs should keep task packets short, scoped, and reviewable.
+- Preferred packet sections are:
+  - `objective`
+  - `subsystem`
+  - `likely files`
+  - `constraints`
+  - `verification`
+  - `escalation trigger`
+- Task packets should describe one bounded unit of work rather than a multi-purpose project brief.
+- If a packet is issue-driven, it should mirror the issue title and call out the expected verification bar explicitly.
+- User-facing AI workflow docs should refer to canonical model lanes as:
+  - `GPT-5.4 mini first`
+  - `GPT-5.4 high now`
+
 ## Compatibility and Deprecation Rules
 
 - Never break existing CLI/config names in one step.
@@ -144,3 +160,16 @@ Before merge, verify:
 3. deprecated terminology is not surfaced in user-facing text
 4. docs and help text remain consistent with implemented command/config names
 5. every new docs page is reachable from `mkdocs.yml` navigation
+
+## Merge and Publish Verification
+
+Before stating that a PR is merged or a Pages deployment is live, verify the upstream state directly.
+
+- Never claim a PR is merged unless GitHub confirms `mergedAt` or `state=MERGED`.
+- Never claim a Pages deployment is live unless the deployment status or page URL has been confirmed from GitHub.
+- If the remote state cannot be checked, say that it is unconfirmed instead of inferring success.
+- Keep the distinct milestones separate in wording:
+  - PR opened
+  - branch pushed
+  - PR merged
+  - Pages deployed
