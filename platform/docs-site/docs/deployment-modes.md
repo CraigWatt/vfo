@@ -42,5 +42,5 @@ The hybrid strategy keeps the core local workflow fast while still offering a ma
 
 See:
 
-- [GitHub Delivery Lanes](https://github.com/CraigWatt/vfo/blob/main/infra/docs/github-delivery-lanes.md)
-- [Deployment and Runtime Strategy (v1)](https://github.com/CraigWatt/vfo/blob/main/infra/docs/deployment-runtime-strategy.md)
+- `infra/docs/github-delivery-lanes.md`
+- `infra/docs/deployment-runtime-strategy.md`
