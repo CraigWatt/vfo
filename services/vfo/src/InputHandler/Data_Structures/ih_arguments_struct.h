@@ -32,7 +32,7 @@
 
 /* Defines the command line allowed arguments struct */
 struct arguments {
-  bool original_detected;
+  bool mezzanine_detected;
   bool revert_detected;
   bool source_detected;
   bool run_detected;
@@ -44,9 +44,7 @@ struct arguments {
   bool wizard_detected;
   bool show_detected;
   bool mezzanine_clean_detected;
-  bool alias_queue_detected;
-  bool all_aliases_detected;
-  bool do_it_all_detected;
+  bool profiles_detected;
   bool wipe_detected;
 };
 /* Exports arguments as a global type */
