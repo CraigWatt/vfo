@@ -6,10 +6,12 @@ Core pages:
 
 - `docs/pipeline-end-to-end.md`
 - `docs/flow-levels.md`
+- `docs/vfo-web-app.md`
 - `docs/profile-visual-standard.md`
 - `docs/profiles/generated/*.md` (generated)
 - `docs/stylesheets/vfo-theme.css` (brand palette/theme overrides)
 - `docs/javascripts/reactflow-viewer.js` (interactive React Flow renderer for docs)
+- `docs/javascripts/vfo-web-app.js` (browser dashboard for the demo page)
 
 Note: interactive React Flow docs diagrams load runtime libraries from CDN (`esm.sh` + `unpkg.com`).
 
