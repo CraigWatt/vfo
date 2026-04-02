@@ -34,38 +34,49 @@ write_web_app_json() {
   cat > "$WEB_APP_JSON" <<EOF
 {
   "title": "Pipeline: UHD SDR Ladder",
-  "runLabel": "Run: 2026-04-02 18:42",
+  "selectedPipelineId": "demo",
   "sourceLabel": "$(printf '%s' "$source_label" | sed 's/"/\\"/g')",
   "sourceWorkflow": "$(printf '%s' "$SOURCE_WORKFLOW" | sed 's/"/\\"/g')",
   "sourceRunUrl": "$(printf '%s' "$SOURCE_RUN_URL" | sed 's/"/\\"/g')",
-  "selectedAsset": "movie_01.mxf",
-  "selectedNode": "encode",
-  "assets": [
-    { "name": "movie_01.mxf", "status": "Failed", "icon": "✖" },
-    { "name": "movie_02.mxf", "status": "Complete", "icon": "✔" },
-    { "name": "movie_03.mxf", "status": "Running", "icon": "⏳" },
-    { "name": "movie_04.mxf", "status": "Waiting", "icon": "○" },
-    { "name": "movie_05.mxf", "status": "Complete", "icon": "✔" },
-    { "name": "movie_06.mxf", "status": "Failed", "icon": "✖" },
-    { "name": "movie_07.mxf", "status": "Complete", "icon": "✔" },
-    { "name": "movie_08.mxf", "status": "Waiting", "icon": "○" },
-    { "name": "movie_09.mxf", "status": "Waiting", "icon": "○" }
-  ],
-  "filters": ["All", "Failed", "Running", "Waiting", "Complete"],
-  "summaryCounts": [
-    { "label": "Complete", "count": 91, "icon": "✔" },
-    { "label": "Failed", "count": 7, "icon": "✖" },
-    { "label": "Running", "count": 12, "icon": "⏳" },
-    { "label": "Waiting", "count": 18, "icon": "○" }
-  ],
-  "stageTotals": [
-    { "label": "Input", "count": 128 },
-    { "label": "Probe", "count": 128 },
-    { "label": "Deint", "count": 97 },
-    { "label": "Encode", "count": 91 },
-    { "label": "HLS", "count": 88 },
-    { "label": "QC", "count": 73 },
-    { "label": "Metadata", "count": 128 }
+  "pipelines": [
+    {
+      "id": "demo",
+      "label": "Demo payload",
+      "title": "Pipeline: UHD SDR Ladder",
+      "runLabel": "Run: 2026-04-02 18:42",
+      "sourceLabel": "$(printf '%s' "$source_label" | sed 's/"/\\"/g')",
+      "sourceWorkflow": "$(printf '%s' "$SOURCE_WORKFLOW" | sed 's/"/\\"/g')",
+      "sourceRunUrl": "$(printf '%s' "$SOURCE_RUN_URL" | sed 's/"/\\"/g')",
+      "selectedAsset": "movie_01.mxf",
+      "selectedNode": "encode",
+      "assets": [
+        { "name": "movie_01.mxf", "status": "Failed", "icon": "✖" },
+        { "name": "movie_02.mxf", "status": "Complete", "icon": "✔" },
+        { "name": "movie_03.mxf", "status": "Running", "icon": "⏳" },
+        { "name": "movie_04.mxf", "status": "Waiting", "icon": "○" },
+        { "name": "movie_05.mxf", "status": "Complete", "icon": "✔" },
+        { "name": "movie_06.mxf", "status": "Failed", "icon": "✖" },
+        { "name": "movie_07.mxf", "status": "Complete", "icon": "✔" },
+        { "name": "movie_08.mxf", "status": "Waiting", "icon": "○" },
+        { "name": "movie_09.mxf", "status": "Waiting", "icon": "○" }
+      ],
+      "filters": ["All", "Failed", "Running", "Waiting", "Complete"],
+      "summaryCounts": [
+        { "label": "Complete", "count": 91, "icon": "✔" },
+        { "label": "Failed", "count": 7, "icon": "✖" },
+        { "label": "Running", "count": 12, "icon": "⏳" },
+        { "label": "Waiting", "count": 18, "icon": "○" }
+      ],
+      "stageTotals": [
+        { "label": "Input", "count": 128 },
+        { "label": "Probe", "count": 128 },
+        { "label": "Deint", "count": 97 },
+        { "label": "Encode", "count": 91 },
+        { "label": "HLS", "count": 88 },
+        { "label": "QC", "count": 73 },
+        { "label": "Metadata", "count": 128 }
+      ]
+    }
   ]
 }
 EOF

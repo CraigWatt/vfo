@@ -129,6 +129,14 @@ div.mermaid {
   padding: 1rem 1.1rem 0.75rem;
 }
 
+.vfo-web-app__topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
 .vfo-web-app__topbar h2 {
   margin: 0;
   font-size: 1.35rem;
@@ -148,6 +156,19 @@ div.mermaid {
   flex-wrap: wrap;
 }
 
+.vfo-web-app__source[data-live="1"]::after {
+  content: "live e2e data";
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  color: #86efac;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .vfo-web-app__source strong {
   font-size: 0.78rem;
   font-weight: 700;
@@ -157,6 +178,27 @@ div.mermaid {
 
 .vfo-web-app__source a {
   color: var(--md-primary-fg-color);
+}
+
+.vfo-web-app__pipeline-select {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 13rem;
+  color: var(--vfo-muted);
+  font-size: 0.8rem;
+}
+
+.vfo-web-app__pipeline-select span {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.vfo-web-app__pipeline-select select {
+  border: 1px solid var(--vfo-border);
+  border-radius: 0.55rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--vfo-surface);
+  color: var(--vfo-text);
 }
 
 .vfo-web-app__workspace {
