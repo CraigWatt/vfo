@@ -144,6 +144,9 @@
     if (key === "failed") {
       return "✖";
     }
+    if (key === "skipped") {
+      return "↷";
+    }
     return "○";
   }
 
@@ -170,6 +173,7 @@
     copy.sourceWorkflow = copy.sourceWorkflow || "";
     copy.sourceRunUrl = copy.sourceRunUrl || "";
     copy.assets = Array.isArray(copy.assets) ? copy.assets : fallbackPipeline.assets.slice();
+    copy.events = Array.isArray(copy.events) ? copy.events : [];
     return copy;
   }
 
@@ -191,8 +195,54 @@
       pipelines: pipelines,
       sourceLabel: dashboard.sourceLabel || pipelines[0].sourceLabel || "Demo payload",
       sourceWorkflow: dashboard.sourceWorkflow || pipelines[0].sourceWorkflow || "",
-      sourceRunUrl: dashboard.sourceRunUrl || pipelines[0].sourceRunUrl || ""
+      sourceRunUrl: dashboard.sourceRunUrl || pipelines[0].sourceRunUrl || "",
+      playback: null
     };
+  }
+
+  function cloneFrame(value) {
+    return JSON.parse(JSON.stringify(value || {}));
+  }
+
+  function applyFrame(pipeline, frame) {
+    var next = cloneFrame(frame);
+
+    if (next.title) {
+      pipeline.title = next.title;
+    }
+    if (next.runLabel) {
+      pipeline.runLabel = next.runLabel;
+    }
+    if (next.sourceLabel) {
+      pipeline.sourceLabel = next.sourceLabel;
+    }
+    if (typeof next.sourceWorkflow !== "undefined") {
+      pipeline.sourceWorkflow = next.sourceWorkflow;
+    }
+    if (typeof next.sourceRunUrl !== "undefined") {
+      pipeline.sourceRunUrl = next.sourceRunUrl;
+    }
+    if (typeof next.selectedAsset !== "undefined") {
+      pipeline.selectedAsset = next.selectedAsset;
+    }
+    if (typeof next.selectedNode !== "undefined") {
+      pipeline.selectedNode = next.selectedNode;
+    }
+    if (Array.isArray(next.assets)) {
+      pipeline.assets = next.assets;
+    }
+    if (Array.isArray(next.filters)) {
+      pipeline.filters = next.filters;
+    }
+    if (Array.isArray(next.summaryCounts)) {
+      pipeline.summaryCounts = next.summaryCounts;
+    }
+    if (Array.isArray(next.stageTotals)) {
+      pipeline.stageTotals = next.stageTotals;
+    }
+    if (next.workflow) {
+      pipeline.workflow = next.workflow;
+    }
   }
 
   function getSelectedPipeline(state) {
@@ -219,9 +269,25 @@
     ].join("\n");
   }
 
+  function buildReplayMeter(state) {
+    var playback = state.playback;
+    if (!playback || !playback.total) {
+      return "";
+    }
+
+    return [
+      '<div class="vfo-web-app__replay-meter">',
+      '  <span>Replay</span>',
+      '  <strong>' + escapeHtml(String(playback.index).padStart(2, "0") + " / " + String(playback.total).padStart(2, "0")) + "</strong>",
+      "  <em>" + escapeHtml(playback.label || "emit stream") + "</em>",
+      "</div>"
+    ].join("\n");
+  }
+
   function render(container, state) {
     var selectedPipeline = getSelectedPipeline(state);
     var pipelineOptions = buildPipelineOptions(state);
+    var replayMeter = buildReplayMeter(state);
     var liveAttr = selectedPipeline.sourceRunUrl ? ' data-live="1"' : "";
     var sourceWorkflowHtml = selectedPipeline.sourceWorkflow
       ? '<strong>' + escapeHtml(selectedPipeline.sourceWorkflow) + '</strong>'
@@ -239,6 +305,7 @@
       "    </div>",
       '    <div class="vfo-web-app__topbar-actions">',
       pipelineOptions,
+      replayMeter,
       '      <div class="vfo-web-app__source"' + liveAttr + ' data-vfo-web-app-source>',
       '        <span>' + escapeHtml(selectedPipeline.sourceLabel) + "</span>",
       sourceWorkflowHtml,
@@ -424,8 +491,10 @@
 
       var pipelineSelect = event.target.closest("[data-vfo-pipeline-select]");
       if (pipelineSelect) {
+        stopReplay(root);
         state.selectedPipelineId = pipelineSelect.value;
         render(root, state);
+        startReplay(root, state);
       }
     });
 
@@ -440,16 +509,88 @@
       var nodeButton = event.target.closest("[data-node]");
 
       if (assetButton) {
+        stopReplay(root);
         pipeline.selectedAsset = assetButton.getAttribute("data-asset");
         render(root, state);
         return;
       }
 
       if (nodeButton) {
+        stopReplay(root);
         pipeline.selectedNode = nodeButton.getAttribute("data-node");
         render(root, state);
       }
     });
+  }
+
+  function stopReplay(root) {
+    var playback = root.__vfoPlayback;
+    if (playback && playback.timer) {
+      clearTimeout(playback.timer);
+    }
+    root.__vfoPlayback = null;
+  }
+
+  function startReplay(root, state) {
+    var selectedPipeline = getSelectedPipeline(state);
+    var frames = Array.isArray(selectedPipeline.events) ? selectedPipeline.events.map(cloneFrame) : [];
+    var playback;
+
+    if (!frames.length) {
+      state.playback = null;
+      render(root, state);
+      return;
+    }
+
+    stopReplay(root);
+    playback = {
+      frames: frames,
+      index: 0,
+      timer: null
+    };
+    root.__vfoPlayback = playback;
+
+    var step = function () {
+      var frame = playback.frames[playback.index];
+      if (!frame || !root.__vfoPlayback) {
+        state.playback = {
+          index: playback.frames.length,
+          total: playback.frames.length,
+          label: "complete"
+        };
+        render(root, state);
+        stopReplay(root);
+        return;
+      }
+
+      applyFrame(selectedPipeline, frame);
+      state.selectedPipelineId = selectedPipeline.id;
+      state.playback = {
+        index: playback.index + 1,
+        total: playback.frames.length,
+        label: frame.label || selectedPipeline.label || "emit stream"
+      };
+      render(root, state);
+      playback.index += 1;
+
+      if (playback.index < playback.frames.length) {
+        playback.timer = setTimeout(step, frame.delayMs || 700);
+      } else {
+        playback.timer = setTimeout(function () {
+          if (root.__vfoPlayback === playback) {
+            state.playback = {
+              index: playback.frames.length,
+              total: playback.frames.length,
+              label: "complete"
+            };
+            render(root, state);
+            stopReplay(root);
+          }
+        }, frame.delayMs || 700);
+      }
+    };
+
+    step();
   }
 
   function initRoot(root) {
@@ -461,6 +602,7 @@
     dataPromise.then(function (data) {
       root.__vfoState = normalizeDashboard(data);
       render(root, root.__vfoState);
+      startReplay(root, root.__vfoState);
     });
   }
 

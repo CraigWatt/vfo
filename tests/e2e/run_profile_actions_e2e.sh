@@ -558,6 +558,9 @@ run_seed_from_input() {
   local output_guardrail_skip="${OUTPUTS_DIR}/seed_${seed_index}_profile_guardrail_skip.mp4"
   local run_sdr_lanes=1
 
+  WEB_APP_SELECTED_ASSET="$(basename "$seed_asset")"
+  WEB_APP_ASSET_STATUS="Complete"
+
   log "Using local open-source asset seed #${seed_index}: ${seed_asset}"
   create_fixture_from_input "$seed_asset" 1920 1080 "$fixture_1080"
   create_fixture_from_input "$seed_asset" 3840 2160 "$fixture_2160"
@@ -700,6 +703,9 @@ run_seed_synthetic() {
   local output_legacy_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_default_sub_off.mp4"
   local output_legacy_forced_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_forced_sub.mp4"
   local output_guardrail_skip="${OUTPUTS_DIR}/seed_${seed_index}_profile_guardrail_skip.mp4"
+
+  WEB_APP_SELECTED_ASSET="synthetic_seed_${seed_index}.mkv"
+  WEB_APP_ASSET_STATUS="Complete"
 
   log "Using synthetic fixtures for seed #${seed_index} (no local assets required)"
   create_synthetic_fixture 1920 1080 "$fixture_1080"
@@ -848,6 +854,10 @@ main() {
   mkdir -p "$FIXTURES_DIR" "$OUTPUTS_DIR"
   trap cleanup EXIT
 
+  WEB_APP_DASHBOARD_JSON="$(e2e_reports_dir "$ROOT_DIR")/run_profile_actions_e2e_web_app.json"
+  WEB_APP_SELECTED_ASSET=""
+  WEB_APP_ASSET_STATUS="Complete"
+
   assert_positive_int "$MAX_SEEDS" "VFO_E2E_MAX_SEEDS"
 
   log "asset_mode=${ASSET_MODE} assets_dir=${ASSETS_DIR} clip_duration=${CLIP_DURATION}s max_seeds=${MAX_SEEDS}"
@@ -864,6 +874,19 @@ main() {
       fail "Unsupported VFO_E2E_ASSET_MODE='${ASSET_MODE}' (expected: auto|local|synthetic)"
       ;;
   esac
+
+  e2e_write_web_app_dashboard \
+    "$WEB_APP_DASHBOARD_JSON" \
+    "profile-actions" \
+    "Profile actions" \
+    "Pipeline: Mezzanine to Profile" \
+    "Run: profile actions replay" \
+    "Profile actions e2e" \
+    "run_profile_actions_e2e" \
+    "" \
+    "${WEB_APP_SELECTED_ASSET:-mezzanine_asset.mkv}" \
+    "profile_actions" \
+    "$WEB_APP_ASSET_STATUS"
 
   log "All e2e profile action checks passed"
 }
