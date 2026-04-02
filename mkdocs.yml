@@ -15,6 +15,7 @@ nav:
   - Profile Packs: profile-packs.md
   - Capability Matrix: profile-capability-matrix.md
   - Latest E2E Toolchain: e2e-toolchain-latest.md
+  - Web App Demo: vfo-web-app.md
   - Profiles:
       - Overview: profiles/index.md
       - Netflixy Main Subtitle Intent:
@@ -82,6 +83,7 @@ extra_javascript:
   - https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js
   - javascripts/mermaid-init.js
   - javascripts/reactflow-viewer.js
+  - javascripts/vfo-web-app.js
 
 extra_css:
   - https://unpkg.com/@xyflow/react@12.9.2/dist/style.css

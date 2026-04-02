@@ -2,11 +2,14 @@
 
 React web shell for `vfo-desktop` (Tauri frontend).
 
+The wireframe layout is intentionally shared in spirit with the docs-site demo page under `platform/docs-site/docs/vfo-web-app.md`.
+
 ## Current v1
 
 - Vite + React scaffold
-- React Flow canvas for pipeline/status views
-- preset switcher (`executive`, `operator`, `engine`)
+- three-column dashboard wireframe
+- assets rail, workflow lane, and inspector panel
+- React Flow still available for more detailed pipeline canvases
 
 ## Run locally
 
@@ -22,6 +25,7 @@ npm run dev
 - readiness and run-state views (doctor/status/status-json)
 - run controls (`run`, `mezzanine-clean`, `visualize`)
 - profile and output observability surfaces
+- mirrored browser demo surface for the docs-site web app page
 
 ## Non-goals
 

@@ -7,6 +7,8 @@ Desktop shell for `vfo` using:
 - React Flow for interactive pipeline/status canvases
 - `vfo` CLI as the only media-processing engine
 
+The same wireframe is also surfaced in the docs site as a browser-friendly demo page so it can be shared without launching the desktop shell first.
+
 ## Architecture contract
 
 - `services/vfo/` owns all media logic and decisioning.
