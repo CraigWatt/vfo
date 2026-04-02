@@ -149,6 +149,9 @@ run_seed_suite() {
   local out_hevc_1080="${OUTPUTS_DIR}/seed_${seed_index}_hevc_1080.mkv"
   local out_h264_1080_sdr="${OUTPUTS_DIR}/seed_${seed_index}_h264_1080_sdr.mkv"
 
+  WEB_APP_SELECTED_ASSET="$(basename "$seed_input")"
+  WEB_APP_ASSET_STATUS="Complete"
+
   log "Building fixture for seed #${seed_index}: ${seed_input}"
   create_fixture_from_input "$seed_input" 3840 2160 "$in_2160"
 
@@ -175,6 +178,8 @@ run_seed_suite() {
 run_synthetic_seed() {
   local seed_index="$1"
   local synthetic_input="${FIXTURES_DIR}/seed_${seed_index}_synthetic_input_2160.mkv"
+  WEB_APP_SELECTED_ASSET="synthetic_seed_${seed_index}.mkv"
+  WEB_APP_ASSET_STATUS="Complete"
   create_synthetic_fixture 3840 2160 "$synthetic_input"
   run_seed_suite "$seed_index" "$synthetic_input"
 }
@@ -226,6 +231,10 @@ main() {
   mkdir -p "$FIXTURES_DIR" "$OUTPUTS_DIR"
   trap cleanup EXIT
 
+  WEB_APP_DASHBOARD_JSON="$(e2e_reports_dir "$ROOT_DIR")/run_device_conformance_e2e_web_app.json"
+  WEB_APP_SELECTED_ASSET=""
+  WEB_APP_ASSET_STATUS="Complete"
+
   log "asset_mode=${ASSET_MODE} assets_dir=${ASSETS_DIR} clip_duration=${CLIP_DURATION}s max_seeds=${MAX_SEEDS}"
 
   case "$ASSET_MODE" in
@@ -240,6 +249,19 @@ main() {
       fail "Unsupported VFO_E2E_ASSET_MODE='${ASSET_MODE}' (expected: auto|local|synthetic)"
       ;;
   esac
+
+  e2e_write_web_app_dashboard \
+    "$WEB_APP_DASHBOARD_JSON" \
+    "device-conformance" \
+    "Device conformance" \
+    "Pipeline: Device Conformance" \
+    "Run: device conformance replay" \
+    "Device conformance e2e" \
+    "run_device_conformance_e2e" \
+    "" \
+    "${WEB_APP_SELECTED_ASSET:-seed_1_input_2160.mkv}" \
+    "device_conformance" \
+    "$WEB_APP_ASSET_STATUS"
 
   log "All device conformance e2e checks passed"
 }

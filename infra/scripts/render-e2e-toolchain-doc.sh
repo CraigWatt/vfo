@@ -82,6 +82,76 @@ write_web_app_json() {
 EOF
 }
 
+merge_web_app_json() {
+  local suite_json
+  local suite_jsons=()
+
+  for suite_json in "$REPORT_DIR"/*_web_app.json; do
+    [ -f "$suite_json" ] || continue
+    suite_jsons+=("$suite_json")
+  done
+
+  if [ "${#suite_jsons[@]}" -eq 0 ]; then
+    write_web_app_json "Latest e2e artifact"
+    return 0
+  fi
+
+  python3 - "$WEB_APP_JSON" "$SOURCE_WORKFLOW" "$SOURCE_RUN_URL" "${suite_jsons[@]}" <<'PY'
+import json
+import pathlib
+import sys
+
+out_path = pathlib.Path(sys.argv[1])
+source_workflow = sys.argv[2]
+source_run_url = sys.argv[3]
+suite_paths = [pathlib.Path(p) for p in sys.argv[4:]]
+
+
+def suite_order(path):
+    name = path.stem
+    if "profile_actions" in name:
+        return (0, name)
+    if "device_conformance" in name:
+        return (1, name)
+    if "dv_metadata" in name:
+        return (2, name)
+    return (99, name)
+
+
+pipelines = []
+selected_pipeline_id = ""
+source_label = "Latest e2e artifact"
+top_level_title = "VFO Web App Replay"
+
+for path in sorted(suite_paths, key=suite_order):
+    with path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+    top_level_title = payload.get("title") or top_level_title
+    pipelines.extend(payload.get("pipelines", []))
+    if not selected_pipeline_id:
+        selected_pipeline_id = payload.get("selectedPipelineId") or ""
+
+for pipeline in pipelines:
+    if pipeline.get("id") == "profile-actions":
+        selected_pipeline_id = "profile-actions"
+        break
+
+if not selected_pipeline_id and pipelines:
+    selected_pipeline_id = pipelines[0].get("id", "")
+
+dashboard = {
+    "title": top_level_title,
+    "selectedPipelineId": selected_pipeline_id,
+    "sourceLabel": source_label,
+    "sourceWorkflow": source_workflow,
+    "sourceRunUrl": source_run_url,
+    "pipelines": pipelines,
+}
+
+out_path.write_text(json.dumps(dashboard, indent=2) + "\n", encoding="utf-8")
+PY
+}
+
 if [ ! -f "$SUMMARY_SRC" ]; then
   write_web_app_json "Demo payload"
   {
@@ -94,14 +164,13 @@ if [ ! -f "$SUMMARY_SRC" ]; then
   exit 0
 fi
 
-write_web_app_json "Latest e2e artifact"
-
 for suite_doc in "$REPORT_DIR"/*_toolchain_versions.md; do
   [ -f "$suite_doc" ] || continue
   cp "$suite_doc" "$ARTIFACT_DOC_DIR/$(basename "$suite_doc")"
 done
 
 cp "$SUMMARY_SRC" "$ARTIFACT_DOC_DIR/toolchain_versions_summary.md"
+merge_web_app_json
 
 {
   write_header

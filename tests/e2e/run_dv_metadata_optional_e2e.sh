@@ -61,8 +61,26 @@ main() {
     "run_dv_metadata_optional_e2e" \
     ffmpeg ffprobe dovi_tool
 
+  WEB_APP_DASHBOARD_JSON="$(e2e_reports_dir "$ROOT_DIR")/run_dv_metadata_optional_e2e_web_app.json"
+  WEB_APP_SELECTED_ASSET=""
+  WEB_APP_ASSET_STATUS="Complete"
+
   if [ -z "$DV_P7_ASSET" ] || [ ! -f "$DV_P7_ASSET" ]; then
     log "Skipping optional DV metadata test (VFO_E2E_DV_P7_ASSET not set or file missing)"
+    WEB_APP_SELECTED_ASSET="DV source unavailable"
+    WEB_APP_ASSET_STATUS="Skipped"
+    e2e_write_web_app_dashboard \
+      "$WEB_APP_DASHBOARD_JSON" \
+      "dv-metadata" \
+      "DV metadata" \
+      "Pipeline: Dolby Vision Metadata" \
+      "Run: DV metadata replay" \
+      "DV metadata e2e" \
+      "run_dv_metadata_optional_e2e" \
+      "" \
+      "$WEB_APP_SELECTED_ASSET" \
+      "dv_metadata" \
+      "$WEB_APP_ASSET_STATUS"
     exit 0
   fi
 
@@ -75,6 +93,9 @@ main() {
   rm -rf "$TMP_DIR"
   mkdir -p "$TMP_DIR"
   trap cleanup EXIT
+
+  WEB_APP_SELECTED_ASSET="$(basename "$DV_P7_ASSET")"
+  WEB_APP_ASSET_STATUS="Complete"
 
   log "Preparing DV fixture clip from: ${DV_P7_ASSET}"
   ffmpeg -hide_banner -nostdin -y \
@@ -152,6 +173,18 @@ main() {
       fail "Main-subtitle DV profile conversion check failed: input profile 7 did not output profile 8.x"
     fi
     log "Main-subtitle 4K action retained DV side data"
+    e2e_write_web_app_dashboard \
+      "$WEB_APP_DASHBOARD_JSON" \
+      "dv-metadata" \
+      "DV metadata" \
+      "Pipeline: Dolby Vision Metadata" \
+      "Run: DV metadata replay" \
+      "DV metadata e2e" \
+      "run_dv_metadata_optional_e2e" \
+      "" \
+      "$WEB_APP_SELECTED_ASSET" \
+      "dv_metadata" \
+      "$WEB_APP_ASSET_STATUS"
     exit 0
   fi
 
@@ -160,6 +193,18 @@ main() {
   fi
 
   warn "Main-subtitle 4K action output missing DV side data (allowed because VFO_E2E_DV_REQUIRE_RETENTION=0)"
+  e2e_write_web_app_dashboard \
+    "$WEB_APP_DASHBOARD_JSON" \
+    "dv-metadata" \
+    "DV metadata" \
+    "Pipeline: Dolby Vision Metadata" \
+    "Run: DV metadata replay" \
+    "DV metadata e2e" \
+    "run_dv_metadata_optional_e2e" \
+    "" \
+    "$WEB_APP_SELECTED_ASSET" \
+    "dv_metadata" \
+    "$WEB_APP_ASSET_STATUS"
   exit 0
 }
 

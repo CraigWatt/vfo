@@ -201,6 +201,29 @@ div.mermaid {
   color: var(--vfo-text);
 }
 
+.vfo-web-app__replay-meter {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 9rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(37, 99, 235, 0.24);
+  border-radius: 0.7rem;
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--vfo-muted);
+  font-size: 0.77rem;
+}
+
+.vfo-web-app__replay-meter strong {
+  color: var(--vfo-text);
+  font-size: 0.95rem;
+}
+
+.vfo-web-app__replay-meter em {
+  font-style: normal;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .vfo-web-app__workspace {
   display: grid;
   grid-template-columns: 19rem minmax(0, 1fr) 20rem;
@@ -306,6 +329,7 @@ div.mermaid {
 .vfo-web-app__status-running { background: #f59e0b; }
 .vfo-web-app__status-waiting { background: #94a3b8; }
 .vfo-web-app__status-complete { background: #22c55e; }
+.vfo-web-app__status-skipped { background: #f59e0b; }
 
 .vfo-web-app__workflow {
   display: grid;
