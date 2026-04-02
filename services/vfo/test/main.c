@@ -49,7 +49,7 @@ int main(void) {
         cmocka_unit_test(test_status_report_update_overwrites_existing_component),
         cmocka_unit_test(test_status_report_print_json_contract),
         cmocka_unit_test(test_ih_arguments_parser_detects_status_commands),
-        cmocka_unit_test(test_ih_arguments_parser_detects_mezzanine_clean_commands),
+        cmocka_unit_test(test_ih_arguments_parser_detects_mezzanine_and_profiles_commands),
         cmocka_unit_test(test_ih_arguments_parser_detects_visualize_command),
         cmocka_unit_test(test_ih_arguments_parser_detects_auto_command),
         cmocka_unit_test(test_ih_resolve_config_dir_prefers_env_override),
@@ -70,14 +70,14 @@ int main(void) {
         cmocka_unit_test(test_con_word_count_ignores_partial_marker_matches),
         cmocka_unit_test(test_con_fetch_profile_marker_ignores_quality_suffix_marker),
         /* Mezzanine */
-        cmocka_unit_test(test_o_original_null_ptr),
+        cmocka_unit_test(test_m_mezzanine_null_ptr),
         cmocka_unit_test(test_mc_sanitize_title_uses_underscores),
         cmocka_unit_test(test_mc_prepare_filename_with_tags_uses_underscores),
         cmocka_unit_test(test_mc_prepare_movie_folder_name_appends_tags),
         /* Source */
-        cmocka_unit_test(test_s_original_to_source_null_ptr),
+        cmocka_unit_test(test_s_mezzanine_to_source_null_ptr),
         /* Profile */
-        cmocka_unit_test(test_a_source_to_aliases),
+        cmocka_unit_test(test_p_source_to_profiles),
 
         /* Other (see above)*/
         cmocka_unit_test(null_test_success),

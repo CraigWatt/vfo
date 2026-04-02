@@ -15,6 +15,15 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: add homebrew to PATH
+        run: |
+          if [ -d /opt/homebrew/bin ]; then
+            echo "/opt/homebrew/bin" >> "$GITHUB_PATH"
+          fi
+          if [ -d /usr/local/bin ]; then
+            echo "/usr/local/bin" >> "$GITHUB_PATH"
+          fi
+
       - name: verify brew is installed
         run: brew -v
 
@@ -25,6 +34,9 @@ jobs:
           fi
           if ! command -v ffmpeg >/dev/null 2>&1; then
             brew install ffmpeg
+          fi
+          if ! command -v mkvmerge >/dev/null 2>&1; then
+            brew install mkvtoolnix
           fi
 
       - name: build + unit + hosted synthetic e2e smoke

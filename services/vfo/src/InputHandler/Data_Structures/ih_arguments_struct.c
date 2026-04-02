@@ -27,7 +27,7 @@
 
 arguments_t* arguments_create_new_struct() {
   arguments_t *result = malloc(sizeof(arguments_t));
-  result->original_detected = false;
+  result->mezzanine_detected = false;
   result->revert_detected = false;
   result->source_detected = false;
   result->run_detected = false;
@@ -39,19 +39,15 @@ arguments_t* arguments_create_new_struct() {
   result->wizard_detected = false;
   result->show_detected = false;
   result->mezzanine_clean_detected = false;
-  result->all_aliases_detected = false;
-  result->do_it_all_detected = false;
+  result->profiles_detected = false;
   result->wipe_detected = false;
-
-  result->alias_queue_detected = false;
 
   return result;
 }
 
 void ih_arguments_parser(int argc, char **argv, arguments_t* arguments) {  
-  if(utils_string_array_contains_string(argv, argc, "mezzanine")
-     || utils_string_array_contains_string(argv, argc, "original"))
-    arguments->original_detected = true;
+  if(utils_string_array_contains_string(argv, argc, "mezzanine"))
+    arguments->mezzanine_detected = true;
   if(utils_string_array_contains_string(argv, argc, "revert"))
     arguments->revert_detected = true;
   if(utils_string_array_contains_string(argv, argc, "source"))
@@ -64,8 +60,7 @@ void ih_arguments_parser(int argc, char **argv, arguments_t* arguments) {
     arguments->doctor_detected = true;
   if(utils_string_array_contains_string(argv, argc, "status"))
     arguments->status_detected = true;
-  if(utils_string_array_contains_string(argv, argc, "status-json")
-     || utils_string_array_contains_string(argv, argc, "status_json"))
+  if(utils_string_array_contains_string(argv, argc, "status-json"))
     arguments->status_json_detected = true;
   if(utils_string_array_contains_string(argv, argc, "visualize"))
     arguments->visualize_detected = true;
@@ -73,14 +68,10 @@ void ih_arguments_parser(int argc, char **argv, arguments_t* arguments) {
     arguments->wizard_detected = true;
   if(utils_string_array_contains_string(argv, argc, "show"))
     arguments->show_detected = true;
-  if(utils_string_array_contains_string(argv, argc, "mezzanine-clean")
-     || utils_string_array_contains_string(argv, argc, "mezzanine_clean"))
+  if(utils_string_array_contains_string(argv, argc, "mezzanine-clean"))
     arguments->mezzanine_clean_detected = true;
-  if(utils_string_array_contains_string(argv, argc, "profiles")
-     || utils_string_array_contains_string(argv, argc, "all_aliases"))
-    arguments->all_aliases_detected = true;
-  if(utils_string_array_contains_string(argv, argc, "do_it_all"))
-    arguments->do_it_all_detected = true;
+  if(utils_string_array_contains_string(argv, argc, "profiles"))
+    arguments->profiles_detected = true;
   if(utils_string_array_contains_string(argv, argc, "wipe"))
     arguments->wipe_detected = true;
 }

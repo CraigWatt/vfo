@@ -28,6 +28,8 @@
 #include "Config/Data_Structures/c_cf_ll_struct.h"
 #include "Mezzanine/Data_Structures/m_mezzanine_struct.h"
 
+void m_mezzanine(original_t *mezzanine);
+void m_revert_to_mezzanine(original_t *mezzanine);
 void o_original(original_t *original);
 void o_revert_to_start(original_t *original);
 

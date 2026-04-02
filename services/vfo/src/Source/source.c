@@ -109,12 +109,12 @@ static bool s_encode_candidate_with_retry(source_t *source,
   return false;
 }
 
-void s_original_to_source(source_t *source) {
+void s_mezzanine_to_source(source_t *source) {
   printf("SOURCE ALERT: initiating 'source'\n");
   /* pre-encode checks */
   s_pre_encode_checks(source);
   
-  /* find video folders not yet present in source/content */
+  /* find video folders not yet present in source content */
   s_highlight_encode_candidates_to_user(source);
 
   /* ask user if they wish to proceed with encoding */
@@ -127,6 +127,10 @@ void s_original_to_source(source_t *source) {
   /* post-encode checks */
   //might need to add to here
   printf("SOURCE ALERT: 'source' completed successfully\n");
+}
+
+void s_original_to_source(source_t *source) {
+  s_mezzanine_to_source(source);
 }
 
 void s_wipe_source(source_t *source) {
@@ -145,15 +149,15 @@ void s_pre_encode_checks(source_t *source) {
     char *content_root = source->content_locations[i];
     utils_does_folder_contain_valid_custom_folders(content_root, source->cf_head);
     utils_is_folder_missing_custom_folders(content_root, source->cf_head);
-    utils_are_custom_folders_type_compliant(content_root, "mp4_original", source->cf_head);
+    utils_are_custom_folders_type_compliant(content_root, "mp4_mezzanine", source->cf_head);
   }
     
   // maybe necessary but not sure?
   // are_custom_folders_files_source_compliant();
   // perhaps some sort of check of the movie/tv files themselves to see if they are compliant with source.
 
-  //s_is_source_out_of_sync_with_original(source); - //simple meaning: if a movie/tv folder exists here that doesn't 
-                                        //exist in original, tell the user.
+  //s_is_source_out_of_sync_with_mezzanine(source); - if a movie/tv folder exists here that doesn't
+  //exist in mezzanine, tell the user.
   printf("SOURCE ALERT: 'pre-encode checks' completed successfully\n");
 }
 
@@ -357,15 +361,15 @@ char* s_generate_source_file_name(char *original_from, char *source_to) {
 
 void s_highlight_encode_candidates_to_user(source_t *source) {  
   if(strcmp(source->original_mkv_original, "") != 0) {
-    printf("SOURCE ALERT: found mezzanine/mkv_original\n");
+    printf("SOURCE ALERT: found mezzanine/mkv\n");
     s_highlight_encode_candidates_from_mkv_original(source);
   }
   if(strcmp(source->original_mp4_original, "") != 0) {
-    printf("SOURCE ALERT: found mezzanine/mp4_original\n");
+    printf("SOURCE ALERT: found mezzanine/mp4\n");
     s_highlight_encode_candidates_from_mp4_original(source);
   }
   if(strcmp(source->original_m2ts_original, "") != 0) {
-    printf("SOURCE ALERT: found mezzanine/m2ts_original\n");
+    printf("SOURCE ALERT: found mezzanine/m2ts\n");
     s_highlight_encode_candidates_from_m2ts_original(source);
   }
 }
@@ -417,8 +421,8 @@ void s_highlight_encode_candidates_from_mkv_original(source_t *source) {
       active_cf = active_cf->next;
     }
   }
-  printf("SOURCE ALERT: %i mezzanine/mkv_original -> source/content candidates found.\n", mkv_encode_candidates_counter);
-  printf("SOURCE ALERT: %i will be ignored as they appear to already exist in source/content.\n", already_present_in_source_counter);
+  printf("SOURCE ALERT: %i mezzanine/mkv -> source candidates found.\n", mkv_encode_candidates_counter);
+  printf("SOURCE ALERT: %i will be ignored as they already exist in source content.\n", already_present_in_source_counter);
   free(active_cf);
   active_cf = NULL;
 }
@@ -470,8 +474,8 @@ void s_highlight_encode_candidates_from_mp4_original(source_t *source) {
       active_cf = active_cf->next;
     }
   }
-  printf("SOURCE ALERT: %i mezzanine/mp4_original -> source/content candidates found.\n", mp4_encode_candidates_counter);
-  printf("SOURCE ALERT: %i will be ignored as they appear to already exist in source/content.\n", already_present_in_source_counter);
+  printf("SOURCE ALERT: %i mezzanine/mp4 -> source candidates found.\n", mp4_encode_candidates_counter);
+  printf("SOURCE ALERT: %i will be ignored as they already exist in source content.\n", already_present_in_source_counter);
   free(active_cf);
   active_cf = NULL;
 }
@@ -523,8 +527,8 @@ void s_highlight_encode_candidates_from_m2ts_original(source_t *source) {
       active_cf = active_cf->next;
     }
   }
-  printf("SOURCE ALERT: %i mezzanine/m2ts_original -> source/content candidates found.\n", m2ts_encode_candidates_counter);
-  printf("SOURCE ALERT: %i will be ignored as they appear to already exist in source/content.\n", already_present_in_source_counter);
+  printf("SOURCE ALERT: %i mezzanine/m2ts -> source candidates found.\n", m2ts_encode_candidates_counter);
+  printf("SOURCE ALERT: %i will be ignored as they already exist in source content.\n", already_present_in_source_counter);
   free(active_cf);
   active_cf = NULL;
 }

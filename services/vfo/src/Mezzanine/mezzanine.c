@@ -25,12 +25,12 @@
 #include "Data_Structures/m_mezzanine_struct.h"
 #include "m_internal.h"
 
-void o_original(original_t *original) {
+void m_mezzanine(original_t *original) {
   printf("MEZZANINE ALERT: initiating 'mezzanine'\n");
   /* pre-move checks */
   o_pre_move_checks(original);
   /*if a duplicate is found, vfo will stop and tell the user*/
-  /*ask user if they wish to continue on to the 'move' process of o_original*/
+  /*ask user if they wish to continue on to the 'move' process of m_mezzanine*/
   utils_wish_to_continue("'pre-move-checks'", "'mezzanine'");
 
   /* move actions */
@@ -46,7 +46,7 @@ void o_original(original_t *original) {
   printf("MEZZANINE ALERT: 'mezzanine' completed successfully.\n");
 }
 
-void o_revert_to_start(original_t *original) {
+void m_revert_to_mezzanine(original_t *original) {
   printf("MEZZANINE ALERT: initiating 'revert-to-start'\n");
   /* pre move checks */
   o_pre_move_checks(original);
@@ -61,6 +61,14 @@ void o_revert_to_start(original_t *original) {
   /* post move checks */
   //might need to add to here in future
   printf("MEZZANINE ALERT: 'revert-to-start' completed successfully.\n");
+}
+
+void o_original(original_t *original) {
+  m_mezzanine(original);
+}
+
+void o_revert_to_start(original_t *original) {
+  m_revert_to_mezzanine(original);
 }
 
 void o_pre_move_checks(original_t *original) {
@@ -330,4 +338,3 @@ void o_detect_duplicates(char *from_cf_parent_folder, char *to_cf_parent_folder,
     exit(EXIT_FAILURE);
   }
 }
-

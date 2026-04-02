@@ -30,6 +30,8 @@
 #include "Source/Data_Structures/s_source_struct.h"
 #include "Profile/Data_Structures/p_profiles_struct.h"
 
+void p_source_to_profiles(aliases_t *profiles);
+void p_mezzanine_to_profiles(aliases_t *profiles);
 void a_source_to_aliases(aliases_t *aliases);
 void a_original_to_aliases(aliases_t *aliases);
 void a_wipe_aliases(aliases_t *aliases);

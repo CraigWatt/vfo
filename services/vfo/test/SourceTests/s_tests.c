@@ -24,9 +24,9 @@
 
 #include "s_tests.h"
 
-void test_s_original_to_source_null_ptr(void **state) {
+void test_s_mezzanine_to_source_null_ptr(void **state) {
   source_t *test_source = NULL;
-  // s_original_to_source();
+  // s_mezzanine_to_source();
   int duck = 1;
   assert_int_equal(duck, 1);
 }

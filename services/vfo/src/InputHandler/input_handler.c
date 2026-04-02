@@ -1333,7 +1333,7 @@ static bool ih_run_visualize(config_t *config, const char *config_dir, bool open
   html_file = NULL;
 
   printf("VISUALIZE ALERT: generated workflow visualization artifacts\n");
-  printf("VISUALIZE INFO: status json => %s\n", status_json_path);
+  printf("VISUALIZE INFO: status-json => %s\n", status_json_path);
   printf("VISUALIZE INFO: mermaid map => %s\n", mermaid_path);
   printf("VISUALIZE INFO: html report => %s\n", html_path);
   printf("VISUALIZE INFO: formal BPMN => services/vfo/docs/workflow-engine.bpmn\n");
@@ -1414,16 +1414,13 @@ static bool ih_pipeline_work_requested(arguments_t *arguments, config_t *config)
   if(arguments->run_detected)
     return true;
 
-  if(arguments->original_detected && arguments->revert_detected == false)
+  if(arguments->mezzanine_detected && arguments->revert_detected == false)
     return true;
 
   if(arguments->source_detected && arguments->wipe_detected == false)
     return true;
 
-  if(arguments->all_aliases_detected && arguments->wipe_detected == false)
-    return true;
-
-  if(arguments->do_it_all_detected && arguments->wipe_detected == false)
+  if(arguments->profiles_detected && arguments->wipe_detected == false)
     return true;
 
   if(alias_targets_requested && arguments->wipe_detected == false)
@@ -1444,19 +1441,19 @@ static bool ih_should_use_lenient_config_validation(arguments_t *arguments) {
 }
 
 static void ih_execute_all_profiles(config_t *config) {
-  aliases_t *aliases = NULL;
+  aliases_t *profiles = NULL;
   for(int i = 0; i < ca_get_count(config->ca_head); i++) {
-    aliases_t *alias = alias_create_new_struct(config, ca_get_a_node_from_count(config->ca_head, i));
-    alias_insert_at_head(&aliases, alias);
+    aliases_t *profile = alias_create_new_struct(config, ca_get_a_node_from_count(config->ca_head, i));
+    alias_insert_at_head(&profiles, profile);
   }
 
   if(config->svc->keep_source == true)
-    a_source_to_aliases(aliases);
+    p_source_to_profiles(profiles);
   else
-    a_original_to_aliases(aliases);
+    p_mezzanine_to_profiles(profiles);
 
-  free(aliases);
-  aliases = NULL;
+  free(profiles);
+  profiles = NULL;
 }
 
 static char** ih_resolve_locations(char *locations_csv, char *fallback, int *count) {
@@ -1563,7 +1560,7 @@ static void ih_execute_original_stage_for_all_roots(config_t *config) {
     config->svc->original_location = original_roots[i];
     printf("RUN ALERT: mezzanine stage root %i/%i => %s\n", i + 1, original_root_count, original_roots[i]);
     original_t *original = original_create_new_struct(config);
-    o_original(original);
+    m_mezzanine(original);
     free(original);
     original = NULL;
   }
@@ -1583,7 +1580,7 @@ static void ih_execute_revert_stage_for_all_roots(config_t *config) {
     config->svc->original_location = original_roots[i];
     printf("RUN ALERT: revert stage root %i/%i => %s\n", i + 1, original_root_count, original_roots[i]);
     original_t *original = original_create_new_struct(config);
-    o_revert_to_start(original);
+    m_revert_to_mezzanine(original);
     free(original);
     original = NULL;
   }
@@ -1603,7 +1600,7 @@ static void ih_execute_source_stage_for_all_original_roots(config_t *config) {
     config->svc->original_location = original_roots[i];
     printf("RUN ALERT: source stage root %i/%i => %s\n", i + 1, original_root_count, original_roots[i]);
     source_t *source = source_create_new_struct(config);
-    s_original_to_source(source);
+    s_mezzanine_to_source(source);
     free(source);
     source = NULL;
   }
@@ -2863,9 +2860,9 @@ static bool ih_append_selected_stock_presets(FILE *config_file,
 }
 
 static int ih_run_wizard(const char *config_dir) {
-  char original_location[IH_INPUT_BUFFER_SIZE];
-  char original_locations[IH_INPUT_BUFFER_SIZE];
-  char original_location_max_usage_pct[IH_INPUT_BUFFER_SIZE];
+  char mezzanine_location[IH_INPUT_BUFFER_SIZE];
+  char mezzanine_locations[IH_INPUT_BUFFER_SIZE];
+  char mezzanine_location_max_usage_pct[IH_INPUT_BUFFER_SIZE];
   char source_location[IH_INPUT_BUFFER_SIZE];
   char source_locations[IH_INPUT_BUFFER_SIZE];
   char source_location_max_usage_pct[IH_INPUT_BUFFER_SIZE];
@@ -2873,24 +2870,24 @@ static int ih_run_wizard(const char *config_dir) {
   char source_test_trim_duration[IH_INPUT_BUFFER_SIZE];
   char custom_folder_name[IH_INPUT_BUFFER_SIZE];
   char custom_folder_type[IH_INPUT_BUFFER_SIZE];
-  char alias_name[IH_INPUT_BUFFER_SIZE];
-  char alias_upper[IH_INPUT_BUFFER_SIZE];
-  char alias_location[IH_INPUT_BUFFER_SIZE];
-  char alias_locations[IH_INPUT_BUFFER_SIZE];
-  char alias_location_max_usage_pct[IH_INPUT_BUFFER_SIZE];
-  char alias_crit_codec[IH_INPUT_BUFFER_SIZE];
-  char alias_crit_bits[IH_INPUT_BUFFER_SIZE];
-  char alias_crit_color_space[IH_INPUT_BUFFER_SIZE];
-  char alias_crit_min_width[IH_INPUT_BUFFER_SIZE];
-  char alias_crit_min_height[IH_INPUT_BUFFER_SIZE];
-  char alias_crit_max_width[IH_INPUT_BUFFER_SIZE];
-  char alias_crit_max_height[IH_INPUT_BUFFER_SIZE];
-  char alias_scenario[IH_INPUT_BUFFER_SIZE];
-  char alias_ffmpeg_command[IH_INPUT_BUFFER_SIZE];
-  char default_alias_location[IH_INPUT_BUFFER_SIZE];
-  char default_original_caps[IH_INPUT_BUFFER_SIZE];
+  char profile_name[IH_INPUT_BUFFER_SIZE];
+  char profile_upper[IH_INPUT_BUFFER_SIZE];
+  char profile_location[IH_INPUT_BUFFER_SIZE];
+  char profile_locations[IH_INPUT_BUFFER_SIZE];
+  char profile_location_max_usage_pct[IH_INPUT_BUFFER_SIZE];
+  char profile_crit_codec[IH_INPUT_BUFFER_SIZE];
+  char profile_crit_bits[IH_INPUT_BUFFER_SIZE];
+  char profile_crit_color_space[IH_INPUT_BUFFER_SIZE];
+  char profile_crit_min_width[IH_INPUT_BUFFER_SIZE];
+  char profile_crit_min_height[IH_INPUT_BUFFER_SIZE];
+  char profile_crit_max_width[IH_INPUT_BUFFER_SIZE];
+  char profile_crit_max_height[IH_INPUT_BUFFER_SIZE];
+  char profile_scenario[IH_INPUT_BUFFER_SIZE];
+  char profile_ffmpeg_command[IH_INPUT_BUFFER_SIZE];
+  char default_profile_location[IH_INPUT_BUFFER_SIZE];
+  char default_mezzanine_caps[IH_INPUT_BUFFER_SIZE];
   char default_source_caps[IH_INPUT_BUFFER_SIZE];
-  char default_alias_caps[IH_INPUT_BUFFER_SIZE];
+  char default_profile_caps[IH_INPUT_BUFFER_SIZE];
   char config_temp_path[IH_INPUT_BUFFER_SIZE];
   char backup_config_path[IH_INPUT_BUFFER_SIZE];
   char *config_path = NULL;
@@ -2945,15 +2942,15 @@ static int ih_run_wizard(const char *config_dir) {
                        wizard_total_steps,
                        "Storage roots",
                        "Configure mezzanine and source locations, including per-root capacity caps");
-  if(!ih_prompt_line("Mezzanine location", "/Users/craigwatt/Downloads/PRACTICE101/mezzanine", original_location, sizeof(original_location), true))
+  if(!ih_prompt_line("Mezzanine location", "/Users/craigwatt/Downloads/PRACTICE101/mezzanine", mezzanine_location, sizeof(mezzanine_location), true))
     return EXIT_FAILURE;
-  if(!ih_prompt_line("Mezzanine locations (semicolon list)", original_location, original_locations, sizeof(original_locations), true))
+  if(!ih_prompt_line("Mezzanine locations (semicolon list)", mezzanine_location, mezzanine_locations, sizeof(mezzanine_locations), true))
     return EXIT_FAILURE;
-  ih_build_default_cap_list(original_locations, original_location_max_usage_pct, sizeof(original_location_max_usage_pct));
-  ih_copy_string(default_original_caps, sizeof(default_original_caps), original_location_max_usage_pct);
-  if(!ih_prompt_line("Mezzanine max usage pct list (semicolon, 1-100)", default_original_caps, original_location_max_usage_pct, sizeof(original_location_max_usage_pct), true))
+  ih_build_default_cap_list(mezzanine_locations, mezzanine_location_max_usage_pct, sizeof(mezzanine_location_max_usage_pct));
+  ih_copy_string(default_mezzanine_caps, sizeof(default_mezzanine_caps), mezzanine_location_max_usage_pct);
+  if(!ih_prompt_line("Mezzanine max usage pct list (semicolon, 1-100)", default_mezzanine_caps, mezzanine_location_max_usage_pct, sizeof(mezzanine_location_max_usage_pct), true))
     return EXIT_FAILURE;
-  if(!ih_first_location_from_list(original_locations, original_location, sizeof(original_location)))
+  if(!ih_first_location_from_list(mezzanine_locations, mezzanine_location, sizeof(mezzanine_location)))
     return EXIT_FAILURE;
 
   if(!ih_prompt_line("Source location", "/Users/craigwatt/Downloads/PRACTICE101/source", source_location, sizeof(source_location), true))
@@ -3146,45 +3143,45 @@ static int ih_run_wizard(const char *config_dir) {
     if(!ih_first_location_from_list(stock_profile_locations, stock_profile_location, sizeof(stock_profile_location)))
       return EXIT_FAILURE;
   } else {
-    if(!ih_prompt_line("Profile name", "netflixy_preserve_audio_main_subtitle_intent_1080p", alias_name, sizeof(alias_name), true))
+    if(!ih_prompt_line("Profile name", "netflixy_preserve_audio_main_subtitle_intent_1080p", profile_name, sizeof(profile_name), true))
       return EXIT_FAILURE;
-    ih_sanitize_alias_name(alias_name, sizeof(alias_name));
-    printf("WIZARD INFO: profile key set to '%s'\n", alias_name);
+    ih_sanitize_alias_name(profile_name, sizeof(profile_name));
+    printf("WIZARD INFO: profile key set to '%s'\n", profile_name);
 
-    snprintf(default_alias_location, sizeof(default_alias_location), "%s/%s", source_location, alias_name);
-    if(!ih_prompt_line("Profile output location", default_alias_location, alias_location, sizeof(alias_location), true))
+    snprintf(default_profile_location, sizeof(default_profile_location), "%s/%s", source_location, profile_name);
+    if(!ih_prompt_line("Profile output location", default_profile_location, profile_location, sizeof(profile_location), true))
       return EXIT_FAILURE;
-    if(!ih_prompt_line("Profile output locations (semicolon list)", alias_location, alias_locations, sizeof(alias_locations), true))
+    if(!ih_prompt_line("Profile output locations (semicolon list)", profile_location, profile_locations, sizeof(profile_locations), true))
       return EXIT_FAILURE;
-    ih_build_default_cap_list(alias_locations, alias_location_max_usage_pct, sizeof(alias_location_max_usage_pct));
-    ih_copy_string(default_alias_caps, sizeof(default_alias_caps), alias_location_max_usage_pct);
-    if(!ih_prompt_line("Profile max usage pct list (semicolon, 1-100)", default_alias_caps, alias_location_max_usage_pct, sizeof(alias_location_max_usage_pct), true))
+    ih_build_default_cap_list(profile_locations, profile_location_max_usage_pct, sizeof(profile_location_max_usage_pct));
+    ih_copy_string(default_profile_caps, sizeof(default_profile_caps), profile_location_max_usage_pct);
+    if(!ih_prompt_line("Profile max usage pct list (semicolon, 1-100)", default_profile_caps, profile_location_max_usage_pct, sizeof(profile_location_max_usage_pct), true))
       return EXIT_FAILURE;
-    if(!ih_first_location_from_list(alias_locations, alias_location, sizeof(alias_location)))
-      return EXIT_FAILURE;
-
-    if(!ih_prompt_line("Profile criteria codec", "h264", alias_crit_codec, sizeof(alias_crit_codec), true))
-      return EXIT_FAILURE;
-    if(!ih_prompt_line("Profile criteria bits", "8", alias_crit_bits, sizeof(alias_crit_bits), true))
-      return EXIT_FAILURE;
-    if(!ih_prompt_line("Profile criteria color space", "bt709", alias_crit_color_space, sizeof(alias_crit_color_space), true))
-      return EXIT_FAILURE;
-    if(!ih_prompt_line("Profile minimum width", "352", alias_crit_min_width, sizeof(alias_crit_min_width), true))
-      return EXIT_FAILURE;
-    if(!ih_prompt_line("Profile minimum height", "240", alias_crit_min_height, sizeof(alias_crit_min_height), true))
-      return EXIT_FAILURE;
-    if(!ih_prompt_line("Profile maximum width", "1920", alias_crit_max_width, sizeof(alias_crit_max_width), true))
-      return EXIT_FAILURE;
-    if(!ih_prompt_line("Profile maximum height", "1080", alias_crit_max_height, sizeof(alias_crit_max_height), true))
+    if(!ih_first_location_from_list(profile_locations, profile_location, sizeof(profile_location)))
       return EXIT_FAILURE;
 
-    if(!ih_prompt_line("Profile scenario", "ELSE", alias_scenario, sizeof(alias_scenario), true))
+    if(!ih_prompt_line("Profile criteria codec", "h264", profile_crit_codec, sizeof(profile_crit_codec), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile criteria bits", "8", profile_crit_bits, sizeof(profile_crit_bits), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile criteria color space", "bt709", profile_crit_color_space, sizeof(profile_crit_color_space), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile minimum width", "352", profile_crit_min_width, sizeof(profile_crit_min_width), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile minimum height", "240", profile_crit_min_height, sizeof(profile_crit_min_height), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile maximum width", "1920", profile_crit_max_width, sizeof(profile_crit_max_width), true))
+      return EXIT_FAILURE;
+    if(!ih_prompt_line("Profile maximum height", "1080", profile_crit_max_height, sizeof(profile_crit_max_height), true))
       return EXIT_FAILURE;
 
-    if(!ih_prompt_line("Profile ffmpeg command", "ffmpeg -nostdin -y -i $vfo_input -map 0:v:0 -map 0:a? -map 0:s? -c:v libx264 -preset medium -crf 19 -pix_fmt yuv420p -c:a copy -c:s copy -movflags +faststart $vfo_output", alias_ffmpeg_command, sizeof(alias_ffmpeg_command), true))
+    if(!ih_prompt_line("Profile scenario", "ELSE", profile_scenario, sizeof(profile_scenario), true))
       return EXIT_FAILURE;
 
-    if(strstr(alias_ffmpeg_command, "$vfo_input") == NULL || strstr(alias_ffmpeg_command, "$vfo_output") == NULL) {
+    if(!ih_prompt_line("Profile ffmpeg command", "ffmpeg -nostdin -y -i $vfo_input -map 0:v:0 -map 0:a? -map 0:s? -c:v libx264 -preset medium -crf 19 -pix_fmt yuv420p -c:a copy -c:s copy -movflags +faststart $vfo_output", profile_ffmpeg_command, sizeof(profile_ffmpeg_command), true))
+      return EXIT_FAILURE;
+
+    if(strstr(profile_ffmpeg_command, "$vfo_input") == NULL || strstr(profile_ffmpeg_command, "$vfo_output") == NULL) {
       printf("WIZARD ERROR: ffmpeg command must include both $vfo_input and $vfo_output\n");
       return EXIT_FAILURE;
     }
@@ -3195,15 +3192,15 @@ static int ih_run_wizard(const char *config_dir) {
                        "Review and write",
                        "Confirm configuration preview before writing");
   printf("WIZARD REVIEW: mode=%s\n", advanced_mode ? "advanced" : "quickstart");
-  ih_print_preview("WIZARD REVIEW: MEZZANINE_LOCATIONS=", original_locations);
+  ih_print_preview("WIZARD REVIEW: MEZZANINE_LOCATIONS=", mezzanine_locations);
   ih_print_preview("WIZARD REVIEW: SOURCE_LOCATIONS=", source_locations);
   ih_print_preview("WIZARD REVIEW: PROFILE_ROOT_LOCATIONS=",
-                   use_stock_presets ? stock_profile_locations : alias_locations);
+                   use_stock_presets ? stock_profile_locations : profile_locations);
   printf("WIZARD REVIEW: profile_setup_mode=%s\n", use_stock_presets ? "stock" : "custom");
   if(use_stock_presets)
     printf("WIZARD REVIEW: stock_preset_count=%i\n", selected_stock_preset_count);
   else
-    printf("WIZARD REVIEW: custom_profile=%s\n", alias_name);
+    printf("WIZARD REVIEW: custom_profile=%s\n", profile_name);
 
   if(!ih_prompt_bool("Write config file now?", true, &write_config))
     return EXIT_FAILURE;
@@ -3240,9 +3237,9 @@ static int ih_run_wizard(const char *config_dir) {
   }
 
   fprintf(config_file, "/* vfo config generated by `vfo wizard` */\n\n");
-  fprintf(config_file, "MEZZANINE_LOCATION=\"%s\"\n", original_location);
-  fprintf(config_file, "MEZZANINE_LOCATIONS=\"%s\"\n", original_locations);
-  fprintf(config_file, "MEZZANINE_LOCATION_MAX_USAGE_PCT=\"%s\"\n", original_location_max_usage_pct);
+  fprintf(config_file, "MEZZANINE_LOCATION=\"%s\"\n", mezzanine_location);
+  fprintf(config_file, "MEZZANINE_LOCATIONS=\"%s\"\n", mezzanine_locations);
+  fprintf(config_file, "MEZZANINE_LOCATION_MAX_USAGE_PCT=\"%s\"\n", mezzanine_location_max_usage_pct);
   fprintf(config_file, "SOURCE_LOCATION=\"%s\"\n", source_location);
   fprintf(config_file, "SOURCE_LOCATIONS=\"%s\"\n", source_locations);
   fprintf(config_file, "SOURCE_LOCATION_MAX_USAGE_PCT=\"%s\"\n", source_location_max_usage_pct);
@@ -3278,22 +3275,22 @@ static int ih_run_wizard(const char *config_dir) {
       return EXIT_FAILURE;
     }
   } else {
-    ih_copy_string(alias_upper, sizeof(alias_upper), alias_name);
-    ih_uppercase_in_place(alias_upper);
+    ih_copy_string(profile_upper, sizeof(profile_upper), profile_name);
+    ih_uppercase_in_place(profile_upper);
 
-    fprintf(config_file, "PROFILE=\"%s\"\n", alias_name);
-    fprintf(config_file, "%s_LOCATION=\"%s\"\n", alias_upper, alias_location);
-    fprintf(config_file, "%s_LOCATIONS=\"%s\"\n", alias_upper, alias_locations);
-    fprintf(config_file, "%s_LOCATION_MAX_USAGE_PCT=\"%s\"\n", alias_upper, alias_location_max_usage_pct);
-    fprintf(config_file, "%s_CRITERIA_CODEC_NAME=\"%s\"\n", alias_upper, alias_crit_codec);
-    fprintf(config_file, "%s_CRITERIA_BITS=\"%s\"\n", alias_upper, alias_crit_bits);
-    fprintf(config_file, "%s_CRITERIA_COLOR_SPACE=\"%s\"\n", alias_upper, alias_crit_color_space);
-    fprintf(config_file, "%s_CRITERIA_RESOLUTION_MIN_WIDTH=\"%s\"\n", alias_upper, alias_crit_min_width);
-    fprintf(config_file, "%s_CRITERIA_RESOLUTION_MIN_HEIGHT=\"%s\"\n", alias_upper, alias_crit_min_height);
-    fprintf(config_file, "%s_CRITERIA_RESOLUTION_MAX_WIDTH=\"%s\"\n", alias_upper, alias_crit_max_width);
-    fprintf(config_file, "%s_CRITERIA_RESOLUTION_MAX_HEIGHT=\"%s\"\n", alias_upper, alias_crit_max_height);
-    fprintf(config_file, "%s_SCENARIO=\"%s\"\n", alias_upper, alias_scenario);
-    fprintf(config_file, "%s_FFMPEG_COMMAND=\"%s\"\n", alias_upper, alias_ffmpeg_command);
+    fprintf(config_file, "PROFILE=\"%s\"\n", profile_name);
+    fprintf(config_file, "%s_LOCATION=\"%s\"\n", profile_upper, profile_location);
+    fprintf(config_file, "%s_LOCATIONS=\"%s\"\n", profile_upper, profile_locations);
+    fprintf(config_file, "%s_LOCATION_MAX_USAGE_PCT=\"%s\"\n", profile_upper, profile_location_max_usage_pct);
+    fprintf(config_file, "%s_CRITERIA_CODEC_NAME=\"%s\"\n", profile_upper, profile_crit_codec);
+    fprintf(config_file, "%s_CRITERIA_BITS=\"%s\"\n", profile_upper, profile_crit_bits);
+    fprintf(config_file, "%s_CRITERIA_COLOR_SPACE=\"%s\"\n", profile_upper, profile_crit_color_space);
+    fprintf(config_file, "%s_CRITERIA_RESOLUTION_MIN_WIDTH=\"%s\"\n", profile_upper, profile_crit_min_width);
+    fprintf(config_file, "%s_CRITERIA_RESOLUTION_MIN_HEIGHT=\"%s\"\n", profile_upper, profile_crit_min_height);
+    fprintf(config_file, "%s_CRITERIA_RESOLUTION_MAX_WIDTH=\"%s\"\n", profile_upper, profile_crit_max_width);
+    fprintf(config_file, "%s_CRITERIA_RESOLUTION_MAX_HEIGHT=\"%s\"\n", profile_upper, profile_crit_max_height);
+    fprintf(config_file, "%s_SCENARIO=\"%s\"\n", profile_upper, profile_scenario);
+    fprintf(config_file, "%s_FFMPEG_COMMAND=\"%s\"\n", profile_upper, profile_ffmpeg_command);
   }
 
   fclose(config_file);
@@ -3443,7 +3440,7 @@ int main (int argc, char **argv) {
 
   /*Let's handle what argument errors WE CAN HANDLE before running con_init*/
   //vfo revert [no_original]
-  if(ih->arguments->revert_detected && !(ih->arguments->original_detected)) {
+  if(ih->arguments->revert_detected && !(ih->arguments->mezzanine_detected)) {
     printf("ERROR: You cannot execute revert command without the mezzanine command\n");
     exit(EXIT_FAILURE);
   }
@@ -3453,16 +3450,6 @@ int main (int argc, char **argv) {
   if(ih->arguments->wizard_detected == true) {
     return ih_run_wizard(config_dir);
   }
-  // if(ih->arguments->do_it_all_detected && any other arguments present) {
-  //   printf("Error, do_it_all cannot be executed along side your other commands\n");
-  //   printf("do_it_all cannot work in conjuction with other vfo commands.\n");
-  //   exit(EXIT_FAILURE);
-  // }
-  // if(ih->arguments->all_aliases_detected && any other profile arguments detected) {
-  //   printf("Error, profiles cannot be executed along side your other commands\n");
-  //   printf("profiles cannot work in conjuction with other profile related vfo commands.\n");
-  //   exit(EXIT_FAILURE);
-  // }
 
   /* initiate config data extraction and validation */
   //extract config file data and unknown words from user input, to config struct
@@ -3552,7 +3539,7 @@ int main (int argc, char **argv) {
 
   //can I now execute things>>
 
-  printf("ih->arguments->mezzanine_detected: %i\n", ih->arguments->original_detected);
+  printf("ih->arguments->mezzanine_detected: %i\n", ih->arguments->mezzanine_detected);
   printf("ih->arguments->revert_detected: %i\n", ih->arguments->revert_detected);
   printf("ih->arguments->source_detected: %i\n", ih->arguments->source_detected);
   printf("ih->arguments->run_detected: %i\n", ih->arguments->run_detected);
@@ -3565,17 +3552,15 @@ int main (int argc, char **argv) {
   printf("ih->arguments->show_detected: %i\n", ih->arguments->show_detected);
   printf("ih->arguments->mezzanine_clean_detected: %i\n", ih->arguments->mezzanine_clean_detected);
   printf("ih->arguments->wipe_detected: %i\n", ih->arguments->wipe_detected);
-  printf("ih->arguments->profile_queue_detected: %i\n", ih->arguments->alias_queue_detected);
-  printf("ih->arguments->profiles_detected: %i\n", ih->arguments->all_aliases_detected);
-  printf("ih->arguments->do_it_all_detected: %i\n", ih->arguments->do_it_all_detected);
+  printf("ih->arguments->profiles_detected: %i\n", ih->arguments->profiles_detected);
 
   //does argv contain the words 'mezzanine' AND 'revert'
-  if(ih->arguments->original_detected == true && ih->arguments->revert_detected == true) {
+  if(ih->arguments->mezzanine_detected == true && ih->arguments->revert_detected == true) {
     printf("DEV: ih logic check = 1\n");
     ih_execute_revert_stage_for_all_roots(config);
   }
   //does argv contain the word 'mezzanine' WITHOUT 'revert'
-  else if(ih->arguments->original_detected == true && ih->arguments->revert_detected == false){
+  else if(ih->arguments->mezzanine_detected == true && ih->arguments->revert_detected == false){
     printf("DEV: ih logic check = 2\n");
     ih_execute_original_stage_for_all_roots(config);
   }
@@ -3590,7 +3575,7 @@ int main (int argc, char **argv) {
     source = NULL;
   }
   //does argv contain the word 'profiles' AND 'wipe'
-  if(ih->arguments->all_aliases_detected == true && ih->arguments->wipe_detected == true) {
+  if(ih->arguments->profiles_detected == true && ih->arguments->wipe_detected == true) {
     printf("DEV: ih logic check = 4\n");
     //extract relevant data from config>>
     //for every ca_node in config>>
@@ -3628,7 +3613,7 @@ int main (int argc, char **argv) {
     ih_execute_source_stage_for_all_original_roots(config);
   }
   //does argv contain the word 'profiles' WITHOUT 'wipe' AND 'config.keep_source_bool == FALSE
-  if(ih->arguments->all_aliases_detected == true && ih->arguments->wipe_detected == false && config->svc->keep_source == false) {
+  if(ih->arguments->profiles_detected == true && ih->arguments->wipe_detected == false && config->svc->keep_source == false) {
     printf("DEV: ih logic check = 8\n");
     aliases_t *aliases = NULL;
     for(int i = 0; i < ca_get_count(config->ca_head); i++) {
@@ -3636,12 +3621,12 @@ int main (int argc, char **argv) {
         alias_insert_at_head(&aliases, alias);        
     }
     //now that every alias is validated, execute relevant execution for each alias
-    a_original_to_aliases(aliases);
+    p_mezzanine_to_profiles(aliases);
     free(aliases);
     aliases = NULL;
   }
   //does argv contain the word 'profiles' WITHOUT 'wipe' AND 'config.keep_source_bool == TRUE
-  else if(ih->arguments->all_aliases_detected == true && ih->arguments->wipe_detected == false && config->svc->keep_source == true) {
+  else if(ih->arguments->profiles_detected == true && ih->arguments->wipe_detected == false && config->svc->keep_source == true) {
     printf("DEV: ih logic check = 9\n");
     aliases_t *aliases = NULL;
     // ca_print_list(config->ca_head);
@@ -3654,42 +3639,11 @@ int main (int argc, char **argv) {
         alias_insert_at_head(&aliases, alias);        
     }
     //now that every alias is validated, execute relevant execution for each alias
-    a_source_to_aliases(aliases);
+    p_source_to_profiles(aliases);
     free(aliases);
     aliases = NULL;
   }
 
-  //does argv contain the word 'do_it_all' WITHOUT 'wipe' AND 'config.keep_source_bool == TRUE
-  if(ih->arguments->do_it_all_detected == true && ih->arguments->wipe_detected == false && config->svc->keep_source == true) {
-    printf("DEV: ih logic check = 10\n");
-    ih_execute_original_stage_for_all_roots(config);
-    ih_execute_source_stage_for_all_original_roots(config);
-
-    aliases_t *aliases = NULL;
-    for(int i = 0; i < uw_get_count(config->uw_head); i++) {
-      aliases_t *alias = alias_create_new_struct(config, ca_get_a_node_from_alias_name(config->ca_head, uw_get_a_unknown_word_from_count(config->uw_head, i)));
-      alias_insert_at_head(&aliases, alias);
-    }
-    //now that specific aliases are validated, execute relevant execution for each alias
-    a_source_to_aliases(aliases);
-    free(aliases);
-    aliases = NULL;
-  }
-  //does argv contain the word 'do_it_all' WITHOUT 'wipe' AND 'config.keep_source_bool == FALSE 
-  else if(ih->arguments->do_it_all_detected == true && ih->arguments->wipe_detected == false && config->svc->keep_source == false) {
-    printf("DEV: ih logic check = 11\n");
-    ih_execute_original_stage_for_all_roots(config);
-   
-    aliases_t *aliases = NULL;
-    for(int i = 0; i < uw_get_count(config->uw_head); i++) {
-      aliases_t *alias = alias_create_new_struct(config, ca_get_a_node_from_alias_name(config->ca_head, uw_get_a_unknown_word_from_count(config->uw_head, i)));
-      alias_insert_at_head(&aliases, alias);
-    }
-    //now that specific aliases are validated, execute relevant execution for each alias
-    a_original_to_aliases(aliases);
-    free(aliases);
-    aliases = NULL;
-  }
   //does argv contain 1 or many profile words WITHOUT word 'wipe' AND 'config.keep_source_bool == TRUE
   if (ih->arguments->wipe_detected == false && uw_get_count(config->uw_head) > 0 && config->svc->keep_source == true && config->svc->keep_source == false) {
     //I REALLY NEED TO FIX UW_GET_COUNT logic here, as this runs when proper, so can't rely on count of uw as it is implemented!
@@ -3700,7 +3654,7 @@ int main (int argc, char **argv) {
       alias_insert_at_head(&aliases, alias);
     }
     //now that specific aliases are validated, execute relevant execution for each alias
-    a_source_to_aliases(aliases);
+    p_source_to_profiles(aliases);
     free(aliases);
   }
   //does argv contain 1 or many profile words WITHOUT word 'wipe' AND 'config.keep_source_bool == FALSE
@@ -3712,7 +3666,7 @@ int main (int argc, char **argv) {
       alias_insert_at_head(&aliases, alias);
     }
     //now that specific aliases are validated, execute relevant execution for each alias
-    a_original_to_aliases(aliases);
+    p_mezzanine_to_profiles(aliases);
     free(aliases);
     aliases = NULL;
   }
@@ -3726,17 +3680,3 @@ int main (int argc, char **argv) {
 #endif
 
 /*when required, place this at the bottom of main function just before EXIT_SUCCESS*/
-// #ifdef DEBUG
-  //     /*Options*/
-  //     fprintf(stdout, BLUE "Command line options:\n" NO_COLOR);
-  //     fprintf(stdout, BROWN "help: %d\n" NO_COLOR, options.help);
-  //     fprintf(stdout, BROWN "version: %d\n" NO_COLOR, options.version);
-  //     fprintf(stdout, BROWN "use colors: %d\n" NO_COLOR, options.use_colors);
-  //     /*Arguments*/
-  //     fprintf(stdout, BLUE "Command line arguments:\n" NO_COLOR);
-  //     fprintf(stdout, BROWN "original: %d\n" NO_COLOR, arguments.original);
-  //     fprintf(stdout, BROWN "source: %d\n" NO_COLOR, arguments.source);
-  //     fprintf(stdout, BROWN "joker: %d\n" NO_COLOR, arguments.joker);
-  //     fprintf(stdout, BROWN "custom_alias: %d\n" NO_COLOR, arguments.custom_alias);
-  //     fprintf(stdout, BROWN "do_it_all: %d\n" NO_COLOR, arguments.do_it_all);
-  // #endif

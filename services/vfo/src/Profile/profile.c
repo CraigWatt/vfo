@@ -112,30 +112,32 @@ static bool a_encode_candidate_with_retry(aliases_t *alias,
   return false;
 }
 
-/* Source to Aliases Work */
+static void p_source_to_profile(aliases_t *alias);
 
-void a_source_to_aliases(aliases_t *aliases) {
+/* Source to Profiles Work */
+
+void p_source_to_profiles(aliases_t *aliases) {
   printf("PROFILES ALERT: initiating 'source_to_profiles'\n");
-  //for every alias node in aliases
+  // for every profile node in aliases
   if(aliases != NULL) {
     aliases_t *tmp = aliases;
     while(tmp != NULL) {
-      //encode_source_to_profile();
-      a_source_to_alias(tmp);
+      // encode_source_to_profile();
+      p_source_to_profile(tmp);
       tmp = tmp->next;
     }
   }
   printf("PROFILES ALERT: profiles completed successfully\n");
 }
-void a_source_to_alias(aliases_t *alias) {
-  printf("PROFILE %s ALERT: initiating 'source_to_profile'\n", alias->name);
+static void p_source_to_profile(aliases_t *alias) {
+  printf("PROFILE %s ALERT: initiating 'source to profile'\n", alias->name);
   /* pre-encode checks */
   a_pre_encode_checks(alias);
 
-  /* find video folders not yet present in this alias/content */
+  /* find video folders not yet present in this profile content */
   a_highlight_encode_candidates_to_user(alias);
 
-  /*ask user if they wish to proceed with encoding */
+  /* ask user if they wish to proceed with encoding */
   utils_wish_to_continue("'find a profile's candidates'", "'encode profile candidates to profile'");
 
   /* encode */
@@ -152,14 +154,14 @@ void a_pre_encode_checks(aliases_t *alias) {
     char *content_root = alias->content_locations[i];
     utils_does_folder_contain_valid_custom_folders(content_root, alias->cf_head);
     utils_is_folder_missing_custom_folders(content_root, alias->cf_head);
-    utils_are_custom_folders_type_compliant(content_root, "mp4_original", alias->cf_head);
+    utils_are_custom_folders_type_compliant(content_root, "mp4_mezzanine", alias->cf_head);
   }
 
   // maybe necessary but not sure?
-  // are_custom_folders_files_alias_compliant();
-  // perhaps some sort of check of the movie/tv files themselves to see if they are compliant with alias.
+  // are_custom_folders_files_profile_compliant();
+  // perhaps some sort of check of the movie/tv files themselves to see if they are compliant with profile.
 
-  //a_is_alias_out_of_sync_with_source(); - //simple meaning: if a movie/tv folder exists here that doesn't 
+  // a_is_profile_out_of_sync_with_source(); - if a movie/tv folder exists here that doesn't
                                         //exist in source, tell the user.
 
   printf("PROFILE %s ALERT: 'pre-encode checks' completed successfully\n", alias->name);
@@ -170,7 +172,7 @@ void a_highlight_encode_candidates_to_user(aliases_t *alias) {
   for(int i = 0; i < alias->source_locations_count; i++) {
     alias->source_content = alias->source_content_locations[i];
     if(strcmp(alias->source_content, "") != 0) {
-      printf("PROFILE %s ALERT: found source/content at %s\n", alias->name, alias->source_content);
+      printf("PROFILE %s ALERT: found source content at %s\n", alias->name, alias->source_content);
       a_highlight_encode_candidates_from_source_content(alias);
     }
   }
@@ -179,8 +181,8 @@ void a_highlight_encode_candidates_to_user(aliases_t *alias) {
 
 void a_highlight_encode_candidates_from_source_content(aliases_t *alias) {
   active_cf_node_t *active_cf = utils_generate_from_to_ll(alias->cf_head, alias->source_content, alias->content);
-  int alias_encode_candidates_counter = 0;
-  int already_present_in_alias_counter = 0;
+  int profile_encode_candidates_counter = 0;
+  int already_present_in_profile_counter = 0;
   if(active_cf != NULL) {
     while(active_cf != NULL) {
       active_films_f_node_t *tmp_f = active_cf->active_films_f_head;
@@ -189,10 +191,10 @@ void a_highlight_encode_candidates_from_source_content(aliases_t *alias) {
           //if to_folder does exist AND if from_folder does exist
           if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
              a_destination_exists_anywhere(alias, tmp_f->to_films_f_folder))
-            already_present_in_alias_counter++;
+                    already_present_in_profile_counter++;
           else if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
                   !(a_destination_exists_anywhere(alias, tmp_f->to_films_f_folder)))
-            alias_encode_candidates_counter++;
+            profile_encode_candidates_counter++;
           tmp_f = tmp_f->next;
         }
       }
@@ -208,10 +210,10 @@ void a_highlight_encode_candidates_from_source_content(aliases_t *alias) {
                   //if to_folder doesn't exist AND from_folder contains valid file
                   if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
                      a_destination_exists_anywhere(alias, tmp_tv3->to_tv_f_folder))
-                    already_present_in_alias_counter++;
-                  else if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
-                          !(a_destination_exists_anywhere(alias, tmp_tv3->to_tv_f_folder)))
-                    alias_encode_candidates_counter++;
+                    already_present_in_profile_counter++;
+          else if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
+                  !(a_destination_exists_anywhere(alias, tmp_tv3->to_tv_f_folder)))
+                    profile_encode_candidates_counter++;
                   tmp_tv3 = tmp_tv3->next;
                 }
               }
@@ -224,8 +226,8 @@ void a_highlight_encode_candidates_from_source_content(aliases_t *alias) {
       active_cf = active_cf->next;
     }
   }
-  printf("PROFILE %s ALERT: %i source/content -> %s/content candidates found.\n",alias->name, alias_encode_candidates_counter, alias->name);
-  printf("PROFILE %s ALERT: %i will be ignored as they appear to already exist in source/content.\n", alias->name, already_present_in_alias_counter);
+  printf("PROFILE %s ALERT: %i source -> %s candidates found.\n", alias->name, profile_encode_candidates_counter, alias->name);
+  printf("PROFILE %s ALERT: %i will be ignored as they already exist in source content.\n", alias->name, already_present_in_profile_counter);
   free(active_cf);
   active_cf = NULL;
 }
@@ -923,7 +925,7 @@ char* a_generate_alias_file_name(char *from, char *to, char *alias_name) {
 
 /* Mezzanine-to-profile(s) work (legacy function names retained for compatibility). */
 
-void a_original_to_aliases(aliases_t *aliases) {
+void p_mezzanine_to_profiles(aliases_t *aliases) {
   printf("PROFILES ALERT: initiating 'mezzanine_to_profiles'\n");
   //create a ?? object and point it to relevant data in config
     //for every file in original
@@ -932,6 +934,15 @@ void a_original_to_aliases(aliases_t *aliases) {
         //encode_source_to_profile();
       //wipe_source();
 }
+
+void a_source_to_aliases(aliases_t *aliases) {
+  p_source_to_profiles(aliases);
+}
+
+void a_original_to_aliases(aliases_t *aliases) {
+  p_mezzanine_to_profiles(aliases);
+}
+
 void a_original_to_alias() {
   printf("PROFILE ALERT: initiating 'mezzanine_to_profile'\n");
 }
