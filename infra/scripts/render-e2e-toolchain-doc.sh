@@ -82,6 +82,75 @@ write_web_app_json() {
 EOF
 }
 
+merge_web_app_json() {
+  local dashboard_files=("$REPORT_DIR"/*_web_app_dashboard.json)
+
+  if [ ! -f "${dashboard_files[0]}" ]; then
+    return 1
+  fi
+
+  python3 - "$WEB_APP_JSON" "$SOURCE_WORKFLOW" "$SOURCE_RUN_URL" "$REPORT_DIR" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+output_path = Path(sys.argv[1])
+source_workflow = sys.argv[2]
+source_run_url = sys.argv[3]
+report_dir = Path(sys.argv[4])
+
+dashboard_paths = sorted(report_dir.glob("*_web_app_dashboard.json"))
+if not dashboard_paths:
+    raise SystemExit(1)
+
+dashboards = []
+for path in dashboard_paths:
+    with path.open("r", encoding="utf-8") as fh:
+        dashboards.append(json.load(fh))
+
+pipelines = []
+for dashboard in dashboards:
+    pipelines.extend(dashboard.get("pipelines") or [])
+
+if not pipelines:
+    raise SystemExit(1)
+
+selected_id = None
+for dashboard in dashboards:
+    selected_id = dashboard.get("selectedPipelineId")
+    if selected_id:
+        break
+if not selected_id:
+    selected_id = pipelines[0].get("id", "demo")
+
+for pipeline in pipelines:
+    if source_workflow and not pipeline.get("sourceWorkflow"):
+        pipeline["sourceWorkflow"] = source_workflow
+    if source_run_url and not pipeline.get("sourceRunUrl"):
+        pipeline["sourceRunUrl"] = source_run_url
+    if not pipeline.get("sourceLabel"):
+        pipeline["sourceLabel"] = "Latest e2e artifact"
+
+dashboard_title = dashboards[0].get("title") or pipelines[0].get("title") or "VFO Web App Demo"
+source_label = dashboards[0].get("sourceLabel") or pipelines[0].get("sourceLabel") or "Latest e2e artifact"
+source_workflow_label = source_workflow or dashboards[0].get("sourceWorkflow") or pipelines[0].get("sourceWorkflow") or ""
+source_run_label = source_run_url or dashboards[0].get("sourceRunUrl") or pipelines[0].get("sourceRunUrl") or ""
+
+output = {
+    "title": dashboard_title,
+    "selectedPipelineId": selected_id,
+    "sourceLabel": source_label,
+    "sourceWorkflow": source_workflow_label,
+    "sourceRunUrl": source_run_label,
+    "pipelines": pipelines,
+}
+
+with output_path.open("w", encoding="utf-8") as fh:
+    json.dump(output, fh, indent=2)
+    fh.write("\n")
+PY
+}
+
 if [ ! -f "$SUMMARY_SRC" ]; then
   write_web_app_json "Demo payload"
   {
@@ -94,7 +163,9 @@ if [ ! -f "$SUMMARY_SRC" ]; then
   exit 0
 fi
 
-write_web_app_json "Latest e2e artifact"
+if ! merge_web_app_json; then
+  write_web_app_json "Latest e2e artifact"
+fi
 
 for suite_doc in "$REPORT_DIR"/*_toolchain_versions.md; do
   [ -f "$suite_doc" ] || continue

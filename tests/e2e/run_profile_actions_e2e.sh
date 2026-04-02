@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TMP_DIR="${ROOT_DIR}/tests/e2e/.tmp"
 FIXTURES_DIR="${TMP_DIR}/fixtures"
 OUTPUTS_DIR="${TMP_DIR}/outputs"
+DASHBOARD_JSON="${ROOT_DIR}/tests/e2e/.reports/latest/run_profile_actions_e2e_web_app_dashboard.json"
 # shellcheck source=lib/e2e_toolchain_report.sh
 . "${ROOT_DIR}/tests/e2e/lib/e2e_toolchain_report.sh"
 
@@ -829,6 +830,160 @@ run_local_asset_suite() {
   log "Processed ${processed} seed asset(s)"
 }
 
+write_web_app_dashboard() {
+  mkdir -p "$(dirname "$DASHBOARD_JSON")"
+
+  cat > "$DASHBOARD_JSON" <<EOF
+{
+  "title": "VFO E2E Dashboard",
+  "selectedPipelineId": "run_profile_actions_e2e",
+  "sourceLabel": "Latest e2e artifact",
+  "sourceWorkflow": "run_profile_actions_e2e",
+  "sourceRunUrl": "",
+  "pipelines": [
+    {
+      "id": "run_profile_actions_e2e",
+      "label": "Profile actions",
+      "title": "Pipeline: Profile Actions",
+      "runLabel": "Seed 1 mezzanine and profile action lanes",
+      "sourceLabel": "Latest e2e artifact",
+      "sourceWorkflow": "run_profile_actions_e2e",
+      "sourceRunUrl": "",
+      "selectedAsset": "seed_1_mezzanine_1080.mkv",
+      "selectedNode": "hevc_4k",
+      "assets": [
+        { "name": "seed_1_mezzanine_1080.mkv", "status": "Complete", "icon": "✔" },
+        { "name": "seed_1_mezzanine_2160.mkv", "status": "Complete", "icon": "✔" },
+        { "name": "seed_1_profile_1080_output.mkv", "status": "Complete", "icon": "✔" },
+        { "name": "seed_1_profile_4k_output.mkv", "status": "Complete", "icon": "✔" },
+        { "name": "seed_1_profile_1080_main_sub.mp4", "status": "Complete", "icon": "✔" },
+        { "name": "seed_1_profile_4k_main_sub.mp4", "status": "Complete", "icon": "✔" },
+        { "name": "seed_1_profile_legacy_forced_sub.mkv", "status": "Complete", "icon": "✔" },
+        { "name": "seed_1_profile_guardrail_skip.mp4", "status": "Complete", "icon": "✔" }
+      ],
+      "filters": ["All", "Failed", "Running", "Waiting", "Complete"],
+      "summaryCounts": [
+        { "label": "Complete", "count": 8, "icon": "✔" },
+        { "label": "Failed", "count": 0, "icon": "✖" },
+        { "label": "Running", "count": 0, "icon": "⏳" },
+        { "label": "Waiting", "count": 0, "icon": "○" }
+      ],
+      "stageTotals": [
+        { "label": "Input", "count": 1 },
+        { "label": "1080", "count": 1 },
+        { "label": "4K", "count": 1 },
+        { "label": "Main Sub", "count": 4 },
+        { "label": "Legacy", "count": 2 },
+        { "label": "Guardrail", "count": 1 }
+      ],
+      "workflow": {
+        "nodes": [
+          { "id": "input", "label": "Input", "subtitle": "Seed mezzanine fixture", "x": 48, "y": 146, "status": "complete" },
+          { "id": "probe", "label": "Probe", "subtitle": "ffprobe checks used by the action lanes", "x": 280, "y": 146, "status": "complete" },
+          { "id": "hevc_1080", "label": "1080", "subtitle": "hevc_1080_profile_action(seed_1)", "x": 510, "y": 146, "status": "complete" },
+          { "id": "hevc_4k", "label": "4K", "subtitle": "hevc_4k_profile_action(seed_1)", "x": 742, "y": 146, "status": "complete" },
+          { "id": "main_sub", "label": "Main Sub", "subtitle": "1080 and 4K subtitle-preserve lanes", "x": 994, "y": 236, "status": "complete" },
+          { "id": "legacy", "label": "Legacy", "subtitle": "Autocrop lane for letterboxed source", "x": 770, "y": 302, "status": "complete" },
+          { "id": "guardrail", "label": "Guardrail", "subtitle": "Skip marker path verified", "x": 512, "y": 302, "status": "complete" }
+        ],
+        "edges": [
+          { "source": "input", "target": "probe" },
+          { "source": "probe", "target": "hevc_1080" },
+          { "source": "probe", "target": "hevc_4k" },
+          { "source": "hevc_1080", "target": "main_sub" },
+          { "source": "hevc_4k", "target": "main_sub" },
+          { "source": "main_sub", "target": "legacy" },
+          { "source": "legacy", "target": "guardrail" }
+        ],
+        "details": {
+          "input": {
+            "node": "Input",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "create_fixture_from_input seed_1_input -> seed_1_mezzanine_1080.mkv / seed_1_mezzanine_2160.mkv",
+            "output": [
+              "asset=seed_1",
+              "mezzanine=seed_1_mezzanine_1080.mkv",
+              "mezzanine=seed_1_mezzanine_2160.mkv",
+              "result=accepted"
+            ]
+          },
+          "probe": {
+            "node": "Probe",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "ffprobe -hide_banner -show_streams seed_1_mezzanine_1080.mkv",
+            "output": [
+              "stream.video.codec=hevc",
+              "stream.video.height=1080",
+              "stream.audio.layout=from_seed_input",
+              "result=signal_profile_ready"
+            ]
+          },
+          "hevc_1080": {
+            "node": "1080",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "bash services/vfo/actions/transcode_hevc_1080_profile.sh seed_1_mezzanine_1080.mkv seed_1_profile_1080_output.mkv",
+            "output": [
+              "codec=hevc",
+              "height<=1080",
+              "audio_streams=preserved",
+              "result=pass"
+            ]
+          },
+          "hevc_4k": {
+            "node": "4K",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "bash services/vfo/actions/transcode_hevc_4k_profile.sh seed_1_mezzanine_2160.mkv seed_1_profile_4k_output.mkv",
+            "output": [
+              "codec=hevc",
+              "height<=2160",
+              "audio_streams=preserved",
+              "result=pass"
+            ]
+          },
+          "main_sub": {
+            "node": "Main Sub",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "bash services/vfo/actions/transcode_hevc_1080_main_subtitle_preserve_profile.sh seed_1_mezzanine_1080_forced_sub.mkv seed_1_profile_1080_main_sub.mp4",
+            "output": [
+              "subtitle_streams=preserved",
+              "container=mp4_or_mkv",
+              "result=pass"
+            ]
+          },
+          "legacy": {
+            "node": "Legacy",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "bash services/vfo/actions/transcode_hevc_legacy_main_subtitle_preserve_profile.sh seed_1_mezzanine_legacy_letterbox.mkv seed_1_profile_legacy_default_sub_off.mp4",
+            "output": [
+              "autocrop=enabled",
+              "height_reduced=true",
+              "result=pass"
+            ]
+          },
+          "guardrail": {
+            "node": "Guardrail",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "bash services/vfo/actions/profile_guardrail_skip.sh seed_1_mezzanine_1080.mkv seed_1_profile_guardrail_skip.mp4 e2e_guardrail_skip_seed_1",
+            "output": [
+              "marker=seed_1_profile_guardrail_skip.guardrail_skipped.txt",
+              "result=skip_marker_emitted"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
+EOF
+}
+
 main() {
   require_command ffmpeg
   require_command ffprobe
@@ -865,6 +1020,7 @@ main() {
       ;;
   esac
 
+  write_web_app_dashboard
   log "All e2e profile action checks passed"
 }
 

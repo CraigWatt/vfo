@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TMP_DIR="${ROOT_DIR}/tests/e2e/.tmp_dv_metadata"
+DASHBOARD_JSON="${ROOT_DIR}/tests/e2e/.reports/latest/run_dv_metadata_optional_e2e_web_app_dashboard.json"
 # shellcheck source=lib/e2e_toolchain_report.sh
 . "${ROOT_DIR}/tests/e2e/lib/e2e_toolchain_report.sh"
 
@@ -55,6 +56,240 @@ require_command() {
   command -v "$1" >/dev/null 2>&1 || fail "Missing command: $1"
 }
 
+write_dashboard_skip() {
+  mkdir -p "$(dirname "$DASHBOARD_JSON")"
+  cat > "$DASHBOARD_JSON" <<EOF
+{
+  "title": "VFO E2E Dashboard",
+  "selectedPipelineId": "run_dv_metadata_optional_e2e",
+  "sourceLabel": "Latest e2e artifact",
+  "sourceWorkflow": "run_dv_metadata_optional_e2e",
+  "sourceRunUrl": "",
+  "pipelines": [
+    {
+      "id": "run_dv_metadata_optional_e2e",
+      "label": "DV metadata optional",
+      "title": "Pipeline: DV Metadata Optional",
+      "runLabel": "Skipped because no DV P7/P8 fixture was configured",
+      "sourceLabel": "Latest e2e artifact",
+      "sourceWorkflow": "run_dv_metadata_optional_e2e",
+      "sourceRunUrl": "",
+      "selectedAsset": "dv_p7_asset",
+      "selectedNode": "skip",
+      "assets": [
+        { "name": "dv_p7_asset", "status": "Waiting", "icon": "○" },
+        { "name": "dv_input_clip.mkv", "status": "Waiting", "icon": "○" }
+      ],
+      "filters": ["All", "Failed", "Running", "Waiting", "Complete"],
+      "summaryCounts": [
+        { "label": "Complete", "count": 0, "icon": "✔" },
+        { "label": "Failed", "count": 0, "icon": "✖" },
+        { "label": "Running", "count": 0, "icon": "⏳" },
+        { "label": "Waiting", "count": 2, "icon": "○" }
+      ],
+      "stageTotals": [
+        { "label": "Input", "count": 1 },
+        { "label": "DV", "count": 0 },
+        { "label": "Main Sub", "count": 0 }
+      ],
+      "workflow": {
+        "nodes": [
+          { "id": "skip", "label": "Skip", "subtitle": "DV fixture not configured on this run", "x": 48, "y": 146, "status": "waiting" }
+        ],
+        "edges": [],
+        "details": {
+          "skip": {
+            "node": "Skip",
+            "status": "Waiting",
+            "exitCode": null,
+            "command": "VFO_E2E_DV_P7_ASSET not set",
+            "output": [
+              "result=skipped",
+              "reason=optional_dv_fixture_missing"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
+EOF
+}
+
+write_dashboard_pass() {
+  mkdir -p "$(dirname "$DASHBOARD_JSON")"
+  cat > "$DASHBOARD_JSON" <<EOF
+{
+  "title": "VFO E2E Dashboard",
+  "selectedPipelineId": "run_dv_metadata_optional_e2e",
+  "sourceLabel": "Latest e2e artifact",
+  "sourceWorkflow": "run_dv_metadata_optional_e2e",
+  "sourceRunUrl": "",
+  "pipelines": [
+    {
+      "id": "run_dv_metadata_optional_e2e",
+      "label": "DV metadata optional",
+      "title": "Pipeline: DV Metadata Optional",
+      "runLabel": "DV fixture provided and validated successfully",
+      "sourceLabel": "Latest e2e artifact",
+      "sourceWorkflow": "run_dv_metadata_optional_e2e",
+      "sourceRunUrl": "",
+      "selectedAsset": "dv_input_clip.mkv",
+      "selectedNode": "main_subtitle",
+      "assets": [
+        { "name": "dv_input_clip.mkv", "status": "Complete", "icon": "✔" },
+        { "name": "dv_output.mkv", "status": "Complete", "icon": "✔" },
+        { "name": "dv_main_subtitle_output.mp4", "status": "Complete", "icon": "✔" }
+      ],
+      "filters": ["All", "Failed", "Running", "Waiting", "Complete"],
+      "summaryCounts": [
+        { "label": "Complete", "count": 3, "icon": "✔" },
+        { "label": "Failed", "count": 0, "icon": "✖" },
+        { "label": "Running", "count": 0, "icon": "⏳" },
+        { "label": "Waiting", "count": 0, "icon": "○" }
+      ],
+      "stageTotals": [
+        { "label": "Input", "count": 1 },
+        { "label": "DV", "count": 1 },
+        { "label": "Main Sub", "count": 1 }
+      ],
+      "workflow": {
+        "nodes": [
+          { "id": "input", "label": "Input", "subtitle": "DV source fixture", "x": 48, "y": 146, "status": "complete" },
+          { "id": "dv", "label": "DV", "subtitle": "transcode_hevc_4k_dv_profile.sh", "x": 280, "y": 146, "status": "complete" },
+          { "id": "main_subtitle", "label": "Main Sub", "subtitle": "4K subtitle-preserve DV retention check", "x": 510, "y": 146, "status": "complete" }
+        ],
+        "edges": [
+          { "source": "input", "target": "dv" },
+          { "source": "dv", "target": "main_subtitle" }
+        ],
+        "details": {
+          "input": {
+            "node": "Input",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "ffmpeg -ss 0 -t 8 -i DV_P7_ASSET -c copy dv_input_clip.mkv",
+            "output": [
+              "fixture=DV_P7_ASSET",
+              "result=accepted"
+            ]
+          },
+          "dv": {
+            "node": "DV",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "bash services/vfo/actions/transcode_hevc_4k_dv_profile.sh dv_input_clip.mkv dv_output.mkv",
+            "output": [
+              "dovi_side_data=retained",
+              "profile_conversion=8.x",
+              "result=pass"
+            ]
+          },
+          "main_subtitle": {
+            "node": "Main Sub",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "bash services/vfo/actions/transcode_hevc_4k_main_subtitle_preserve_profile.sh dv_input_clip.mkv dv_main_subtitle_output.mp4",
+            "output": [
+              "dovi_side_data=retained",
+              "result=pass"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
+EOF
+}
+
+write_dashboard_warn() {
+  mkdir -p "$(dirname "$DASHBOARD_JSON")"
+  cat > "$DASHBOARD_JSON" <<EOF
+{
+  "title": "VFO E2E Dashboard",
+  "selectedPipelineId": "run_dv_metadata_optional_e2e",
+  "sourceLabel": "Latest e2e artifact",
+  "sourceWorkflow": "run_dv_metadata_optional_e2e",
+  "sourceRunUrl": "",
+  "pipelines": [
+    {
+      "id": "run_dv_metadata_optional_e2e",
+      "label": "DV metadata optional",
+      "title": "Pipeline: DV Metadata Optional",
+      "runLabel": "DV fixture provided, side data not retained",
+      "sourceLabel": "Latest e2e artifact",
+      "sourceWorkflow": "run_dv_metadata_optional_e2e",
+      "sourceRunUrl": "",
+      "selectedAsset": "dv_input_clip.mkv",
+      "selectedNode": "main_subtitle",
+      "assets": [
+        { "name": "dv_input_clip.mkv", "status": "Complete", "icon": "✔" },
+        { "name": "dv_output.mkv", "status": "Complete", "icon": "✔" },
+        { "name": "dv_main_subtitle_output.mp4", "status": "Waiting", "icon": "○" }
+      ],
+      "filters": ["All", "Failed", "Running", "Waiting", "Complete"],
+      "summaryCounts": [
+        { "label": "Complete", "count": 2, "icon": "✔" },
+        { "label": "Failed", "count": 0, "icon": "✖" },
+        { "label": "Running", "count": 0, "icon": "⏳" },
+        { "label": "Waiting", "count": 1, "icon": "○" }
+      ],
+      "stageTotals": [
+        { "label": "Input", "count": 1 },
+        { "label": "DV", "count": 1 },
+        { "label": "Main Sub", "count": 1 }
+      ],
+      "workflow": {
+        "nodes": [
+          { "id": "input", "label": "Input", "subtitle": "DV source fixture", "x": 48, "y": 146, "status": "complete" },
+          { "id": "dv", "label": "DV", "subtitle": "transcode_hevc_4k_dv_profile.sh", "x": 280, "y": 146, "status": "complete" },
+          { "id": "main_subtitle", "label": "Main Sub", "subtitle": "DV retention not preserved in this branch", "x": 510, "y": 146, "status": "waiting" }
+        ],
+        "edges": [
+          { "source": "input", "target": "dv" },
+          { "source": "dv", "target": "main_subtitle" }
+        ],
+        "details": {
+          "input": {
+            "node": "Input",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "ffmpeg -ss 0 -t 8 -i DV_P7_ASSET -c copy dv_input_clip.mkv",
+            "output": [
+              "fixture=DV_P7_ASSET",
+              "result=accepted"
+            ]
+          },
+          "dv": {
+            "node": "DV",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "bash services/vfo/actions/transcode_hevc_4k_dv_profile.sh dv_input_clip.mkv dv_output.mkv",
+            "output": [
+              "dovi_side_data=present",
+              "profile_conversion=8.x",
+              "result=pass"
+            ]
+          },
+          "main_subtitle": {
+            "node": "Main Sub",
+            "status": "Waiting",
+            "exitCode": null,
+            "command": "bash services/vfo/actions/transcode_hevc_4k_main_subtitle_preserve_profile.sh dv_input_clip.mkv dv_main_subtitle_output.mp4",
+            "output": [
+              "dovi_side_data=not_retained",
+              "result=warn"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
+EOF
+}
+
 main() {
   e2e_write_toolchain_report \
     "$ROOT_DIR" \
@@ -63,6 +298,7 @@ main() {
 
   if [ -z "$DV_P7_ASSET" ] || [ ! -f "$DV_P7_ASSET" ]; then
     log "Skipping optional DV metadata test (VFO_E2E_DV_P7_ASSET not set or file missing)"
+    write_dashboard_skip
     exit 0
   fi
 
@@ -152,6 +388,7 @@ main() {
       fail "Main-subtitle DV profile conversion check failed: input profile 7 did not output profile 8.x"
     fi
     log "Main-subtitle 4K action retained DV side data"
+    write_dashboard_pass
     exit 0
   fi
 
@@ -160,6 +397,7 @@ main() {
   fi
 
   warn "Main-subtitle 4K action output missing DV side data (allowed because VFO_E2E_DV_REQUIRE_RETENTION=0)"
+  write_dashboard_warn
   exit 0
 }
 

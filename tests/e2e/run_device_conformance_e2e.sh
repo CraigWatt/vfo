@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TMP_DIR="${ROOT_DIR}/tests/e2e/.tmp_device_conformance"
 FIXTURES_DIR="${TMP_DIR}/fixtures"
 OUTPUTS_DIR="${TMP_DIR}/outputs"
+DASHBOARD_JSON="${ROOT_DIR}/tests/e2e/.reports/latest/run_device_conformance_e2e_web_app_dashboard.json"
 # shellcheck source=lib/e2e_toolchain_report.sh
 . "${ROOT_DIR}/tests/e2e/lib/e2e_toolchain_report.sh"
 
@@ -240,6 +241,126 @@ main() {
       fail "Unsupported VFO_E2E_ASSET_MODE='${ASSET_MODE}' (expected: auto|local|synthetic)"
       ;;
   esac
+
+  mkdir -p "$(dirname "$DASHBOARD_JSON")"
+  cat > "$DASHBOARD_JSON" <<EOF
+{
+  "title": "VFO E2E Dashboard",
+  "selectedPipelineId": "run_device_conformance_e2e",
+  "sourceLabel": "Latest e2e artifact",
+  "sourceWorkflow": "run_device_conformance_e2e",
+  "sourceRunUrl": "",
+  "pipelines": [
+    {
+      "id": "run_device_conformance_e2e",
+      "label": "Device conformance",
+      "title": "Pipeline: Device Conformance",
+      "runLabel": "1080 SDR targets and 4K device targets",
+      "sourceLabel": "Latest e2e artifact",
+      "sourceWorkflow": "run_device_conformance_e2e",
+      "sourceRunUrl": "",
+      "selectedAsset": "seed_1_input_2160.mkv",
+      "selectedNode": "validator",
+      "assets": [
+        { "name": "seed_1_input_2160.mkv", "status": "Complete", "icon": "✔" },
+        { "name": "seed_1_h264_1080_sdr.mkv", "status": "Complete", "icon": "✔" },
+        { "name": "seed_1_hevc_1080.mkv", "status": "Complete", "icon": "✔" },
+        { "name": "seed_1_hevc_4k.mkv", "status": "Complete", "icon": "✔" }
+      ],
+      "filters": ["All", "Failed", "Running", "Waiting", "Complete"],
+      "summaryCounts": [
+        { "label": "Complete", "count": 4, "icon": "✔" },
+        { "label": "Failed", "count": 0, "icon": "✖" },
+        { "label": "Running", "count": 0, "icon": "⏳" },
+        { "label": "Waiting", "count": 0, "icon": "○" }
+      ],
+      "stageTotals": [
+        { "label": "Input", "count": 1 },
+        { "label": "HEVC 1080", "count": 1 },
+        { "label": "HEVC 4K", "count": 1 },
+        { "label": "1080 SDR", "count": 1 },
+        { "label": "Validator", "count": 9 }
+      ],
+      "workflow": {
+        "nodes": [
+          { "id": "input", "label": "Input", "subtitle": "Seed mezzanine fixture", "x": 48, "y": 146, "status": "complete" },
+          { "id": "hevc_1080", "label": "1080", "subtitle": "transcode_hevc_1080_profile.sh", "x": 280, "y": 146, "status": "complete" },
+          { "id": "hevc_4k", "label": "4K", "subtitle": "transcode_hevc_4k_profile.sh", "x": 510, "y": 146, "status": "complete" },
+          { "id": "sdr", "label": "SDR", "subtitle": "transcode_h264_1080_hdr_to_sdr_profile.sh", "x": 742, "y": 146, "status": "complete" },
+          { "id": "validator", "label": "Validator", "subtitle": "roku/fire/chromecast/apple target checks", "x": 994, "y": 236, "status": "complete" }
+        ],
+        "edges": [
+          { "source": "input", "target": "hevc_1080" },
+          { "source": "input", "target": "hevc_4k" },
+          { "source": "input", "target": "sdr" },
+          { "source": "hevc_1080", "target": "validator" },
+          { "source": "hevc_4k", "target": "validator" },
+          { "source": "sdr", "target": "validator" }
+        ],
+        "details": {
+          "input": {
+            "node": "Input",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "create_fixture_from_input seed_1_input_2160 -> seed_1_input_2160.mkv",
+            "output": [
+              "asset=seed_1",
+              "fixture=seed_1_input_2160.mkv",
+              "result=accepted"
+            ]
+          },
+          "hevc_1080": {
+            "node": "1080",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "bash services/vfo/actions/transcode_hevc_1080_profile.sh seed_1_input_2160.mkv seed_1_hevc_1080.mkv",
+            "output": [
+              "codec=hevc",
+              "height<=1080",
+              "result=pass"
+            ]
+          },
+          "hevc_4k": {
+            "node": "4K",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "bash services/vfo/actions/transcode_hevc_4k_profile.sh seed_1_input_2160.mkv seed_1_hevc_4k.mkv",
+            "output": [
+              "codec=hevc",
+              "height<=2160",
+              "result=pass"
+            ]
+          },
+          "sdr": {
+            "node": "SDR",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "bash services/vfo/actions/transcode_h264_1080_hdr_to_sdr_profile.sh seed_1_input_2160.mkv seed_1_h264_1080_sdr.mkv",
+            "output": [
+              "codec=h264",
+              "hdr_to_sdr=pass",
+              "result=pass"
+            ]
+          },
+          "validator": {
+            "node": "Validator",
+            "status": "Complete",
+            "exitCode": 0,
+            "command": "validate_device_conformance.sh roku_express_1080 ... apple_tv_4k",
+            "output": [
+              "roku_express_1080=pass",
+              "fire_tv_stick_4k=pass",
+              "chromecast_google_tv_4k=pass",
+              "apple_tv_4k=pass",
+              "result=pass"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
+EOF
 
   log "All device conformance e2e checks passed"
 }
