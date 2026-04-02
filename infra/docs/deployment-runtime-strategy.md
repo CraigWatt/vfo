@@ -110,7 +110,12 @@ Recommended semantics:
 
 - `system`: only host tools.
 - `managed`: only managed tools (hard fail if missing).
-- `auto`: prefer managed, then fallback to system.
+- `auto`: current CLI behavior falls back to `system`; reserve managed-first fallback for the future rollout.
+
+Current implementation note:
+
+- The shipped CLI still treats `TOOLCHAIN_MODE=auto` as a system-path fallback mode until the managed lane lands.
+- Keep this doc aligned with the README so operators do not assume managed-first behavior exists yet.
 
 Resolution should be surfaced in:
 
