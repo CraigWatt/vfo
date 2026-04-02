@@ -31,7 +31,7 @@
 #include "../../src/mezzanine_clean.h"
 #include "../../src/Mezzanine/m_internal.h"
 
-void test_o_original_null_ptr(void **state);
+void test_m_mezzanine_null_ptr(void **state);
 void test_mc_sanitize_title_uses_underscores(void **state);
 void test_mc_prepare_filename_with_tags_uses_underscores(void **state);
 void test_mc_prepare_movie_folder_name_appends_tags(void **state);

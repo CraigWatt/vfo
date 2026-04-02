@@ -30,6 +30,6 @@
 #include "../../src/profile.h"
 #include "../../src/Profile/p_internal.h"
 
-void test_a_source_to_aliases(void **state);
+void test_p_source_to_profiles(void **state);
 
 #endif // P_TESTS_H

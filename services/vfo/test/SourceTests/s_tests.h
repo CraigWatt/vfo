@@ -30,6 +30,6 @@
 #include "../../src/source.h"
 #include "../../src/Source/s_internal.h"
 
-void test_s_original_to_source_null_ptr(void **state);
+void test_s_mezzanine_to_source_null_ptr(void **state);
 
 #endif // S_TESTS_H
