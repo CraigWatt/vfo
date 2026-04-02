@@ -180,6 +180,7 @@
   function normalizeDashboard(raw) {
     var dashboard = raw && typeof raw === "object" ? raw : {};
     var pipelines = [];
+    var panelState = dashboard.panelState && typeof dashboard.panelState === "object" ? dashboard.panelState : {};
 
     if (Array.isArray(dashboard.pipelines) && dashboard.pipelines.length) {
       pipelines = dashboard.pipelines.map(function (pipeline, index) {
@@ -196,6 +197,10 @@
       sourceLabel: dashboard.sourceLabel || pipelines[0].sourceLabel || "Demo payload",
       sourceWorkflow: dashboard.sourceWorkflow || pipelines[0].sourceWorkflow || "",
       sourceRunUrl: dashboard.sourceRunUrl || pipelines[0].sourceRunUrl || "",
+      panelState: {
+        assets: panelState.assets !== false,
+        inspector: panelState.inspector !== false
+      },
       playback: null
     };
   }
@@ -259,13 +264,28 @@
 
     return [
       '<label class="vfo-web-app__pipeline-select">',
-      '  <span>Suite</span>',
+      '  <span>Run suite</span>',
       '  <select data-vfo-pipeline-select>',
       state.pipelines.map(function (pipeline) {
         return '<option value="' + escapeHtml(pipeline.id) + '">' + escapeHtml(pipeline.label) + '</option>';
       }).join(""),
       "  </select>",
       "</label>"
+    ].join("\n");
+  }
+
+  function buildDrawerTabs(state) {
+    var panelState = state.panelState || { assets: true, inspector: true };
+
+    return [
+      '<div class="vfo-web-app__drawer-tabs" role="tablist" aria-label="Side drawers">',
+      '  <button type="button" class="vfo-web-app__drawer-tab ' + (panelState.assets ? "is-active" : "") + '" data-vfo-panel-toggle="assets" aria-pressed="' + String(Boolean(panelState.assets)) + '">',
+      '    Assets',
+      '  </button>',
+      '  <button type="button" class="vfo-web-app__drawer-tab ' + (panelState.inspector ? "is-active" : "") + '" data-vfo-panel-toggle="inspector" aria-pressed="' + String(Boolean(panelState.inspector)) + '">',
+      '    Inspector',
+      '  </button>',
+      '</div>'
     ].join("\n");
   }
 
@@ -287,6 +307,7 @@
   function render(container, state) {
     var selectedPipeline = getSelectedPipeline(state);
     var pipelineOptions = buildPipelineOptions(state);
+    var drawerTabs = buildDrawerTabs(state);
     var replayMeter = buildReplayMeter(state);
     var headerTitle = state.title || "VFO Workflow Replay";
     var headerSubtitle = selectedPipeline.title === headerTitle
@@ -302,6 +323,13 @@
     var sourceRunHtml = selectedPipeline.sourceRunUrl
       ? '<a href="' + escapeHtml(selectedPipeline.sourceRunUrl) + '" target="_blank" rel="noreferrer">source run</a>'
       : "";
+    var assetsCollapsed = state.panelState && state.panelState.assets === false;
+    var inspectorCollapsed = state.panelState && state.panelState.inspector === false;
+
+    container.dataset.assetsCollapsed = assetsCollapsed ? "1" : "0";
+    container.dataset.inspectorCollapsed = inspectorCollapsed ? "1" : "0";
+    container.style.setProperty("--vfo-assets-width", assetsCollapsed ? "0px" : "19rem");
+    container.style.setProperty("--vfo-inspector-width", inspectorCollapsed ? "0px" : "20rem");
 
     container.innerHTML = [
       '<div class="vfo-web-app__shell">',
@@ -320,8 +348,9 @@
       "      </div>",
       "    </div>",
       "  </header>",
+      drawerTabs,
       '  <section class="vfo-web-app__workspace">',
-      '    <aside class="vfo-web-app__panel vfo-web-app__assets">',
+      '    <aside class="vfo-web-app__panel vfo-web-app__assets' + (assetsCollapsed ? " is-collapsed" : "") + '" data-panel="assets">',
       '      <div class="vfo-web-app__panel-head"><h3>Assets</h3><span>' + escapeHtml(assetRailSummary) + '</span></div>',
       '      <label class="vfo-web-app__search">',
       '        <span>Search assets...</span>',
@@ -336,12 +365,14 @@
       '    <section class="vfo-web-app__panel vfo-web-app__workflow">',
       '      <div class="vfo-web-app__panel-head"><h3>Workflow</h3><span>All nodes visible by default</span></div>',
       '      <div class="vfo-web-app__workflow-shell">',
-      '        <svg class="vfo-web-app__workflow-edges" aria-hidden="true"></svg>',
-      '        <div class="vfo-web-app__workflow-nodes"></div>',
+      '        <div class="vfo-web-app__workflow-stage">',
+      '          <svg class="vfo-web-app__workflow-edges" aria-hidden="true"></svg>',
+      '          <div class="vfo-web-app__workflow-nodes"></div>',
+      "        </div>",
       "      </div>",
       '      <div class="vfo-web-app__caption">Node status for the selected asset is shown inline, with failures, running, waiting, and complete states carried directly on the lane.</div>',
       "    </section>",
-      '    <aside class="vfo-web-app__panel vfo-web-app__inspector">',
+      '    <aside class="vfo-web-app__panel vfo-web-app__inspector' + (inspectorCollapsed ? " is-collapsed" : "") + '" data-panel="inspector">',
       '      <div class="vfo-web-app__panel-head"><h3>Inspector</h3><span>Current selection</span></div>',
       '      <div class="vfo-web-app__density-map"></div>',
       '      <div class="vfo-web-app__inspector-card"></div>',
@@ -403,16 +434,29 @@
   function renderWorkflow(container, pipeline) {
     var workflowNodes = container.querySelector(".vfo-web-app__workflow-nodes");
     var workflowEdges = container.querySelector(".vfo-web-app__workflow-edges");
+    var workflowShell = container.querySelector(".vfo-web-app__workflow-shell");
+    var workflowStage = container.querySelector(".vfo-web-app__workflow-stage");
     var bounds = { width: 0, height: 0 };
     var laidOutNodes = applyNodeLayout(pipeline.workflow.nodes);
+    var scale = 1;
+    var availableWidth = workflowShell ? Math.max(workflowShell.clientWidth - 24, 1) : 0;
+    var availableHeight = workflowShell ? Math.max(workflowShell.clientHeight - 24, 1) : 0;
+
+    if (availableWidth && availableHeight) {
+      scale = Math.min(1, availableWidth / 1200, availableHeight / 460);
+    }
 
     workflowNodes.innerHTML = laidOutNodes.map(function (node) {
-      bounds.width = Math.max(bounds.width, node.x + 220);
-      bounds.height = Math.max(bounds.height, node.y + 128);
+      var width = Math.round(220 * scale);
+      var height = Math.round(128 * scale);
+      var x = Math.round(node.x * scale);
+      var y = Math.round(node.y * scale);
+      bounds.width = Math.max(bounds.width, x + width);
+      bounds.height = Math.max(bounds.height, y + height);
       return [
         '<button type="button" class="vfo-web-app__node ' + (node.id === pipeline.selectedNode ? "is-active " : "") + 'vfo-web-app__status-' + String(node.status || "waiting").toLowerCase() + '"',
         '        data-node="' + escapeHtml(node.id) + '"',
-        '        style="left:' + node.x + "px; top:" + node.y + 'px;">',
+        '        style="left:' + x + "px; top:" + y + 'px; width:' + width + "px; min-height:" + height + 'px;">',
         '  <span class="vfo-web-app__node-head">',
         '    <strong>' + escapeHtml(node.label) + "</strong>",
         '    <span>' + statusGlyph(node.status) + "</span>",
@@ -422,7 +466,17 @@
       ].join("\n");
     }).join("");
 
-    workflowEdges.setAttribute("viewBox", "0 0 " + Math.max(bounds.width, 1200) + " " + Math.max(bounds.height, 460));
+    var stageWidth = Math.max(Math.round(bounds.width), availableWidth || 0, 1200);
+    var stageHeight = Math.max(Math.round(bounds.height), availableHeight || 0, 460);
+
+    if (workflowStage) {
+      workflowStage.style.width = stageWidth + "px";
+      workflowStage.style.height = stageHeight + "px";
+    }
+
+    workflowNodes.style.width = stageWidth + "px";
+    workflowNodes.style.height = stageHeight + "px";
+    workflowEdges.setAttribute("viewBox", "0 0 " + stageWidth + " " + stageHeight);
     workflowEdges.innerHTML = pipeline.workflow.edges.map(function (edge) {
       var source = laidOutNodes.find(function (node) {
         return node.id === edge.source;
@@ -433,10 +487,10 @@
       if (!source || !target) {
         return "";
       }
-      var x1 = source.x + 210;
-      var y1 = source.y + 58;
-      var x2 = target.x;
-      var y2 = target.y + 58;
+      var x1 = Math.round((source.x + 210) * scale);
+      var y1 = Math.round((source.y + 58) * scale);
+      var x2 = Math.round(target.x * scale);
+      var y2 = Math.round((target.y + 58) * scale);
       var midX = Math.round((x1 + x2) / 2);
       return '<path d="M ' + x1 + " " + y1 + " C " + midX + " " + y1 + ", " + midX + " " + y2 + ", " + x2 + " " + y2 + '" />';
     }).join("");
@@ -537,8 +591,17 @@
       }
 
       var pipeline = getSelectedPipeline(state);
+      var panelToggle = event.target.closest("[data-vfo-panel-toggle]");
       var assetButton = event.target.closest("[data-asset]");
       var nodeButton = event.target.closest("[data-node]");
+
+      if (panelToggle) {
+        state.panelState = state.panelState || { assets: true, inspector: true };
+        var panelName = panelToggle.getAttribute("data-vfo-panel-toggle");
+        state.panelState[panelName] = !state.panelState[panelName];
+        render(root, state);
+        return;
+      }
 
       if (assetButton) {
         stopReplay(root);
