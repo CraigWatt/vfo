@@ -352,6 +352,15 @@ status_icons = {
 def icon_for(status):
     return status_icons.get(status, "○")
 
+def stage_node(stage_id, label, subtitle, x, y):
+    return {
+        "id": stage_id,
+        "label": label,
+        "subtitle": subtitle,
+        "x": x,
+        "y": y,
+    }
+
 def stage_totals(stages, completed):
     return [
         {"label": stage["label"], "count": 1 if index < completed else 0}
@@ -435,13 +444,13 @@ def frame(label, stages, edges, details, completed, selected_node, asset_name, a
 
 def profile_mode():
     stages = [
-        {"id": "input", "label": "Input", "subtitle": "Mezzanine ingest"},
-        {"id": "probe", "label": "Probe", "subtitle": "Signal and stream summary"},
-        {"id": "deint", "label": "Deint", "subtitle": "Optional cleanup / normalization"},
-        {"id": "encode", "label": "Encode", "subtitle": "Primary profile action"},
-        {"id": "hls", "label": "HLS", "subtitle": "Delivery packaging"},
-        {"id": "qc", "label": "QC", "subtitle": "Device and quality guardrails"},
-        {"id": "metadata", "label": "Metadata", "subtitle": "Sidecar manifests and notes"},
+        stage_node("input", "Input", "Mezzanine ingest", 48, 146),
+        stage_node("probe", "Probe", "Signal and stream summary", 280, 146),
+        stage_node("deint", "Deint", "Optional cleanup / normalization", 510, 146),
+        stage_node("encode", "Encode", "Primary profile action", 742, 146),
+        stage_node("hls", "HLS", "Delivery packaging", 994, 236),
+        stage_node("qc", "QC", "Device and quality guardrails", 770, 302),
+        stage_node("metadata", "Metadata", "Sidecar manifests and notes", 512, 302),
     ]
     edges = [
         {"source": "input", "target": "probe"},
@@ -535,11 +544,11 @@ def profile_mode():
 
 def device_mode():
     stages = [
-        {"id": "input", "label": "Input", "subtitle": "Mezzanine ingest"},
-        {"id": "probe", "label": "Probe", "subtitle": "Stream and codec inspection"},
-        {"id": "encode", "label": "Encode", "subtitle": "1080p and 4K conformance encodes"},
-        {"id": "validate", "label": "Validate", "subtitle": "Device compatibility checks"},
-        {"id": "report", "label": "Report", "subtitle": "Conformance summary"},
+        stage_node("input", "Input", "Mezzanine ingest", 48, 146),
+        stage_node("probe", "Probe", "Stream and codec inspection", 300, 146),
+        stage_node("encode", "Encode", "1080p and 4K conformance encodes", 560, 146),
+        stage_node("validate", "Validate", "Device compatibility checks", 820, 146),
+        stage_node("report", "Report", "Conformance summary", 1080, 146),
     ]
     edges = [
         {"source": "input", "target": "probe"},
@@ -617,10 +626,10 @@ def device_mode():
 
 def dv_mode():
     stages = [
-        {"id": "input", "label": "Input", "subtitle": "Dolby Vision mezzanine"},
-        {"id": "probe", "label": "Probe", "subtitle": "DV profile and stream summary"},
-        {"id": "encode", "label": "Encode", "subtitle": "4K DV profile action"},
-        {"id": "metadata", "label": "Metadata", "subtitle": "DV sidecar and preservation"},
+        stage_node("input", "Input", "Dolby Vision mezzanine", 80, 146),
+        stage_node("probe", "Probe", "DV profile and stream summary", 360, 146),
+        stage_node("encode", "Encode", "4K DV profile action", 640, 146),
+        stage_node("metadata", "Metadata", "DV sidecar and preservation", 920, 146),
     ]
     edges = [
         {"source": "input", "target": "probe"},
@@ -704,7 +713,7 @@ else:
     stages, edges, details, frames = profile_mode()
 
 dashboard = {
-    "title": pipeline_title,
+    "title": "VFO Workflow Replay",
     "selectedPipelineId": pipeline_id,
     "sourceLabel": source_label,
     "sourceWorkflow": source_workflow,
