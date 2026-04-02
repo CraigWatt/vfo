@@ -314,8 +314,8 @@
       ? selectedPipeline.runLabel
       : selectedPipeline.title + "  |  " + selectedPipeline.runLabel;
     var assetRailSummary = selectedPipeline.assets.length === 1
-      ? "1 mezzanine source in this run"
-      : String(selectedPipeline.assets.length) + " mezzanine sources in this run";
+      ? "1 mezzanine source available"
+      : String(selectedPipeline.assets.length) + " mezzanine sources available";
     var liveAttr = selectedPipeline.sourceRunUrl ? ' data-live="1"' : "";
     var sourceWorkflowHtml = selectedPipeline.sourceWorkflow
       ? '<strong>' + escapeHtml(selectedPipeline.sourceWorkflow) + '</strong>'

@@ -322,12 +322,14 @@ e2e_write_web_app_dashboard() {
   local selected_asset="$9"
   local mode="${10}"
   local asset_status="${11:-Waiting}"
+  local asset_list_file="${12:-}"
 
-  python3 - "$output_path" "$pipeline_id" "$pipeline_label" "$pipeline_title" "$run_label" "$source_label" "$source_workflow" "$source_run_url" "$selected_asset" "$mode" "$asset_status" <<'PY'
+  python3 - "$output_path" "$pipeline_id" "$pipeline_label" "$pipeline_title" "$run_label" "$source_label" "$source_workflow" "$source_run_url" "$selected_asset" "$mode" "$asset_status" "$asset_list_file" <<'PY'
 import copy
 import json
 import pathlib
 import sys
+from os.path import basename
 
 out_path = pathlib.Path(sys.argv[1])
 pipeline_id = sys.argv[2]
@@ -340,6 +342,7 @@ source_run_url = sys.argv[8]
 selected_asset = sys.argv[9] or "mezzanine_asset.mkv"
 mode = sys.argv[10]
 asset_status = sys.argv[11]
+asset_list_file = sys.argv[12]
 
 status_icons = {
     "complete": "✔",
@@ -391,6 +394,29 @@ def make_node(node, status):
     item = copy.deepcopy(node)
     item["status"] = status
     return item
+
+def load_assets():
+    assets = []
+    seen = set()
+
+    if asset_list_file:
+        path = pathlib.Path(asset_list_file)
+        if path.is_file():
+            for raw_line in path.read_text(encoding="utf-8").splitlines():
+                candidate = raw_line.strip()
+                if not candidate:
+                    continue
+                asset_name = basename(candidate)
+                if asset_name in seen:
+                    continue
+                seen.add(asset_name)
+                assets.append(asset_name)
+
+    selected_name = basename(selected_asset)
+    if selected_name not in seen:
+        assets.append(selected_name)
+
+    return assets
 
 def make_workflow(stages, edges, details, status_map):
     nodes = [make_node(stage, status_map.get(stage["id"], "waiting")) for stage in stages]
@@ -729,7 +755,14 @@ dashboard = {
             "sourceRunUrl": source_run_url,
             "selectedAsset": selected_asset,
             "selectedNode": stages[0]["id"],
-            "assets": [{"name": selected_asset, "status": asset_status, "icon": icon_for(asset_status.lower())}],
+            "assets": [
+                {
+                    "name": asset_name,
+                    "status": asset_status if asset_name == basename(selected_asset) else "Waiting",
+                    "icon": icon_for((asset_status if asset_name == basename(selected_asset) else "Waiting").lower()),
+                }
+                for asset_name in load_assets()
+            ],
             "filters": ["All", "Failed", "Running", "Waiting", "Complete"],
             "summaryCounts": summary_counts(stages, 0, skipped=asset_status.lower() == "skipped"),
             "stageTotals": stage_totals(stages, 0),
