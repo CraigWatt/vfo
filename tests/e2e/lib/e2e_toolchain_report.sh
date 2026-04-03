@@ -419,6 +419,40 @@ def load_asset_names(file_path):
 manifest_assets = load_asset_names(asset_manifest_file)
 discovered_assets = load_asset_names(asset_list_file)
 discovered_set = set(discovered_assets)
+selected_asset_name = basename(selected_asset) if selected_asset else ""
+
+def make_asset_entries(active_status=None):
+    assets = []
+    corpus = manifest_assets + [name for name in discovered_assets if name not in manifest_assets]
+    seen = set()
+
+    for asset_name in corpus:
+        seen.add(asset_name)
+        if asset_name == selected_asset_name and active_status:
+            asset_state = active_status
+            icon_state = active_status.lower()
+        elif asset_name in discovered_set:
+            asset_state = "Available"
+            icon_state = "complete"
+        else:
+            asset_state = "Unavailable"
+            icon_state = "waiting"
+
+        assets.append({
+            "name": asset_name,
+            "status": asset_state,
+            "icon": icon_for(icon_state),
+        })
+
+    if selected_asset_name and selected_asset_name not in seen:
+        asset_state = active_status if active_status else "Unavailable"
+        assets.append({
+            "name": selected_asset_name,
+            "status": asset_state,
+            "icon": icon_for(asset_state.lower()),
+        })
+
+    return assets
 
 def make_workflow(stages, edges, details, status_map):
     nodes = [make_node(stage, status_map.get(stage["id"], "waiting")) for stage in stages]
@@ -462,9 +496,7 @@ def frame(label, stages, edges, details, completed, selected_node, asset_name, a
         "delayMs": 750,
         "selectedAsset": asset_name,
         "selectedNode": selected_node,
-        "assets": [
-            {"name": asset_name, "status": selected, "icon": icon_for(selected.lower())},
-        ],
+        "assets": make_asset_entries(selected),
         "summaryCounts": summary_counts(stages, completed, final=final, skipped=skipped),
         "stageTotals": stage_totals(stages, completed if not skipped else 0),
         "workflow": workflow,
@@ -759,18 +791,7 @@ dashboard = {
             "selectedAsset": selected_asset,
             "selectedNode": stages[0]["id"],
             "sourceSet": basename(asset_manifest_file) if asset_manifest_file else "",
-            "assets": [
-                {
-                    "name": asset_name,
-                    "status": "Available" if asset_name in discovered_set or asset_name == basename(selected_asset) else "Unavailable",
-                    "icon": icon_for("complete" if asset_name in discovered_set or asset_name == basename(selected_asset) else "waiting"),
-                }
-                for asset_name in (
-                    manifest_assets
-                    + [name for name in discovered_assets if name not in manifest_assets]
-                    + ([basename(selected_asset)] if basename(selected_asset) not in manifest_assets and basename(selected_asset) not in discovered_set else [])
-                )
-            ],
+            "assets": make_asset_entries(),
             "filters": ["All", "Failed", "Running", "Waiting", "Complete"],
             "summaryCounts": summary_counts(stages, 0, skipped=asset_status.lower() == "skipped"),
             "stageTotals": stage_totals(stages, 0),
