@@ -421,18 +421,31 @@ discovered_assets = load_asset_names(asset_list_file)
 discovered_set = set(discovered_assets)
 selected_asset_name = basename(selected_asset) if selected_asset else ""
 
-def make_asset_entries(active_status=None):
-    assets = []
+def build_asset_corpus():
     corpus = []
     seen = set()
 
     for asset_name in discovered_assets + manifest_assets:
-        if asset_name not in corpus:
+        if asset_name and asset_name not in seen:
+            seen.add(asset_name)
             corpus.append(asset_name)
 
-    for asset_name in corpus:
+    if not corpus and selected_asset_name:
+        corpus.append(selected_asset_name)
+
+    return corpus
+
+corpus_assets = build_asset_corpus()
+selected_asset_name = corpus_assets[0] if corpus_assets else selected_asset_name
+
+def make_asset_entries(active_asset_name, active_status=None):
+    assets = []
+    corpus = []
+    seen = set()
+
+    for asset_name in corpus_assets:
         seen.add(asset_name)
-        if asset_name == selected_asset_name and active_status:
+        if asset_name == active_asset_name and active_status:
             asset_state = active_status
             icon_state = active_status.lower()
         elif asset_name in discovered_set:
@@ -448,10 +461,10 @@ def make_asset_entries(active_status=None):
             "icon": icon_for(icon_state),
         })
 
-    if selected_asset_name and selected_asset_name not in seen:
+    if active_asset_name and active_asset_name not in seen:
         asset_state = active_status if active_status else "Unavailable"
         assets.append({
-            "name": selected_asset_name,
+            "name": active_asset_name,
             "status": asset_state,
             "icon": icon_for(asset_state.lower()),
         })
@@ -474,7 +487,7 @@ def make_workflow(stages, edges, details, status_map):
         workflow_details[stage["id"]] = detail
     return {"nodes": nodes, "edges": copy.deepcopy(edges), "details": workflow_details}
 
-def frame(label, stages, edges, details, completed, selected_node, asset_name, asset_state, final=False, skipped=False):
+def frame(label, stages, edges, details, completed, selected_node, asset_name, asset_index, asset_total, asset_state, final=False, skipped=False):
     status_map = {}
     if skipped:
         for stage in stages:
@@ -497,16 +510,85 @@ def frame(label, stages, edges, details, completed, selected_node, asset_name, a
     selected = asset_state if asset_state else ("Skipped" if skipped else ("Complete" if final else "Running"))
     return {
         "label": label,
-        "delayMs": 750,
+        "delayMs": 600 if not skipped else 450,
         "selectedAsset": asset_name,
         "selectedNode": selected_node,
-        "assets": make_asset_entries(selected),
+        "assetIndex": asset_index + 1,
+        "assetTotal": asset_total,
+        "assetLabel": asset_name,
+        "assets": make_asset_entries(asset_name, selected),
         "summaryCounts": summary_counts(stages, completed, final=final, skipped=skipped),
         "stageTotals": stage_totals(stages, completed if not skipped else 0),
         "workflow": workflow,
     }
 
-def profile_mode():
+def build_asset_chapter_frames(asset_name, asset_index, asset_total, stages, edges, details, skipped=False):
+    if skipped:
+        return [
+            frame(
+                "waiting for corpus asset",
+                stages,
+                edges,
+                details,
+                0,
+                stages[0]["id"],
+                asset_name,
+                asset_index,
+                asset_total,
+                "Skipped",
+                skipped=True,
+            ),
+            frame(
+                "asset unavailable",
+                stages,
+                edges,
+                details,
+                0,
+                stages[-1]["id"],
+                asset_name,
+                asset_index,
+                asset_total,
+                "Skipped",
+                skipped=True,
+            ),
+        ]
+
+    frames = [
+        frame("queued", stages, edges, details, 0, stages[0]["id"], asset_name, asset_index, asset_total, "Waiting"),
+    ]
+    for index, stage in enumerate(stages):
+        frames.append(
+            frame(
+                f"{stage['label']} running",
+                stages,
+                edges,
+                details,
+                index + 1,
+                stage["id"],
+                asset_name,
+                asset_index,
+                asset_total,
+                "Running",
+            )
+        )
+    frames.append(
+        frame(
+            "complete",
+            stages,
+            edges,
+            details,
+            len(stages),
+            stages[-1]["id"],
+            asset_name,
+            asset_index,
+            asset_total,
+            "Complete",
+            final=True,
+        )
+    )
+    return frames
+
+def profile_mode(asset_name, asset_index, asset_total):
     stages = [
         stage_node("input", "Input", "Mezzanine ingest", 48, 146),
         stage_node("probe", "Probe", "Signal and stream summary", 280, 146),
@@ -529,84 +611,57 @@ def profile_mode():
             "node": "Input",
             "status": "Running",
             "exitCode": None,
-            "command": f"vfo mezzanine scan {selected_asset}",
-            "output": [f"asset={selected_asset}", "result=queued"],
+            "command": f"vfo mezzanine scan {asset_name}",
+            "output": [f"asset={asset_name}", "result=queued"],
         },
         "probe": {
             "node": "Probe",
             "status": "Running",
             "exitCode": None,
-            "command": f"ffprobe -hide_banner -show_streams {selected_asset}",
+            "command": f"ffprobe -hide_banner -show_streams {asset_name}",
             "output": ["stream.video.codec=hevc", "stream.audio.layout=5.1", "result=profile_ready"],
         },
         "deint": {
             "node": "Deint",
             "status": "Running",
             "exitCode": None,
-            "command": f"bash services/vfo/actions/transcode_hevc_1080_profile.sh {selected_asset} output.mkv",
+            "command": f"bash services/vfo/actions/transcode_hevc_1080_profile.sh {asset_name} output.mkv",
             "output": ["phase=normalize", "result=in_progress"],
         },
         "encode": {
             "node": "Encode",
             "status": "Running",
             "exitCode": None,
-            "command": f"bash services/vfo/actions/transcode_hevc_4k_profile.sh {selected_asset} output.mkv",
+            "command": f"bash services/vfo/actions/transcode_hevc_4k_profile.sh {asset_name} output.mkv",
             "output": ["encode=hevc", "result=in_progress"],
         },
         "hls": {
             "node": "HLS",
             "status": "Waiting",
             "exitCode": None,
-            "command": f"bash services/vfo/actions/transcode_hevc_4k_main_subtitle_preserve_profile.sh {selected_asset} output.mp4",
+            "command": f"bash services/vfo/actions/transcode_hevc_4k_main_subtitle_preserve_profile.sh {asset_name} output.mp4",
             "output": ["queued=true", "result=blocked"],
         },
         "qc": {
             "node": "QC",
             "status": "Waiting",
             "exitCode": None,
-            "command": f"bash tests/e2e/validate_device_conformance.sh roku_4k {selected_asset}",
+            "command": f"bash tests/e2e/validate_device_conformance.sh roku_4k {asset_name}",
             "output": ["queued=true", "result=blocked"],
         },
         "metadata": {
             "node": "Metadata",
             "status": "Waiting",
             "exitCode": None,
-            "command": f"vfo metadata emit {selected_asset}",
+            "command": f"vfo metadata emit {asset_name}",
             "output": ["sidecar=queued", "result=waiting"],
         },
     }
-    frames = [
-        frame("queued", stages, edges, details, 0, "input", selected_asset, "Waiting"),
-    ]
-    for index, stage in enumerate(stages):
-        frames.append(
-            frame(
-                f"{stage['label']} running",
-                stages,
-                edges,
-                details,
-                index + 1,
-                stage["id"],
-                selected_asset,
-                "Running",
-            )
-        )
-    frames.append(
-        frame(
-            "complete",
-            stages,
-            edges,
-            details,
-            len(stages),
-            stages[-1]["id"],
-            selected_asset,
-            "Complete",
-            final=True,
-        )
-    )
+    skipped = asset_name not in discovered_set
+    frames = build_asset_chapter_frames(asset_name, asset_index, asset_total, stages, edges, details, skipped=skipped)
     return stages, edges, details, frames
 
-def device_mode():
+def device_mode(asset_name, asset_index, asset_total):
     stages = [
         stage_node("input", "Input", "Mezzanine ingest", 48, 146),
         stage_node("probe", "Probe", "Stream and codec inspection", 300, 146),
@@ -625,21 +680,21 @@ def device_mode():
             "node": "Input",
             "status": "Running",
             "exitCode": None,
-            "command": f"vfo mezzanine scan {selected_asset}",
-            "output": [f"asset={selected_asset}", "result=queued"],
+            "command": f"vfo mezzanine scan {asset_name}",
+            "output": [f"asset={asset_name}", "result=queued"],
         },
         "probe": {
             "node": "Probe",
             "status": "Running",
             "exitCode": None,
-            "command": f"ffprobe -hide_banner -show_streams {selected_asset}",
+            "command": f"ffprobe -hide_banner -show_streams {asset_name}",
             "output": ["stream.video.codec=hevc", "stream.video.height=2160", "result=profile_ready"],
         },
         "encode": {
             "node": "Encode",
             "status": "Running",
             "exitCode": None,
-            "command": f"bash services/vfo/actions/transcode_hevc_4k_profile.sh {selected_asset} output.mkv",
+            "command": f"bash services/vfo/actions/transcode_hevc_4k_profile.sh {asset_name} output.mkv",
             "output": ["encode=hevc", "result=in_progress"],
         },
         "validate": {
@@ -657,38 +712,11 @@ def device_mode():
             "output": ["conformance=waiting", "result=waiting"],
         },
     }
-    frames = [
-        frame("queued", stages, edges, details, 0, "input", selected_asset, "Waiting"),
-    ]
-    for index, stage in enumerate(stages):
-        frames.append(
-            frame(
-                f"{stage['label']} running",
-                stages,
-                edges,
-                details,
-                index + 1,
-                stage["id"],
-                selected_asset,
-                "Running",
-            )
-        )
-    frames.append(
-        frame(
-            "complete",
-            stages,
-            edges,
-            details,
-            len(stages),
-            stages[-1]["id"],
-            selected_asset,
-            "Complete",
-            final=True,
-        )
-    )
+    skipped = asset_name not in discovered_set
+    frames = build_asset_chapter_frames(asset_name, asset_index, asset_total, stages, edges, details, skipped=skipped)
     return stages, edges, details, frames
 
-def dv_mode():
+def dv_mode(asset_name, asset_index, asset_total):
     stages = [
         stage_node("input", "Input", "Dolby Vision mezzanine", 80, 146),
         stage_node("probe", "Probe", "DV profile and stream summary", 360, 146),
@@ -705,76 +733,62 @@ def dv_mode():
             "node": "Input",
             "status": "Running",
             "exitCode": None,
-            "command": f"vfo mezzanine scan {selected_asset}",
-            "output": [f"asset={selected_asset}", "result=queued"],
+            "command": f"vfo mezzanine scan {asset_name}",
+            "output": [f"asset={asset_name}", "result=queued"],
         },
         "probe": {
             "node": "Probe",
             "status": "Running",
             "exitCode": None,
-            "command": f"ffprobe -hide_banner -show_streams {selected_asset}",
+            "command": f"ffprobe -hide_banner -show_streams {asset_name}",
             "output": ["stream.video.codec=hevc", "stream.video.dv_side_data=true", "result=profile_ready"],
         },
         "encode": {
             "node": "Encode",
             "status": "Running",
             "exitCode": None,
-            "command": f"bash services/vfo/actions/transcode_hevc_4k_dv_profile.sh {selected_asset} output.mkv",
+            "command": f"bash services/vfo/actions/transcode_hevc_4k_dv_profile.sh {asset_name} output.mkv",
             "output": ["dovi=retained", "result=in_progress"],
         },
         "metadata": {
             "node": "Metadata",
             "status": "Waiting",
             "exitCode": None,
-            "command": f"vfo metadata emit {selected_asset}",
+            "command": f"vfo metadata emit {asset_name}",
             "output": ["dv_sidecar=queued", "result=waiting"],
         },
     }
 
-    if asset_status.lower() == "skipped" or not selected_asset or selected_asset.startswith("DV source unavailable"):
-        skipped_frames = [
-            frame("waiting for DV source", stages, edges, details, 0, "input", selected_asset, "Skipped", skipped=True),
-            frame("optional DV lane skipped", stages, edges, details, 0, "metadata", selected_asset, "Skipped", skipped=True),
-        ]
-        return stages, edges, details, skipped_frames
+    skipped = asset_name not in discovered_set or asset_name.startswith("DV source unavailable")
+    frames = build_asset_chapter_frames(asset_name, asset_index, asset_total, stages, edges, details, skipped=skipped)
+    return stages, edges, details, frames
 
-    frames = [
-        frame("queued", stages, edges, details, 0, "input", selected_asset, "Waiting"),
-    ]
-    for index, stage in enumerate(stages):
-        frames.append(
-            frame(
-                f"{stage['label']} running",
-                stages,
-                edges,
-                details,
-                index + 1,
-                stage["id"],
-                selected_asset,
-                "Running",
-            )
-        )
-    frames.append(
-        frame(
-            "complete",
-            stages,
-            edges,
-            details,
-            len(stages),
-            stages[-1]["id"],
-            selected_asset,
-            "Complete",
-            final=True,
-        )
-    )
+def build_corpus_replay(mode_builder):
+    corpus = corpus_assets if corpus_assets else [selected_asset_name]
+    if not corpus:
+        corpus = ["mezzanine_asset.mkv"]
+
+    stages = []
+    edges = []
+    details = {}
+    frames = []
+
+    for asset_index, asset_name in enumerate(corpus):
+        asset_stages, asset_edges, asset_details, asset_frames = mode_builder(asset_name, asset_index, len(corpus))
+        if not stages:
+            stages = asset_stages
+            edges = asset_edges
+            details = asset_details
+        frames.extend(asset_frames)
+
     return stages, edges, details, frames
 
 if mode == "device_conformance":
-    stages, edges, details, frames = device_mode()
+    stages, edges, details, frames = build_corpus_replay(device_mode)
 elif mode == "dv_metadata":
-    stages, edges, details, frames = dv_mode()
+    stages, edges, details, frames = build_corpus_replay(dv_mode)
 else:
-    stages, edges, details, frames = profile_mode()
+    stages, edges, details, frames = build_corpus_replay(profile_mode)
 
 dashboard = {
     "title": "VFO Workflow Replay",
@@ -792,10 +806,10 @@ dashboard = {
             "sourceLabel": source_label,
             "sourceWorkflow": source_workflow,
             "sourceRunUrl": source_run_url,
-            "selectedAsset": selected_asset,
+            "selectedAsset": selected_asset_name,
             "selectedNode": stages[0]["id"],
             "sourceSet": basename(asset_manifest_file) if asset_manifest_file else "",
-            "assets": make_asset_entries(),
+            "assets": make_asset_entries(selected_asset_name),
             "filters": ["All", "Failed", "Running", "Waiting", "Complete"],
             "summaryCounts": summary_counts(stages, 0, skipped=asset_status.lower() == "skipped"),
             "stageTotals": stage_totals(stages, 0),
