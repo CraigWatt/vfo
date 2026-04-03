@@ -150,6 +150,47 @@
     return "○";
   }
 
+  function assetFilterKey(status) {
+    var key = String(status || "waiting").toLowerCase();
+    if (key === "available") {
+      return "complete";
+    }
+    if (key === "unavailable") {
+      return "waiting";
+    }
+    if (key === "skipped") {
+      return "waiting";
+    }
+    return key;
+  }
+
+  function assetToneClass(status) {
+    return "vfo-web-app__status-" + assetFilterKey(status);
+  }
+
+  function defaultAssetFilters() {
+    return {
+      failed: true,
+      running: true,
+      waiting: true,
+      complete: true
+    };
+  }
+
+  function normalizeAssetFilters(filters) {
+    var normalized = defaultAssetFilters();
+    var source = filters && typeof filters === "object" ? filters : {};
+    var key;
+
+    for (key in normalized) {
+      if (Object.prototype.hasOwnProperty.call(normalized, key)) {
+        normalized[key] = source[key] !== false;
+      }
+    }
+
+    return normalized;
+  }
+
   function slugify(value) {
     return String(value || "pipeline")
       .toLowerCase()
@@ -197,6 +238,8 @@
       sourceLabel: dashboard.sourceLabel || pipelines[0].sourceLabel || "Demo pack",
       sourceWorkflow: dashboard.sourceWorkflow || pipelines[0].sourceWorkflow || "",
       sourceRunUrl: dashboard.sourceRunUrl || pipelines[0].sourceRunUrl || "",
+      assetQuery: typeof dashboard.assetQuery === "string" ? dashboard.assetQuery : "",
+      assetFilters: normalizeAssetFilters(dashboard.assetFilters),
       panelState: {
         assets: panelState.assets !== false,
         inspector: panelState.inspector !== false
@@ -257,6 +300,71 @@
     return selected || state.pipelines[0];
   }
 
+  function assetMatchesSearch(asset, query) {
+    if (!query) {
+      return true;
+    }
+
+    return String(asset.name || "").toLowerCase().indexOf(query) !== -1;
+  }
+
+  function assetMatchesFilters(asset, filters) {
+    var key = assetFilterKey(asset.status);
+    var activeFilters = filters || defaultAssetFilters();
+    var anySpecificFilter = false;
+    var specificVisible = false;
+
+    if (activeFilters.failed) {
+      anySpecificFilter = true;
+      if (key === "failed") {
+        specificVisible = true;
+      }
+    }
+    if (activeFilters.running) {
+      anySpecificFilter = true;
+      if (key === "running") {
+        specificVisible = true;
+      }
+    }
+    if (activeFilters.waiting) {
+      anySpecificFilter = true;
+      if (key === "waiting") {
+        specificVisible = true;
+      }
+    }
+    if (activeFilters.complete) {
+      anySpecificFilter = true;
+      if (key === "complete") {
+        specificVisible = true;
+      }
+    }
+
+    if (!anySpecificFilter) {
+      return false;
+    }
+
+    return specificVisible;
+  }
+
+  function assetFilterSummary(pipeline, state, visibleCount) {
+    var summary = pipeline.assets.length === 1
+      ? "1 mezzanine source in corpus"
+      : String(pipeline.assets.length) + " mezzanine sources in corpus";
+
+    if (visibleCount !== pipeline.assets.length || (state.assetQuery && state.assetQuery.length)) {
+      summary += " (" + String(visibleCount) + " shown)";
+    } else {
+      var availableAssets = pipeline.assets.filter(function (asset) {
+        return assetFilterKey(asset.status) === "complete";
+      }).length;
+      if (availableAssets !== pipeline.assets.length) {
+        summary += " (" + String(availableAssets) + " available)";
+      }
+    }
+
+    return summary;
+  }
+
   function buildPipelineOptions(state) {
     if (state.pipelines.length <= 1) {
       return "";
@@ -313,15 +421,6 @@
     var headerSubtitle = selectedPipeline.title === headerTitle
       ? selectedPipeline.runLabel
       : selectedPipeline.title + "  |  " + selectedPipeline.runLabel;
-    var availableAssets = selectedPipeline.assets.filter(function (asset) {
-      return String(asset.status || "").toLowerCase() !== "unavailable";
-    }).length;
-    var assetRailSummary = selectedPipeline.assets.length === 1
-      ? "1 mezzanine source in corpus"
-      : String(selectedPipeline.assets.length) + " mezzanine sources in corpus";
-    if (availableAssets !== selectedPipeline.assets.length) {
-      assetRailSummary += " (" + String(availableAssets) + " available)";
-    }
     var liveAttr = selectedPipeline.sourceRunUrl ? ' data-live="1"' : "";
     var sourceWorkflowHtml = selectedPipeline.sourceWorkflow
       ? '<strong>' + escapeHtml(selectedPipeline.sourceWorkflow) + '</strong>'
@@ -357,14 +456,14 @@
       drawerTabs,
       '  <section class="vfo-web-app__workspace">',
       '    <aside class="vfo-web-app__panel vfo-web-app__assets' + (assetsCollapsed ? " is-collapsed" : "") + '" data-panel="assets">',
-      '      <div class="vfo-web-app__panel-head"><h3>Assets</h3><span>' + escapeHtml(assetRailSummary) + '</span></div>',
+      '      <div class="vfo-web-app__panel-head"><h3>Assets</h3><span data-vfo-asset-summary></span></div>',
       '      <label class="vfo-web-app__search">',
       '        <span>Search assets...</span>',
-      '        <input type="text" value="" aria-label="Search assets" />',
+      '        <input type="text" value="' + escapeHtml(state.assetQuery || "") + '" aria-label="Search assets" data-vfo-asset-search />',
       "      </label>",
       '      <div class="vfo-web-app__asset-list"></div>',
       '      <div class="vfo-web-app__filter-block">',
-      "        <h4>Filters</h4>",
+        "        <h4>Filters</h4>",
       '        <div class="vfo-web-app__filter-list"></div>',
       "      </div>",
       "    </aside>",
@@ -404,35 +503,59 @@
       pipelineSelect.value = selectedPipeline.id;
     }
 
-    renderAssets(container, selectedPipeline);
+    renderAssets(container, selectedPipeline, state);
     renderWorkflow(container, selectedPipeline);
     renderInspector(container, selectedPipeline);
     renderLegend(container, selectedPipeline);
   }
 
-  function renderAssets(container, pipeline) {
+  function renderAssets(container, pipeline, state) {
     var assetList = container.querySelector(".vfo-web-app__asset-list");
     var filterList = container.querySelector(".vfo-web-app__filter-list");
+    var summary = container.querySelector("[data-vfo-asset-summary]");
+    var searchInput = container.querySelector("[data-vfo-asset-search]");
+    var query = String((state && state.assetQuery) || "").toLowerCase();
+    var filters = state && state.assetFilters ? state.assetFilters : defaultAssetFilters();
+    var visibleAssets = pipeline.assets.filter(function (asset) {
+      return assetMatchesSearch(asset, query) && assetMatchesFilters(asset, filters);
+    });
     var activeAsset = pipeline.assets.find(function (asset) {
       return asset.name === pipeline.selectedAsset;
     }) || pipeline.assets[0];
 
-    assetList.innerHTML = pipeline.assets.map(function (asset) {
+    if (summary) {
+      summary.textContent = assetFilterSummary(pipeline, state || {}, visibleAssets.length);
+    }
+
+    if (searchInput && searchInput.value !== (state && state.assetQuery ? state.assetQuery : "")) {
+      searchInput.value = (state && state.assetQuery) || "";
+    }
+
+    assetList.innerHTML = visibleAssets.length ? visibleAssets.map(function (asset) {
       var assetStatus = String(asset.status || "available");
-      var assetStatusKey = assetStatus.toLowerCase();
+      var assetStatusKey = assetFilterKey(assetStatus);
       return [
         '<button type="button" class="vfo-web-app__asset ' + (asset.name === activeAsset.name ? "is-active" : "") + '" data-asset="' + escapeHtml(asset.name) + '">',
-        '  <span class="vfo-web-app__asset-dot vfo-web-app__status-' + escapeHtml(assetStatusKey) + '"></span>',
+        '  <span class="vfo-web-app__asset-dot ' + assetToneClass(assetStatus) + '"></span>',
         '  <span class="vfo-web-app__asset-name">' + escapeHtml(asset.name) + '</span>',
         '  <span class="vfo-web-app__asset-status">' + escapeHtml(assetStatus) + '</span>',
         "</button>"
       ].join("\n");
-    }).join("");
+    }).join("") : [
+      '<div class="vfo-web-app__asset-empty">',
+      '  <strong>No assets match the current search or filters.</strong>',
+      '  <span>Try clearing the text box or re-enabling a filter.</span>',
+      "</div>"
+    ].join("\n");
 
     filterList.innerHTML = pipeline.filters.map(function (filter) {
+      var filterKey = String(filter || "").toLowerCase();
+      var checked = filterKey === "all"
+        ? Boolean(filters.failed && filters.running && filters.waiting && filters.complete)
+        : Boolean(filters[filterKey]);
       return [
         '<label class="vfo-web-app__filter">',
-        '  <input type="checkbox" checked />',
+        '  <input type="checkbox" data-vfo-asset-filter="' + escapeHtml(filterKey) + '" ' + (checked ? "checked" : "") + ' />',
         '  <span>' + escapeHtml(filter) + "</span>",
         "</label>"
       ].join("\n");
@@ -584,12 +707,47 @@
       }
 
       var pipelineSelect = event.target.closest("[data-vfo-pipeline-select]");
+      var assetFilter = event.target.closest("[data-vfo-asset-filter]");
+      var pipeline = getSelectedPipeline(state);
+
       if (pipelineSelect) {
         stopReplay(root);
         state.selectedPipelineId = pipelineSelect.value;
         render(root, state);
         startReplay(root, state);
+        return;
       }
+
+      if (assetFilter) {
+        var filterKey = assetFilter.getAttribute("data-vfo-asset-filter");
+        var filterChecked = assetFilter.checked;
+        if (filterKey === "all") {
+          state.assetFilters = defaultAssetFilters();
+          state.assetFilters.failed = filterChecked;
+          state.assetFilters.running = filterChecked;
+          state.assetFilters.waiting = filterChecked;
+          state.assetFilters.complete = filterChecked;
+        } else {
+          state.assetFilters = state.assetFilters || defaultAssetFilters();
+          state.assetFilters[filterKey] = filterChecked;
+        }
+        renderAssets(root, pipeline, state);
+      }
+    });
+
+    root.addEventListener("input", function (event) {
+      var state = root.__vfoState;
+      if (!state) {
+        return;
+      }
+
+      var assetSearch = event.target.closest("[data-vfo-asset-search]");
+      if (!assetSearch) {
+        return;
+      }
+
+      state.assetQuery = assetSearch.value || "";
+      renderAssets(root, getSelectedPipeline(state), state);
     });
 
     root.addEventListener("click", function (event) {
