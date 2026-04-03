@@ -207,6 +207,36 @@ void test_ih_tier_state_evaluation(void **state) {
   assert_int_equal(quality_state, STATUS_STATE_COMPLETE);
 }
 
+void test_ih_stock_preset_alias_resolution_supports_craigstreamy_and_legacy_name(void **state) {
+  char canonical_key[256];
+  char relative_path[256];
+  (void)state;
+
+  memset(canonical_key, 0, sizeof(canonical_key));
+  memset(relative_path, 0, sizeof(relative_path));
+
+  assert_true(ih_resolve_stock_preset_for_test("craigstreamy_hevc_selected_english_subtitle_preserve",
+                                               canonical_key,
+                                               sizeof(canonical_key),
+                                               relative_path,
+                                               sizeof(relative_path)));
+  assert_string_equal(canonical_key, "craigstreamy_hevc_selected_english_subtitle_preserve");
+  assert_string_equal(relative_path,
+                      "craigstreamy-hevc-selected-english-subtitle-preserve/vfo_config.preset.conf");
+
+  memset(canonical_key, 0, sizeof(canonical_key));
+  memset(relative_path, 0, sizeof(relative_path));
+
+  assert_true(ih_resolve_stock_preset_for_test("netflixy_main_subtitle_intent",
+                                               canonical_key,
+                                               sizeof(canonical_key),
+                                               relative_path,
+                                               sizeof(relative_path)));
+  assert_string_equal(canonical_key, "craigstreamy_hevc_selected_english_subtitle_preserve");
+  assert_string_equal(relative_path,
+                      "craigstreamy-hevc-selected-english-subtitle-preserve/vfo_config.preset.conf");
+}
+
 void test_quality_reference_mode_parser_accepts_valid_values(void **state) {
   bool valid = false;
   (void)state;

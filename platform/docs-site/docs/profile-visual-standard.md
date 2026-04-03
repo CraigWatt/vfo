@@ -24,18 +24,18 @@ flowchart TD
   D --> E[Write output artifact]:::output
 ```
 
-## Subtitle-Intent Variant
+## Selected-Subtitle Variant
 
-For `netflixy_main_subtitle_intent` profiles, the output container branch is explicit:
+For `craigstreamy_hevc_selected_english_subtitle_preserve` profiles, the output container branch is explicit:
 
-- Main subtitle found -> MKV output
-- Main subtitle not found -> stream-ready MP4 output (fragmented + init/moov at start by default)
+- Selected English subtitle found -> MKV output
+- Selected English subtitle not found -> stream-ready MP4 output (fragmented + init/moov at start by default)
 
-This variant is now generated automatically into each subtitle-intent profile sheet.
+This variant is now generated automatically into each selected-subtitle profile sheet.
 
 ## Where to See It
 
 - [Stock profile info sheets](profiles/index.md)
-- `netflixy` active profiles:
-  - [4k subtitle-intent sheet](profiles/generated/netflixy-preserve-audio-main-subtitle-intent-4k.md)
-  - [1080p subtitle-intent sheet](profiles/generated/netflixy-preserve-audio-main-subtitle-intent-1080p.md)
+- `craigstreamy` active profiles:
+  - [4k selected-subtitle sheet](profiles/generated/netflixy-preserve-audio-main-subtitle-intent-4k.md)
+  - [1080p selected-subtitle sheet](profiles/generated/netflixy-preserve-audio-main-subtitle-intent-1080p.md)

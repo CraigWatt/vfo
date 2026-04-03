@@ -43,6 +43,28 @@
       { label: "QC", count: 73 },
       { label: "Metadata", count: 128 }
     ],
+    assessments: [
+      { label: "Dynamic range", value: "HDR/DV aware on 4K, SDR-gated on 1080p, broad intake on legacy sub-HD", tone: "info" },
+      { label: "Resolution", value: "4K / 1080p / legacy sub-HD lane family", tone: "info" },
+      { label: "Audio codecs", value: "preserved by default", tone: "ok" },
+      { label: "Video codecs", value: "HEVC transcode target", tone: "warn" },
+      { label: "Interlacing", value: "legacy lane only; optional deinterlace", tone: "neutral" },
+      { label: "Volume normalisation", value: "not applied by default", tone: "neutral" },
+      { label: "Crop", value: "legacy lane auto-crop enabled", tone: "warn" },
+      { label: "Lowered video bitrate", value: "yes", tone: "warn" },
+      { label: "Lowered audio bitrate", value: "no by default", tone: "neutral" },
+      { label: "Audio transcoded", value: "no by default", tone: "neutral" },
+      { label: "Video transcoded", value: "yes", tone: "warn" },
+      { label: "Audio switched", value: "no; stream copy preferred", tone: "ok" },
+      { label: "Subtitle retained", value: "selected English subtitle intent", tone: "ok" },
+      { label: "Subtitle transformed", value: "no; retain/preserve intent only", tone: "neutral" },
+      { label: "Container changed", value: "yes when subtitle intent requires MKV, otherwise fragmented MP4", tone: "warn" },
+      { label: "Container targets", value: "MKV / fragmented MP4", tone: "info" },
+      { label: "Bitrate targets", value: "practical efficiency over source bit-for-bit preservation", tone: "warn" },
+      { label: "Audio bitrate targets", value: "copy/preserve unless a future audio profile says otherwise", tone: "neutral" },
+      { label: "Overall bitrate targets", value: "reduce video bitrate while maintaining viewing intent", tone: "warn" },
+      { label: "Error", value: "guardrail skip, missing toolchain, strict DV/HDR mismatch, or unknown error placeholder", tone: "error" }
+    ],
     workflow: {
       nodes: [
         { id: "input", label: "Input", subtitle: "Singular mezzanine asset", x: 48, y: 146, status: "complete" },
@@ -236,6 +258,7 @@
     copy.filters = copy.filters || fallbackPipeline.filters.slice();
     copy.summaryCounts = copy.summaryCounts || fallbackPipeline.summaryCounts.slice();
     copy.stageTotals = copy.stageTotals || fallbackPipeline.stageTotals.slice();
+    copy.assessments = copy.assessments || fallbackPipeline.assessments.slice();
     copy.workflow = copy.workflow || fallbackPipeline.workflow;
     copy.title = copy.title || fallbackPipeline.title;
     copy.runLabel = copy.runLabel || fallbackPipeline.runLabel;
@@ -317,6 +340,9 @@
     }
     if (Array.isArray(next.stageTotals)) {
       pipeline.stageTotals = next.stageTotals;
+    }
+    if (Array.isArray(next.assessments)) {
+      pipeline.assessments = next.assessments;
     }
     if (next.workflow) {
       pipeline.workflow = next.workflow;
@@ -561,6 +587,8 @@
       "    </section>",
       '    <aside class="vfo-web-app__panel vfo-web-app__inspector' + (inspectorCollapsed ? " is-collapsed" : "") + '" data-panel="inspector">',
       '      <div class="vfo-web-app__panel-head"><h3>Inspector</h3><span>Current transcript step</span></div>',
+      '      <div class="vfo-web-app__assessment-head"><span>Assessments</span><em>High-level summary</em></div>',
+      '      <div class="vfo-web-app__assessment-grid"></div>',
       '      <div class="vfo-web-app__density-map"></div>',
       '      <div class="vfo-web-app__inspector-card"></div>',
       '      <div class="vfo-web-app__code-panel">',
@@ -790,14 +818,54 @@
     });
   }
 
+  function resolveErrorSummary(activeNode) {
+    var output = activeNode && Array.isArray(activeNode.output) ? activeNode.output : [];
+    var errorLine = output.find(function (line) {
+      var text = String(line || "");
+      return text.indexOf("error=") === 0 || text.indexOf("stderr=") === 0;
+    });
+
+    if (errorLine) {
+      return errorLine.replace(/^(error|stderr)=/, "");
+    }
+
+    if (activeNode && String(activeNode.status || "").toLowerCase() === "failed") {
+      return "unknown error placeholder";
+    }
+
+    return "no error";
+  }
+
   function renderInspector(container, pipeline) {
     var activeAsset = pipeline.assets.find(function (asset) {
       return asset.name === pipeline.selectedAsset;
     }) || pipeline.assets[0];
     var activeNode = pipeline.workflow.details[pipeline.selectedNode] || pipeline.workflow.details.encode;
+    var assessments = Array.isArray(pipeline.assessments) ? pipeline.assessments.map(function (item) {
+      return JSON.parse(JSON.stringify(item || {}));
+    }) : [];
+    var errorAssessment = assessments.find(function (item) {
+      return String(item.label || "").toLowerCase() === "error";
+    });
     var densityMap = container.querySelector(".vfo-web-app__density-map");
+    var assessmentGrid = container.querySelector(".vfo-web-app__assessment-grid");
     var inspectorCard = container.querySelector(".vfo-web-app__inspector-card");
     var code = container.querySelector(".vfo-web-app__code");
+
+    if (errorAssessment) {
+      errorAssessment.value = resolveErrorSummary(activeNode);
+      errorAssessment.tone = errorAssessment.value === "no error" ? "neutral" : "error";
+    }
+
+    assessmentGrid.innerHTML = assessments.map(function (item) {
+      var tone = String(item.tone || "neutral").toLowerCase();
+      return [
+        '<div class="vfo-web-app__assessment-item vfo-web-app__tone-' + escapeHtml(tone) + '">',
+        '  <strong>' + escapeHtml(item.label || "Assessment") + "</strong>",
+        '  <span>' + escapeHtml(item.value || "unknown") + "</span>",
+        "</div>"
+      ].join("\n");
+    }).join("");
 
     densityMap.innerHTML = pipeline.summaryCounts.map(function (item) {
       return [

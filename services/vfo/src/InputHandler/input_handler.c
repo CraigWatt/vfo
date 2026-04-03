@@ -62,13 +62,43 @@ typedef enum ih_toolchain_mode {
 static const ih_stock_preset_option_t IH_STOCK_PRESET_OPTIONS[] = {
   {"balanced_open_audio", "Balanced Open Audio", "balanced_open_audio/vfo_config.preset.conf"},
   {"device_targets_open_audio", "Device Targets Open Audio", "device_targets_open_audio/vfo_config.preset.conf"},
-  {"netflixy_main_subtitle_intent", "Netflixy Main Subtitle Intent", "netflixy_main_subtitle_intent/vfo_config.preset.conf"}
+  {"craigstreamy_hevc_selected_english_subtitle_preserve",
+   "Craigstreamy HEVC Selected English Subtitle Preserve",
+   "craigstreamy-hevc-selected-english-subtitle-preserve/vfo_config.preset.conf"}
 };
 
 #define IH_STOCK_PRESET_COUNT ((int)(sizeof(IH_STOCK_PRESET_OPTIONS) / sizeof(IH_STOCK_PRESET_OPTIONS[0])))
 
 static int ih_cs_count(cs_node_t *cs_head);
 static bool ih_execute_default_run(config_t *config);
+static bool ih_stock_preset_token_matches_option(const ih_stock_preset_option_t *option, const char *token);
+static int ih_resolve_stock_preset_index(const char *token);
+
+static bool ih_stock_preset_token_matches_option(const ih_stock_preset_option_t *option, const char *token) {
+  if(option == NULL || token == NULL)
+    return false;
+
+  if(strcasecmp(token, option->key) == 0)
+    return true;
+
+  if(strcmp(option->key, "craigstreamy_hevc_selected_english_subtitle_preserve") == 0
+     && strcasecmp(token, "netflixy_main_subtitle_intent") == 0)
+    return true;
+
+  return false;
+}
+
+static int ih_resolve_stock_preset_index(const char *token) {
+  if(token == NULL)
+    return -1;
+
+  for(int i = 0; i < IH_STOCK_PRESET_COUNT; i++) {
+    if(ih_stock_preset_token_matches_option(&IH_STOCK_PRESET_OPTIONS[i], token))
+      return i;
+  }
+
+  return -1;
+}
 
 static bool ih_suppress_stdout_begin(int *saved_stdout_fd) {
   int dev_null_fd = -1;
@@ -400,6 +430,25 @@ void ih_evaluate_tier_states_for_test(bool ffmpeg_available,
                                                        libvmaf_available,
                                                        NULL,
                                                        0);
+}
+
+bool ih_resolve_stock_preset_for_test(const char *token,
+                                      char *canonical_key_out,
+                                      size_t canonical_key_out_size,
+                                      char *relative_path_out,
+                                      size_t relative_path_out_size) {
+  int index = ih_resolve_stock_preset_index(token);
+
+  if(index < 0)
+    return false;
+
+  if(canonical_key_out != NULL && canonical_key_out_size > 0)
+    snprintf(canonical_key_out, canonical_key_out_size, "%s", IH_STOCK_PRESET_OPTIONS[index].key);
+
+  if(relative_path_out != NULL && relative_path_out_size > 0)
+    snprintf(relative_path_out, relative_path_out_size, "%s", IH_STOCK_PRESET_OPTIONS[index].relative_path);
+
+  return true;
 }
 #endif
 
@@ -2762,12 +2811,7 @@ static bool ih_parse_stock_preset_selection(const char *input, bool *selected, i
       else
         return false;
     } else {
-      for(int i = 0; i < IH_STOCK_PRESET_COUNT; i++) {
-        if(strcasecmp(token, IH_STOCK_PRESET_OPTIONS[i].key) == 0) {
-          selected_index = i;
-          break;
-        }
-      }
+      selected_index = ih_resolve_stock_preset_index(token);
       if(selected_index < 0)
         return false;
     }
@@ -2803,13 +2847,13 @@ static bool ih_append_selected_stock_presets(FILE *config_file,
     if(!selected[i])
       continue;
 
-    if(!ih_resolve_stock_preset_path(config_dir,
-                                     IH_STOCK_PRESET_OPTIONS[i].relative_path,
-                                     preset_path,
-                                     sizeof(preset_path))) {
-      printf("WIZARD ERROR: could not resolve preset file for %s\n", IH_STOCK_PRESET_OPTIONS[i].key);
-      return false;
-    }
+      if(!ih_resolve_stock_preset_path(config_dir,
+                                       IH_STOCK_PRESET_OPTIONS[i].relative_path,
+                                       preset_path,
+                                       sizeof(preset_path))) {
+        printf("WIZARD ERROR: could not resolve preset file for %s\n", IH_STOCK_PRESET_OPTIONS[i].key);
+        return false;
+      }
 
     preset_file = fopen(preset_path, "r");
     if(preset_file == NULL) {
@@ -3125,7 +3169,7 @@ static int ih_run_wizard(const char *config_dir) {
   if(use_stock_presets) {
     ih_print_stock_preset_menu();
     while(true) {
-      if(!ih_prompt_line("Select stock preset packs (comma list, names, or all)", "netflixy_main_subtitle_intent", stock_preset_selection, sizeof(stock_preset_selection), true))
+      if(!ih_prompt_line("Select stock preset packs (comma list, names, or all)", "craigstreamy_hevc_selected_english_subtitle_preserve", stock_preset_selection, sizeof(stock_preset_selection), true))
         return EXIT_FAILURE;
       if(ih_parse_stock_preset_selection(stock_preset_selection, selected_stock_presets, &selected_stock_preset_count))
         break;
@@ -3143,7 +3187,7 @@ static int ih_run_wizard(const char *config_dir) {
     if(!ih_first_location_from_list(stock_profile_locations, stock_profile_location, sizeof(stock_profile_location)))
       return EXIT_FAILURE;
   } else {
-    if(!ih_prompt_line("Profile name", "netflixy_preserve_audio_main_subtitle_intent_1080p", profile_name, sizeof(profile_name), true))
+    if(!ih_prompt_line("Profile name", "craigstreamy_hevc_selected_english_subtitle_preserve_1080p", profile_name, sizeof(profile_name), true))
       return EXIT_FAILURE;
     ih_sanitize_alias_name(profile_name, sizeof(profile_name));
     printf("WIZARD INFO: profile key set to '%s'\n", profile_name);
