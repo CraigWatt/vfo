@@ -8,10 +8,10 @@
 
   var fallbackPipeline = {
     id: "demo",
-    label: "Demo payload",
-    title: "Pipeline: UHD SDR Ladder",
-    runLabel: "Run: 2026-04-02 18:42",
-    sourceLabel: "Demo payload",
+    label: "Demo lane",
+    title: "VFO Demo Pack",
+    runLabel: "Replay transcript: 2026-04-02 18:42",
+    sourceLabel: "Demo pack",
     sourceWorkflow: "Desktop + Pages view",
     sourceRunUrl: "",
     selectedAsset: "movie_01.mxf",
@@ -191,10 +191,10 @@
     }
 
     return {
-      title: dashboard.title || pipelines[0].title || "VFO Web App Demo",
+      title: dashboard.title || pipelines[0].title || "VFO Demo Pack",
       selectedPipelineId: dashboard.selectedPipelineId || pipelines[0].id,
       pipelines: pipelines,
-      sourceLabel: dashboard.sourceLabel || pipelines[0].sourceLabel || "Demo payload",
+      sourceLabel: dashboard.sourceLabel || pipelines[0].sourceLabel || "Demo pack",
       sourceWorkflow: dashboard.sourceWorkflow || pipelines[0].sourceWorkflow || "",
       sourceRunUrl: dashboard.sourceRunUrl || pipelines[0].sourceRunUrl || "",
       panelState: {
@@ -264,7 +264,7 @@
 
     return [
       '<label class="vfo-web-app__pipeline-select">',
-      '  <span>Run suite</span>',
+      '  <span>Replay lane</span>',
       '  <select data-vfo-pipeline-select>',
       state.pipelines.map(function (pipeline) {
         return '<option value="' + escapeHtml(pipeline.id) + '">' + escapeHtml(pipeline.label) + '</option>';
@@ -297,7 +297,7 @@
 
     return [
       '<div class="vfo-web-app__replay-meter">',
-      '  <span>Replay</span>',
+      '  <span>Transcript</span>',
       '  <strong>' + escapeHtml(String(playback.index).padStart(2, "0") + " / " + String(playback.total).padStart(2, "0")) + "</strong>",
       "  <em>" + escapeHtml(playback.label || "emit stream") + "</em>",
       "</div>"
@@ -309,7 +309,7 @@
     var pipelineOptions = buildPipelineOptions(state);
     var drawerTabs = buildDrawerTabs(state);
     var replayMeter = buildReplayMeter(state);
-    var headerTitle = state.title || "VFO Workflow Replay";
+    var headerTitle = state.title || "VFO Demo Pack";
     var headerSubtitle = selectedPipeline.title === headerTitle
       ? selectedPipeline.runLabel
       : selectedPipeline.title + "  |  " + selectedPipeline.runLabel;
@@ -369,17 +369,17 @@
       "      </div>",
       "    </aside>",
       '    <section class="vfo-web-app__panel vfo-web-app__workflow">',
-      '      <div class="vfo-web-app__panel-head"><h3>Workflow</h3><span>All nodes visible by default</span></div>',
+      '      <div class="vfo-web-app__panel-head"><h3>Workflow</h3><span>Replay lane visible by default</span></div>',
       '      <div class="vfo-web-app__workflow-shell">',
       '        <div class="vfo-web-app__workflow-stage">',
       '          <svg class="vfo-web-app__workflow-edges" aria-hidden="true"></svg>',
       '          <div class="vfo-web-app__workflow-nodes"></div>',
       "        </div>",
       "      </div>",
-      '      <div class="vfo-web-app__caption">Node status for the selected asset is shown inline, with failures, running, waiting, and complete states carried directly on the lane.</div>',
+      '      <div class="vfo-web-app__caption">Node status for the selected asset is shown inline, with failures, running, waiting, and complete states carried directly on the lane transcript.</div>',
       "    </section>",
       '    <aside class="vfo-web-app__panel vfo-web-app__inspector' + (inspectorCollapsed ? " is-collapsed" : "") + '" data-panel="inspector">',
-      '      <div class="vfo-web-app__panel-head"><h3>Inspector</h3><span>Current selection</span></div>',
+      '      <div class="vfo-web-app__panel-head"><h3>Inspector</h3><span>Current transcript step</span></div>',
       '      <div class="vfo-web-app__density-map"></div>',
       '      <div class="vfo-web-app__inspector-card"></div>',
       '      <div class="vfo-web-app__code-panel">',

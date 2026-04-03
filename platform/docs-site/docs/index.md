@@ -28,7 +28,7 @@ This site is built to answer three practical questions quickly:
 5. Review [Latest E2E Toolchain Report](e2e-toolchain-latest.md) for the dependency versions used in recent CI verification.
 6. Read [Observability Contract](observability-contract.md) for the event model that feeds the browser app, logs, metrics, and traces.
 7. Read [Deployment Modes](deployment-modes.md) to choose between local native, desktop-managed, and container lanes.
-8. Open [Web App Demo](vfo-web-app/) for the shareable browser view of the desktop wireframe.
+8. Open [Demo Pack Replay](vfo-web-app/) for the shareable browser view of the desktop wireframe.
 
 ## Install and Verify
 
