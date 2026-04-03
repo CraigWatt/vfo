@@ -459,11 +459,16 @@
       return "";
     }
 
+    var chapterLabel = playback.assetIndex && playback.assetTotal
+      ? "Asset " + String(playback.assetIndex).padStart(2, "0") + " / " + String(playback.assetTotal).padStart(2, "0")
+      : "Step " + String(playback.index).padStart(2, "0") + " / " + String(playback.total).padStart(2, "0");
+    var frameLabel = "Frame " + String(playback.index).padStart(2, "0") + " / " + String(playback.total).padStart(2, "0");
+
     return [
       '<div class="vfo-web-app__replay-meter">',
       '  <span>Transcript</span>',
-      '  <strong>' + escapeHtml(String(playback.index).padStart(2, "0") + " / " + String(playback.total).padStart(2, "0")) + "</strong>",
-      "  <em>" + escapeHtml(playback.label || "emit stream") + "</em>",
+      '  <strong>' + escapeHtml(chapterLabel) + "</strong>",
+      "  <em>" + escapeHtml((playback.assetLabel || playback.label || "emit stream") + " · " + frameLabel) + "</em>",
       "</div>"
     ].join("\n");
   }
@@ -1061,7 +1066,10 @@
       state.playback = {
         index: playback.index + 1,
         total: playback.frames.length,
-        label: frame.label || selectedPipeline.label || "emit stream"
+        label: frame.label || selectedPipeline.label || "emit stream",
+        assetIndex: frame.assetIndex,
+        assetTotal: frame.assetTotal,
+        assetLabel: frame.assetLabel
       };
       render(root, state);
       playback.index += 1;
@@ -1074,7 +1082,10 @@
             state.playback = {
               index: playback.frames.length,
               total: playback.frames.length,
-              label: "complete"
+              label: "complete",
+              assetIndex: playback.frames[playback.frames.length - 1] && playback.frames[playback.frames.length - 1].assetIndex,
+              assetTotal: playback.frames[playback.frames.length - 1] && playback.frames[playback.frames.length - 1].assetTotal,
+              assetLabel: playback.frames[playback.frames.length - 1] && playback.frames[playback.frames.length - 1].assetLabel
             };
             render(root, state);
             stopReplay(root);
