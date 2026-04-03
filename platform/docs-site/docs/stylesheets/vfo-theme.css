@@ -319,8 +319,11 @@ div.mermaid {
 
 .vfo-web-app__asset-sequence {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.55rem;
   padding: 0 0.95rem 0.8rem;
+  max-height: 21rem;
+  overflow: auto;
+  overflow-x: hidden;
 }
 
 .vfo-web-app__asset-sequence-head {
@@ -355,7 +358,6 @@ div.mermaid {
   letter-spacing: 0.06em;
 }
 
-.vfo-web-app__asset-list,
 .vfo-web-app__density-map,
 .vfo-web-app__stage-badges,
 .vfo-web-app__legend-summary,
@@ -363,12 +365,6 @@ div.mermaid {
   display: grid;
   gap: 0.45rem;
   padding: 0 0.85rem 0.9rem;
-}
-
-.vfo-web-app__asset-list {
-  min-height: 0;
-  overflow: auto;
-  overflow-x: hidden;
 }
 
 .vfo-web-app__asset-empty {
@@ -386,31 +382,53 @@ div.mermaid {
   font-size: 0.92rem;
 }
 
-.vfo-web-app__asset {
+.vfo-web-app__asset-chip {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 0.65rem;
-  border: 1px solid transparent;
-  border-radius: 0.7rem;
-  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid var(--vfo-border);
+  border-radius: 0.8rem;
+  background:
+    linear-gradient(135deg, rgba(14, 165, 233, 0.04), rgba(148, 163, 184, 0.06)),
+    rgba(148, 163, 184, 0.04);
   color: var(--vfo-text);
-  padding: 0.68rem 0.75rem;
+  padding: 0.82rem 0.88rem;
   text-align: left;
   cursor: pointer;
   min-width: 0;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.05);
 }
 
-.vfo-web-app__asset.is-active {
+.vfo-web-app__asset-chip.is-active {
   border-color: var(--md-primary-fg-color);
-  background: rgba(14, 165, 233, 0.08);
+  background: rgba(14, 165, 233, 0.1);
 }
 
-.vfo-web-app__asset-status {
+.vfo-web-app__asset-chip-order {
+  color: var(--vfo-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.vfo-web-app__asset-chip-name {
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.vfo-web-app__asset-chip-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   color: var(--vfo-muted);
   font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  justify-self: end;
   white-space: nowrap;
 }
 

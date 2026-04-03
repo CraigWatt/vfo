@@ -536,7 +536,6 @@
       '        <input type="text" value="' + escapeHtml(state.assetQuery || "") + '" aria-label="Search assets" data-vfo-asset-search />',
       "      </label>",
       buildAssetSequence(selectedPipeline),
-      '      <div class="vfo-web-app__asset-list"></div>',
       '      <div class="vfo-web-app__filter-block">',
         "        <h4>Filters</h4>",
       '        <div class="vfo-web-app__filter-list"></div>',
@@ -586,14 +585,13 @@
     }
 
     renderAssets(container, selectedPipeline, state);
-    renderAssetSequence(container, selectedPipeline);
     renderWorkflow(container, selectedPipeline, state);
     renderInspector(container, selectedPipeline);
     renderLegend(container, selectedPipeline);
   }
 
   function renderAssets(container, pipeline, state) {
-    var assetList = container.querySelector(".vfo-web-app__asset-list");
+    var assetSequence = container.querySelector("[data-vfo-asset-sequence]");
     var filterList = container.querySelector(".vfo-web-app__filter-list");
     var summary = container.querySelector("[data-vfo-asset-summary]");
     var searchInput = container.querySelector("[data-vfo-asset-search]");
@@ -614,21 +612,23 @@
       searchInput.value = (state && state.assetQuery) || "";
     }
 
-    assetList.innerHTML = visibleAssets.length ? visibleAssets.map(function (asset) {
-      var assetStatus = String(asset.status || "available");
-      return [
-        '<button type="button" class="vfo-web-app__asset ' + (asset.name === activeAsset.name ? "is-active" : "") + '" data-asset="' + escapeHtml(asset.name) + '">',
-        '  <span class="vfo-web-app__asset-dot ' + assetToneClass(assetStatus) + '"></span>',
-        '  <span class="vfo-web-app__asset-name">' + escapeHtml(asset.name) + '</span>',
-        '  <span class="vfo-web-app__asset-status">' + escapeHtml(assetStatus) + '</span>',
-        "</button>"
+    if (assetSequence) {
+      assetSequence.innerHTML = visibleAssets.length ? visibleAssets.map(function (asset, index) {
+        var assetStatus = String(asset.status || "available");
+        return [
+          '<button type="button" class="vfo-web-app__asset-chip ' + (asset.name === activeAsset.name ? "is-active" : "") + '" data-vfo-asset-sequence-item data-asset="' + escapeHtml(asset.name) + '">',
+          '  <span class="vfo-web-app__asset-chip-order">#' + String(index + 1).padStart(2, "0") + "</span>",
+          '  <span class="vfo-web-app__asset-chip-name">' + escapeHtml(asset.name) + "</span>",
+          '  <span class="vfo-web-app__asset-chip-status"><span class="vfo-web-app__asset-dot ' + assetToneClass(assetStatus) + '"></span>' + escapeHtml(assetStatus) + "</span>",
+          "</button>"
+        ].join("\n");
+      }).join("") : [
+        '<div class="vfo-web-app__asset-empty">',
+        '  <strong>No assets match the current search or filters.</strong>',
+        '  <span>Try clearing the text box or re-enabling a filter.</span>',
+        "</div>"
       ].join("\n");
-    }).join("") : [
-      '<div class="vfo-web-app__asset-empty">',
-      '  <strong>No assets match the current search or filters.</strong>',
-      '  <span>Try clearing the text box or re-enabling a filter.</span>',
-      "</div>"
-    ].join("\n");
+    }
 
     filterList.innerHTML = pipeline.filters.map(function (filter) {
       var filterKey = String(filter || "").toLowerCase();
@@ -645,25 +645,7 @@
   }
 
   function renderAssetSequence(container, pipeline) {
-    var sequence = container.querySelector("[data-vfo-asset-sequence]");
-    var activeAsset = pipeline.assets.find(function (asset) {
-      return asset.name === pipeline.selectedAsset;
-    }) || pipeline.assets[0];
-
-    if (!sequence) {
-      return;
-    }
-
-    sequence.innerHTML = pipeline.assets.map(function (asset, index) {
-      var assetStatus = String(asset.status || "available");
-      return [
-        '<button type="button" class="vfo-web-app__asset-chip ' + (asset.name === activeAsset.name ? "is-active" : "") + '" data-vfo-asset-sequence-item data-asset="' + escapeHtml(asset.name) + '">',
-        '  <span class="vfo-web-app__asset-chip-order">#' + String(index + 1).padStart(2, "0") + "</span>",
-        '  <span class="vfo-web-app__asset-chip-name">' + escapeHtml(asset.name) + "</span>",
-        '  <span class="vfo-web-app__asset-chip-status"><span class="vfo-web-app__asset-dot ' + assetToneClass(assetStatus) + '"></span>' + escapeHtml(assetStatus) + "</span>",
-        "</button>"
-      ].join("\n");
-    }).join("");
+    return;
   }
 
   function syncWorkflowCanvas(container, pipeline, state) {
