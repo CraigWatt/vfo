@@ -34,6 +34,33 @@ This pack standardizes mixed-library inputs into streaming-friendly HEVC outputs
 - when subtitle intent is absent, emit stream-ready MP4 (fragmented + init/moov-at-start by default)
 - for legacy sub-HD lane: optional interlace-aware deinterlace + stable black-bar auto-crop
 
+## High-Level Assessments
+
+These are the labels used to summarize what the pack takes in and what it tends to emit:
+
+| Label | Assessment |
+| --- | --- |
+| Dynamic range | `HDR/DV aware` on 4K, SDR-gated on 1080p, broad intake on legacy sub-HD |
+| Resolution | `4K / 1080p / legacy sub-HD` lane family |
+| Audio codecs | `preserved by default` |
+| Video codecs | `HEVC transcode target` |
+| Interlacing | `legacy lane only; optional deinterlace` |
+| Volume normalisation | `not applied by default` |
+| Crop | `legacy lane auto-crop enabled` |
+| Lowered video bitrate | `yes` |
+| Lowered audio bitrate | `no by default` |
+| Audio transcoded | `no by default` |
+| Video transcoded | `yes` |
+| Audio switched | `no; stream copy preferred` |
+| Subtitle retained | `selected English subtitle intent` |
+| Subtitle transformed | `no; retain/preserve intent only` |
+| Container changed | `yes when subtitle intent requires MKV, otherwise fragmented MP4` |
+| Container targets | `MKV` / `fragmented MP4` |
+| Bitrate targets | `practical efficiency over source bit-for-bit preservation` |
+| Audio bitrate targets | `copy/preserve unless a future audio profile says otherwise` |
+| Overall bitrate targets | `reduce video bitrate while maintaining viewing intent` |
+| Error | `guardrail skip, missing toolchain, strict DV/HDR mismatch, or unknown error placeholder` |
+
 ## Included Profiles
 
 - [netflixy_preserve_audio_main_subtitle_intent_4k](../generated/netflixy-preserve-audio-main-subtitle-intent-4k.md)

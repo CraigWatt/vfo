@@ -140,6 +140,31 @@ flowchart LR
 - It does not invent missing HDR/DV essence; metadata repair is heuristic and can be disabled.
 - It depends on source integrity and toolchain support for DV/HDR retention; strict mode may fail instead of silently downgrading.
 
+## High-Level Assessments
+
+| Label | Assessment |
+| --- | --- |
+| Dynamic range | `HDR/DV aware` on 4K, SDR-gated on 1080p, broad intake on legacy sub-HD |
+| Resolution | `4K / 1080p / legacy sub-HD` lane family |
+| Audio codecs | `preserved by default` |
+| Video codecs | `HEVC transcode target` |
+| Interlacing | `legacy lane only; optional deinterlace` |
+| Volume normalisation | `not applied by default` |
+| Crop | `legacy lane auto-crop enabled` |
+| Lowered video bitrate | `yes` |
+| Lowered audio bitrate | `no by default` |
+| Audio transcoded | `no by default` |
+| Video transcoded | `yes` |
+| Audio switched | `no; stream copy preferred` |
+| Subtitle retained | `selected English subtitle intent` |
+| Subtitle transformed | `no; retain/preserve intent only` |
+| Container changed | `yes when subtitle intent requires MKV, otherwise fragmented MP4` |
+| Container targets | `MKV` / `fragmented MP4` |
+| Bitrate targets | `practical efficiency over source bit-for-bit preservation` |
+| Audio bitrate targets | `copy/preserve unless a future audio profile says otherwise` |
+| Overall bitrate targets | `reduce video bitrate while maintaining viewing intent` |
+| Error | `guardrail skip, missing toolchain, strict DV/HDR mismatch, or unknown error placeholder` |
+
 ## Source
 
 - Preset file: `services/vfo/presets/craigstreamy-hevc-selected-english-subtitle-preserve/vfo_config.preset.conf`

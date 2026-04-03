@@ -392,6 +392,30 @@ def summary_counts(stages, completed, final=False, skipped=False):
         {"label": "Waiting", "count": waiting, "icon": "○"},
     ]
 
+def assessment_rows(error_value="guardrail skip, missing toolchain, strict DV/HDR mismatch, or unknown error placeholder"):
+    return [
+        {"label": "Dynamic range", "value": "HDR/DV aware on 4K, SDR-gated on 1080p, broad intake on legacy sub-HD", "tone": "info"},
+        {"label": "Resolution", "value": "4K / 1080p / legacy sub-HD lane family", "tone": "info"},
+        {"label": "Audio codecs", "value": "preserved by default", "tone": "ok"},
+        {"label": "Video codecs", "value": "HEVC transcode target", "tone": "warn"},
+        {"label": "Interlacing", "value": "legacy lane only; optional deinterlace", "tone": "neutral"},
+        {"label": "Volume normalisation", "value": "not applied by default", "tone": "neutral"},
+        {"label": "Crop", "value": "legacy lane auto-crop enabled", "tone": "warn"},
+        {"label": "Lowered video bitrate", "value": "yes", "tone": "warn"},
+        {"label": "Lowered audio bitrate", "value": "no by default", "tone": "neutral"},
+        {"label": "Audio transcoded", "value": "no by default", "tone": "neutral"},
+        {"label": "Video transcoded", "value": "yes", "tone": "warn"},
+        {"label": "Audio switched", "value": "no; stream copy preferred", "tone": "ok"},
+        {"label": "Subtitle retained", "value": "selected English subtitle intent", "tone": "ok"},
+        {"label": "Subtitle transformed", "value": "no; retain/preserve intent only", "tone": "neutral"},
+        {"label": "Container changed", "value": "yes when subtitle intent requires MKV, otherwise fragmented MP4", "tone": "warn"},
+        {"label": "Container targets", "value": "MKV / fragmented MP4", "tone": "info"},
+        {"label": "Bitrate targets", "value": "practical efficiency over source bit-for-bit preservation", "tone": "warn"},
+        {"label": "Audio bitrate targets", "value": "copy/preserve unless a future audio profile says otherwise", "tone": "neutral"},
+        {"label": "Overall bitrate targets", "value": "reduce video bitrate while maintaining viewing intent", "tone": "warn"},
+        {"label": "Error", "value": error_value, "tone": "error"},
+    ]
+
 def make_node(node, status):
     item = copy.deepcopy(node)
     item["status"] = status
@@ -832,6 +856,7 @@ dashboard = {
             "filters": ["All", "Failed", "Running", "Waiting", "Complete"],
             "summaryCounts": summary_counts(stages, 0, skipped=asset_status.lower() == "skipped"),
             "stageTotals": stage_totals(stages, 0),
+            "assessments": assessment_rows(),
             "workflow": make_workflow(stages, edges, details, {stage["id"]: "waiting" for stage in stages}),
             "events": frames,
         }
