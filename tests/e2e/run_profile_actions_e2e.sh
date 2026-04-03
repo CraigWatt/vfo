@@ -858,7 +858,8 @@ main() {
   WEB_APP_DASHBOARD_JSON="$(e2e_reports_dir "$ROOT_DIR")/run_profile_actions_e2e_web_app.json"
   WEB_APP_SELECTED_ASSET=""
   WEB_APP_ASSET_STATUS="Complete"
-  WEB_APP_ASSET_LIST_FILE=""
+  WEB_APP_ASSET_MANIFEST_FILE="${ROOT_DIR}/tests/e2e/assets/open-source/mezzanine-source-set.txt"
+  WEB_APP_ASSET_LIST_FILE="${TMP_DIR}/seed_assets.txt"
 
   assert_positive_int "$MAX_SEEDS" "VFO_E2E_MAX_SEEDS"
 
@@ -871,7 +872,6 @@ main() {
       ;;
     synthetic)
       run_seed_synthetic 1
-      WEB_APP_ASSET_LIST_FILE="${TMP_DIR}/seed_assets.txt"
       printf '%s\n' "$WEB_APP_SELECTED_ASSET" > "$WEB_APP_ASSET_LIST_FILE"
       log "Processed 1 seed asset(s)"
       ;;
@@ -892,6 +892,7 @@ main() {
     "${WEB_APP_SELECTED_ASSET:-mezzanine_asset.mkv}" \
     "profile_actions" \
     "$WEB_APP_ASSET_STATUS" \
+    "$WEB_APP_ASSET_MANIFEST_FILE" \
     "$WEB_APP_ASSET_LIST_FILE"
 
   log "All e2e profile action checks passed"

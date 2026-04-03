@@ -361,6 +361,13 @@ div.mermaid {
   background: rgba(14, 165, 233, 0.08);
 }
 
+.vfo-web-app__asset-status {
+  color: var(--vfo-muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .vfo-web-app__filter {
   display: flex;
   align-items: center;
@@ -379,6 +386,8 @@ div.mermaid {
 .vfo-web-app__status-waiting { background: #94a3b8; }
 .vfo-web-app__status-complete { background: #22c55e; }
 .vfo-web-app__status-skipped { background: #f59e0b; }
+.vfo-web-app__status-available { background: #0ea5e9; }
+.vfo-web-app__status-unavailable { background: #64748b; }
 
 .vfo-web-app__workflow {
   display: grid;

@@ -64,6 +64,8 @@ main() {
   WEB_APP_DASHBOARD_JSON="$(e2e_reports_dir "$ROOT_DIR")/run_dv_metadata_optional_e2e_web_app.json"
   WEB_APP_SELECTED_ASSET=""
   WEB_APP_ASSET_STATUS="Complete"
+  WEB_APP_ASSET_MANIFEST_FILE="${ROOT_DIR}/tests/e2e/assets/open-source/mezzanine-source-set.txt"
+  WEB_APP_ASSET_LIST_FILE="${TMP_DIR}/dv_assets.txt"
 
   if [ -z "$DV_P7_ASSET" ] || [ ! -f "$DV_P7_ASSET" ]; then
     log "Skipping optional DV metadata test (VFO_E2E_DV_P7_ASSET not set or file missing)"
@@ -80,7 +82,9 @@ main() {
       "" \
       "$WEB_APP_SELECTED_ASSET" \
       "dv_metadata" \
-      "$WEB_APP_ASSET_STATUS"
+      "$WEB_APP_ASSET_STATUS" \
+      "$WEB_APP_ASSET_MANIFEST_FILE" \
+      "$WEB_APP_ASSET_LIST_FILE"
     exit 0
   fi
 
@@ -96,6 +100,7 @@ main() {
 
   WEB_APP_SELECTED_ASSET="$(basename "$DV_P7_ASSET")"
   WEB_APP_ASSET_STATUS="Complete"
+  printf '%s\n' "$WEB_APP_SELECTED_ASSET" > "$WEB_APP_ASSET_LIST_FILE"
 
   log "Preparing DV fixture clip from: ${DV_P7_ASSET}"
   ffmpeg -hide_banner -nostdin -y \
@@ -184,7 +189,9 @@ main() {
       "" \
       "$WEB_APP_SELECTED_ASSET" \
       "dv_metadata" \
-      "$WEB_APP_ASSET_STATUS"
+      "$WEB_APP_ASSET_STATUS" \
+      "$WEB_APP_ASSET_MANIFEST_FILE" \
+      "$WEB_APP_ASSET_LIST_FILE"
     exit 0
   fi
 
@@ -204,7 +211,9 @@ main() {
     "" \
     "$WEB_APP_SELECTED_ASSET" \
     "dv_metadata" \
-    "$WEB_APP_ASSET_STATUS"
+    "$WEB_APP_ASSET_STATUS" \
+    "$WEB_APP_ASSET_MANIFEST_FILE" \
+    "$WEB_APP_ASSET_LIST_FILE"
   exit 0
 }
 
