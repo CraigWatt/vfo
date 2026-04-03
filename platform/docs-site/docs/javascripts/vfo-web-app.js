@@ -567,14 +567,23 @@
     var workflowEdges = container.querySelector(".vfo-web-app__workflow-edges");
     var workflowShell = container.querySelector(".vfo-web-app__workflow-shell");
     var workflowStage = container.querySelector(".vfo-web-app__workflow-stage");
-    var bounds = { width: 0, height: 0 };
     var laidOutNodes = applyNodeLayout(pipeline.workflow.nodes);
+    var rawBounds = { width: 0, height: 0 };
     var scale = 1;
     var availableWidth = workflowShell ? Math.max(workflowShell.clientWidth - 24, 1) : 0;
     var availableHeight = workflowShell ? Math.max(workflowShell.clientHeight - 24, 1) : 0;
 
+    laidOutNodes.forEach(function (node) {
+      rawBounds.width = Math.max(rawBounds.width, node.x + 220);
+      rawBounds.height = Math.max(rawBounds.height, node.y + 128);
+    });
+
     if (availableWidth && availableHeight) {
-      scale = Math.min(1, availableWidth / 1200, availableHeight / 460);
+      scale = Math.min(
+        1,
+        availableWidth / Math.max(rawBounds.width + 64, 1),
+        availableHeight / Math.max(rawBounds.height + 64, 1)
+      );
     }
 
     workflowNodes.innerHTML = laidOutNodes.map(function (node) {
@@ -582,8 +591,6 @@
       var height = Math.round(128 * scale);
       var x = Math.round(node.x * scale);
       var y = Math.round(node.y * scale);
-      bounds.width = Math.max(bounds.width, x + width);
-      bounds.height = Math.max(bounds.height, y + height);
       return [
         '<button type="button" class="vfo-web-app__node ' + (node.id === pipeline.selectedNode ? "is-active " : "") + 'vfo-web-app__status-' + String(node.status || "waiting").toLowerCase() + '"',
         '        data-node="' + escapeHtml(node.id) + '"',
@@ -597,8 +604,8 @@
       ].join("\n");
     }).join("");
 
-    var stageWidth = Math.max(Math.round(bounds.width), availableWidth || 0, 1200);
-    var stageHeight = Math.max(Math.round(bounds.height), availableHeight || 0, 460);
+    var stageWidth = Math.max(Math.round((rawBounds.width + 64) * scale), availableWidth || 0);
+    var stageHeight = Math.max(Math.round((rawBounds.height + 64) * scale), availableHeight || 0);
 
     if (workflowStage) {
       workflowStage.style.width = stageWidth + "px";
