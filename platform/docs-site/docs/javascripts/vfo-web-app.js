@@ -191,6 +191,27 @@
     return normalized;
   }
 
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function defaultCanvasState() {
+    return {
+      zoom: 1,
+      panX: 0,
+      panY: 0
+    };
+  }
+
+  function normalizeCanvasState(canvas) {
+    var source = canvas && typeof canvas === "object" ? canvas : {};
+    return {
+      zoom: clamp(typeof source.zoom === "number" ? source.zoom : 1, 0.25, 2.5),
+      panX: typeof source.panX === "number" ? source.panX : 0,
+      panY: typeof source.panY === "number" ? source.panY : 0
+    };
+  }
+
   function slugify(value) {
     return String(value || "pipeline")
       .toLowerCase()
@@ -240,6 +261,7 @@
       sourceRunUrl: dashboard.sourceRunUrl || pipelines[0].sourceRunUrl || "",
       assetQuery: typeof dashboard.assetQuery === "string" ? dashboard.assetQuery : "",
       assetFilters: normalizeAssetFilters(dashboard.assetFilters),
+      canvas: normalizeCanvasState(dashboard.canvas),
       panelState: {
         assets: panelState.assets !== false,
         inspector: panelState.inspector !== false
@@ -397,6 +419,40 @@
     ].join("\n");
   }
 
+  function buildCanvasControls(state) {
+    var zoom = state.canvas && typeof state.canvas.zoom === "number" ? state.canvas.zoom : 1;
+    var zoomLabel = Math.round(zoom * 100) + "%";
+
+    return [
+      '<div class="vfo-web-app__workflow-toolbar">',
+      '  <div class="vfo-web-app__workflow-controls">',
+      '    <button type="button" data-vfo-canvas-action="fit">Fit</button>',
+      '    <button type="button" data-vfo-canvas-action="reset">Reset</button>',
+      '    <button type="button" data-vfo-canvas-action="zoom-out">−</button>',
+      '    <button type="button" data-vfo-canvas-action="zoom-in">+</button>',
+      "  </div>",
+      '  <div class="vfo-web-app__workflow-scale" data-vfo-canvas-scale>' + escapeHtml(zoomLabel) + "</div>",
+      "</div>"
+    ].join("\n");
+  }
+
+  function buildAssetSequence(pipeline) {
+    return [
+      '<div class="vfo-web-app__asset-sequence" data-vfo-asset-sequence>',
+      pipeline.assets.map(function (asset, index) {
+        var status = String(asset.status || "available");
+        return [
+          '<button type="button" class="vfo-web-app__asset-chip ' + (asset.name === pipeline.selectedAsset ? "is-active" : "") + '" data-vfo-asset-sequence-item data-asset="' + escapeHtml(asset.name) + '">',
+          '  <span class="vfo-web-app__asset-chip-order">#' + String(index + 1).padStart(2, "0") + "</span>",
+          '  <span class="vfo-web-app__asset-chip-name">' + escapeHtml(asset.name) + "</span>",
+          '  <span class="vfo-web-app__asset-chip-status"><span class="vfo-web-app__asset-dot ' + assetToneClass(status) + '"></span>' + escapeHtml(status) + "</span>",
+          "</button>"
+        ].join("\n");
+      }).join(""),
+      "</div>"
+    ].join("\n");
+  }
+
   function buildReplayMeter(state) {
     var playback = state.playback;
     if (!playback || !playback.total) {
@@ -416,6 +472,7 @@
     var selectedPipeline = getSelectedPipeline(state);
     var pipelineOptions = buildPipelineOptions(state);
     var drawerTabs = buildDrawerTabs(state);
+    var canvasControls = buildCanvasControls(state);
     var replayMeter = buildReplayMeter(state);
     var headerTitle = state.title || "VFO Demo Pack";
     var headerSubtitle = selectedPipeline.title === headerTitle
@@ -468,8 +525,10 @@
       "      </div>",
       "    </aside>",
       '    <section class="vfo-web-app__panel vfo-web-app__workflow">',
-      '      <div class="vfo-web-app__panel-head"><h3>Workflow</h3><span>Replay lane visible by default</span></div>',
-      '      <div class="vfo-web-app__workflow-shell">',
+      '      <div class="vfo-web-app__panel-head"><h3>Workflow</h3><span>Diagram canvas with pan and zoom</span></div>',
+      canvasControls,
+      buildAssetSequence(selectedPipeline),
+      '      <div class="vfo-web-app__workflow-shell" data-vfo-canvas-shell>',
       '        <div class="vfo-web-app__workflow-stage">',
       '          <svg class="vfo-web-app__workflow-edges" aria-hidden="true"></svg>',
       '          <div class="vfo-web-app__workflow-nodes"></div>',
@@ -504,7 +563,8 @@
     }
 
     renderAssets(container, selectedPipeline, state);
-    renderWorkflow(container, selectedPipeline);
+    renderAssetSequence(container, selectedPipeline);
+    renderWorkflow(container, selectedPipeline, state);
     renderInspector(container, selectedPipeline);
     renderLegend(container, selectedPipeline);
   }
@@ -533,7 +593,6 @@
 
     assetList.innerHTML = visibleAssets.length ? visibleAssets.map(function (asset) {
       var assetStatus = String(asset.status || "available");
-      var assetStatusKey = assetFilterKey(assetStatus);
       return [
         '<button type="button" class="vfo-web-app__asset ' + (asset.name === activeAsset.name ? "is-active" : "") + '" data-asset="' + escapeHtml(asset.name) + '">',
         '  <span class="vfo-web-app__asset-dot ' + assetToneClass(assetStatus) + '"></span>',
@@ -562,35 +621,90 @@
     }).join("");
   }
 
-  function renderWorkflow(container, pipeline) {
-    var workflowNodes = container.querySelector(".vfo-web-app__workflow-nodes");
-    var workflowEdges = container.querySelector(".vfo-web-app__workflow-edges");
-    var workflowShell = container.querySelector(".vfo-web-app__workflow-shell");
+  function renderAssetSequence(container, pipeline) {
+    var sequence = container.querySelector("[data-vfo-asset-sequence]");
+    var activeAsset = pipeline.assets.find(function (asset) {
+      return asset.name === pipeline.selectedAsset;
+    }) || pipeline.assets[0];
+
+    if (!sequence) {
+      return;
+    }
+
+    sequence.innerHTML = pipeline.assets.map(function (asset, index) {
+      var assetStatus = String(asset.status || "available");
+      return [
+        '<button type="button" class="vfo-web-app__asset-chip ' + (asset.name === activeAsset.name ? "is-active" : "") + '" data-vfo-asset-sequence-item data-asset="' + escapeHtml(asset.name) + '">',
+        '  <span class="vfo-web-app__asset-chip-order">#' + String(index + 1).padStart(2, "0") + "</span>",
+        '  <span class="vfo-web-app__asset-chip-name">' + escapeHtml(asset.name) + "</span>",
+        '  <span class="vfo-web-app__asset-chip-status"><span class="vfo-web-app__asset-dot ' + assetToneClass(assetStatus) + '"></span>' + escapeHtml(assetStatus) + "</span>",
+        "</button>"
+      ].join("\n");
+    }).join("");
+  }
+
+  function syncWorkflowCanvas(container, pipeline, state) {
+    var workflowShell = container.querySelector("[data-vfo-canvas-shell]");
     var workflowStage = container.querySelector(".vfo-web-app__workflow-stage");
+    var canvasScale = container.querySelector("[data-vfo-canvas-scale]");
     var laidOutNodes = applyNodeLayout(pipeline.workflow.nodes);
     var rawBounds = { width: 0, height: 0 };
-    var scale = 1;
-    var availableWidth = workflowShell ? Math.max(workflowShell.clientWidth - 24, 1) : 0;
-    var availableHeight = workflowShell ? Math.max(workflowShell.clientHeight - 24, 1) : 0;
+    var stageWidth = 1200;
+    var stageHeight = 520;
+    var availableWidth = workflowShell ? Math.max(workflowShell.clientWidth - 32, 1) : 0;
+    var availableHeight = workflowShell ? Math.max(workflowShell.clientHeight - 32, 1) : 0;
+    var canvas = state.canvas || defaultCanvasState();
+    var fitScale = 1;
+    var appliedScale = 1;
 
     laidOutNodes.forEach(function (node) {
       rawBounds.width = Math.max(rawBounds.width, node.x + 220);
       rawBounds.height = Math.max(rawBounds.height, node.y + 128);
     });
 
+    stageWidth = Math.max(Math.round(rawBounds.width + 64), stageWidth);
+    stageHeight = Math.max(Math.round(rawBounds.height + 64), stageHeight);
+
     if (availableWidth && availableHeight) {
-      scale = Math.min(
+      fitScale = Math.min(
         1,
-        availableWidth / Math.max(rawBounds.width + 64, 1),
-        availableHeight / Math.max(rawBounds.height + 64, 1)
+        availableWidth / Math.max(stageWidth, 1),
+        availableHeight / Math.max(stageHeight, 1)
       );
     }
 
+    appliedScale = clamp(fitScale * canvas.zoom, 0.25, 2.5);
+
+    if (workflowStage) {
+      workflowStage.style.width = Math.round(stageWidth) + "px";
+      workflowStage.style.height = Math.round(stageHeight) + "px";
+      workflowStage.style.transform = "translate(" + Math.round(canvas.panX) + "px, " + Math.round(canvas.panY) + "px) scale(" + appliedScale + ")";
+      workflowStage.style.transformOrigin = "top left";
+    }
+
+    if (canvasScale) {
+      canvasScale.textContent = Math.round(appliedScale * 100) + "%";
+    }
+
+    return {
+      fitScale: fitScale,
+      appliedScale: appliedScale,
+      bounds: rawBounds
+    };
+  }
+
+  function renderWorkflow(container, pipeline, state) {
+    var workflowNodes = container.querySelector(".vfo-web-app__workflow-nodes");
+    var workflowEdges = container.querySelector(".vfo-web-app__workflow-edges");
+    var canvasMetrics = syncWorkflowCanvas(container, pipeline, state || { canvas: defaultCanvasState() });
+    var laidOutNodes = applyNodeLayout(pipeline.workflow.nodes);
+    var rawBounds = canvasMetrics.bounds;
+
     workflowNodes.innerHTML = laidOutNodes.map(function (node) {
-      var width = Math.round(220 * scale);
-      var height = Math.round(128 * scale);
-      var x = Math.round(node.x * scale);
-      var y = Math.round(node.y * scale);
+      var width = 220;
+      var height = 128;
+      var x = node.x;
+      var y = node.y;
       return [
         '<button type="button" class="vfo-web-app__node ' + (node.id === pipeline.selectedNode ? "is-active " : "") + 'vfo-web-app__status-' + String(node.status || "waiting").toLowerCase() + '"',
         '        data-node="' + escapeHtml(node.id) + '"',
@@ -604,13 +718,8 @@
       ].join("\n");
     }).join("");
 
-    var stageWidth = Math.max(Math.round((rawBounds.width + 64) * scale), availableWidth || 0);
-    var stageHeight = Math.max(Math.round((rawBounds.height + 64) * scale), availableHeight || 0);
-
-    if (workflowStage) {
-      workflowStage.style.width = stageWidth + "px";
-      workflowStage.style.height = stageHeight + "px";
-    }
+    var stageWidth = Math.max(Math.round(rawBounds.width + 64), 1200);
+    var stageHeight = Math.max(Math.round(rawBounds.height + 64), 520);
 
     workflowNodes.style.width = stageWidth + "px";
     workflowNodes.style.height = stageHeight + "px";
@@ -625,10 +734,10 @@
       if (!source || !target) {
         return "";
       }
-      var x1 = Math.round((source.x + 210) * scale);
-      var y1 = Math.round((source.y + 58) * scale);
-      var x2 = Math.round(target.x * scale);
-      var y2 = Math.round((target.y + 58) * scale);
+      var x1 = source.x + 210;
+      var y1 = source.y + 58;
+      var x2 = target.x;
+      var y2 = target.y + 58;
       var midX = Math.round((x1 + x2) / 2);
       return '<path d="M ' + x1 + " " + y1 + " C " + midX + " " + y1 + ", " + midX + " " + y2 + ", " + x2 + " " + y2 + '" />';
     }).join("");
@@ -739,6 +848,7 @@
           state.assetFilters[filterKey] = filterChecked;
         }
         renderAssets(root, pipeline, state);
+        return;
       }
     });
 
@@ -767,11 +877,40 @@
       var panelToggle = event.target.closest("[data-vfo-panel-toggle]");
       var assetButton = event.target.closest("[data-asset]");
       var nodeButton = event.target.closest("[data-node]");
+      var canvasAction = event.target.closest("[data-vfo-canvas-action]");
+      var assetSequenceItem = event.target.closest("[data-vfo-asset-sequence-item]");
 
       if (panelToggle) {
         state.panelState = state.panelState || { assets: true, inspector: true };
         var panelName = panelToggle.getAttribute("data-vfo-panel-toggle");
         state.panelState[panelName] = !state.panelState[panelName];
+        render(root, state);
+        return;
+      }
+
+      if (canvasAction) {
+        state.canvas = state.canvas || defaultCanvasState();
+        switch (canvasAction.getAttribute("data-vfo-canvas-action")) {
+          case "fit":
+          case "reset":
+            state.canvas.zoom = 1;
+            state.canvas.panX = 0;
+            state.canvas.panY = 0;
+            break;
+          case "zoom-in":
+            state.canvas.zoom = clamp((state.canvas.zoom || 1) * 1.15, 0.25, 2.5);
+            break;
+          case "zoom-out":
+            state.canvas.zoom = clamp((state.canvas.zoom || 1) / 1.15, 0.25, 2.5);
+            break;
+        }
+        renderWorkflow(root, pipeline, state);
+        return;
+      }
+
+      if (assetSequenceItem) {
+        stopReplay(root);
+        pipeline.selectedAsset = assetSequenceItem.getAttribute("data-asset");
         render(root, state);
         return;
       }
@@ -788,6 +927,92 @@
         pipeline.selectedNode = nodeButton.getAttribute("data-node");
         render(root, state);
       }
+    });
+
+    root.addEventListener("pointerdown", function (event) {
+      var state = root.__vfoState;
+      var canvasShell;
+      var interactiveTarget;
+
+      if (!state) {
+        return;
+      }
+
+      canvasShell = event.target.closest("[data-vfo-canvas-shell]");
+      interactiveTarget = event.target.closest("button, input, select, textarea, a, [data-node]");
+      if (!canvasShell || interactiveTarget) {
+        return;
+      }
+
+      state.canvas = state.canvas || defaultCanvasState();
+      root.__vfoPanState = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        panX: state.canvas.panX,
+        panY: state.canvas.panY
+      };
+
+      try {
+        canvasShell.setPointerCapture(event.pointerId);
+      } catch (error) {
+        // Ignore capture failures on browsers that do not support it for this target.
+      }
+      canvasShell.classList.add("is-panning");
+    });
+
+    root.addEventListener("pointermove", function (event) {
+      var state = root.__vfoState;
+      var panState = root.__vfoPanState;
+      var pipeline;
+
+      if (!state || !panState || panState.pointerId !== event.pointerId) {
+        return;
+      }
+
+      pipeline = getSelectedPipeline(state);
+      state.canvas = state.canvas || defaultCanvasState();
+      state.canvas.panX = panState.panX + (event.clientX - panState.startX);
+      state.canvas.panY = panState.panY + (event.clientY - panState.startY);
+      syncWorkflowCanvas(root, pipeline, state);
+    });
+
+    root.addEventListener("pointerup", function (event) {
+      var panState = root.__vfoPanState;
+      var canvasShell = event.target.closest("[data-vfo-canvas-shell]");
+
+      if (!panState || panState.pointerId !== event.pointerId) {
+        return;
+      }
+
+      if (canvasShell) {
+        try {
+          canvasShell.releasePointerCapture(event.pointerId);
+        } catch (error) {
+          // Ignore capture release races during drag end.
+        }
+        canvasShell.classList.remove("is-panning");
+      }
+      root.__vfoPanState = null;
+    });
+
+    root.addEventListener("pointercancel", function (event) {
+      var panState = root.__vfoPanState;
+      var canvasShell = event.target.closest("[data-vfo-canvas-shell]");
+
+      if (!panState || panState.pointerId !== event.pointerId) {
+        return;
+      }
+
+      if (canvasShell) {
+        try {
+          canvasShell.releasePointerCapture(event.pointerId);
+        } catch (error) {
+          // Ignore capture release races during drag end.
+        }
+        canvasShell.classList.remove("is-panning");
+      }
+      root.__vfoPanState = null;
     });
   }
 
