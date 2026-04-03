@@ -84,6 +84,11 @@ void ih_evaluate_tier_states_for_test(bool ffmpeg_available,
                                       status_state_t *base_state_out,
                                       status_state_t *dv_state_out,
                                       status_state_t *quality_state_out);
+bool ih_resolve_stock_preset_for_test(const char *token,
+                                      char *canonical_key_out,
+                                      size_t canonical_key_out_size,
+                                      char *relative_path_out,
+                                      size_t relative_path_out_size);
 #endif
 
 #endif // IH_INTERNAL_H

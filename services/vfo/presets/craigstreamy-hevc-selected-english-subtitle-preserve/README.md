@@ -1,10 +1,10 @@
-# netflixy_main_subtitle_intent
+# craigstreamy_hevc_selected_english_subtitle_preserve
 
-`netflixy_main_subtitle_intent` is a stock preset focused on:
+`craigstreamy_hevc_selected_english_subtitle_preserve` is a stock preset focused on:
 
-- Netflix-like practical bitrate reduction
+- practical HEVC bitrate reduction
 - preserving audio streams
-- preserving one "main subtitle" only when it appears director-intent oriented
+- preserving one selected English subtitle only when it appears intent-appropriate
 - preserving HDR/DV signaling when source essence supports it (strict by default on 4K lane)
 
 Input guardrails:
@@ -14,7 +14,7 @@ Input guardrails:
 - Legacy sub-HD lane accepts broad codec/color intake in the 320x240..1279x719 envelope.
 - Codec intake is intentionally broad (`any`) so mezzanines such as HEVC, H.264 (including rare 10-bit), AV1, and VP9 can be processed.
 
-Main-subtitle heuristic (implemented in action scripts):
+Selected-English subtitle heuristic (implemented in action scripts):
 
 - forced english first
 - forced untagged/unknown fallback
@@ -23,8 +23,8 @@ Main-subtitle heuristic (implemented in action scripts):
 
 Container behavior:
 
-- main subtitle selected -> MKV output (subtitle-safe preservation)
-- no main subtitle selected -> stream-ready MP4 output:
+- selected English subtitle found -> MKV output (subtitle-safe preservation)
+- no selected English subtitle -> stream-ready MP4 output:
   - default mode: fragmented MP4 + init/moov at start (`VFO_MP4_STREAM_MODE=fmp4_faststart`)
   - optional modes: `fmp4` or `faststart`
 
@@ -37,7 +37,7 @@ Legacy lane processing behavior:
 - preserves source frame rate by default (no forced frame-rate conversion)
 - deinterlace can run automatically when input is interlaced (`VFO_LEGACY_DEINTERLACE=auto`)
 - stable black-bar auto-crop is enabled by default (`VFO_LEGACY_AUTOCROP=1`)
-- auto-crop is disabled for files where the selected main subtitle stream is bitmap-based
+- auto-crop is disabled for files where the selected subtitle stream is bitmap-based
 - metadata notes are emitted per output in `*.dynamic_range_report.txt`
 
 Dynamic-range behavior:
@@ -57,8 +57,8 @@ Dynamic-range behavior:
 
 ## Reserved profile names (lane 2 scaffold, not enabled by default)
 
-- `netflixy_fmp4_audio_normalized_main_subtitles_4k`
-- `netflixy_fmp4_audio_normalized_main_subtitles_1080p`
+- `craigstreamy_fmp4_audio_normalized_selected_english_subtitles_4k`
+- `craigstreamy_fmp4_audio_normalized_selected_english_subtitles_1080p`
 
 ## Required action scripts
 
