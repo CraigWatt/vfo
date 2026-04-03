@@ -340,6 +340,7 @@ div.mermaid {
 .vfo-web-app__asset-list {
   min-height: 0;
   overflow: auto;
+  overflow-x: hidden;
 }
 
 .vfo-web-app__asset-empty {
@@ -369,6 +370,7 @@ div.mermaid {
   padding: 0.68rem 0.75rem;
   text-align: left;
   cursor: pointer;
+  min-width: 0;
 }
 
 .vfo-web-app__asset.is-active {
@@ -381,6 +383,7 @@ div.mermaid {
   font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 
 .vfo-web-app__filter {
@@ -424,6 +427,7 @@ div.mermaid {
     linear-gradient(180deg, rgba(15, 23, 42, 0.03), rgba(15, 23, 42, 0.05)),
     radial-gradient(circle at center, rgba(148, 163, 184, 0.08) 0, transparent 55%);
   overflow: auto;
+  overflow-x: auto;
 }
 
 .vfo-web-app__workflow-stage {
@@ -504,6 +508,7 @@ div.mermaid {
 .vfo-web-app__density-map {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   overflow: auto;
+  overflow-x: hidden;
   max-height: 11rem;
 }
 
@@ -515,6 +520,7 @@ div.mermaid {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 0.1rem 0.45rem;
+  min-width: 0;
 }
 
 .vfo-web-app__density-icon {
@@ -526,6 +532,7 @@ div.mermaid {
   margin: 0 0.85rem 0.9rem;
   border: 1px solid var(--vfo-border);
   border-radius: 0.7rem;
+  min-width: 0;
 }
 
 .vfo-web-app__inspector-card {
@@ -534,15 +541,22 @@ div.mermaid {
 }
 
 .vfo-web-app__row {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.7rem;
+  display: grid;
+  gap: 0.16rem;
   padding: 0.25rem 0;
   font-size: 0.85rem;
 }
 
 .vfo-web-app__row span {
   color: var(--vfo-muted);
+}
+
+.vfo-web-app__row strong,
+.vfo-web-app__density-item strong,
+.vfo-web-app__density-item span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .vfo-web-app__code-panel {

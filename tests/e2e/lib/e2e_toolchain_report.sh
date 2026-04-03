@@ -423,8 +423,12 @@ selected_asset_name = basename(selected_asset) if selected_asset else ""
 
 def make_asset_entries(active_status=None):
     assets = []
-    corpus = manifest_assets + [name for name in discovered_assets if name not in manifest_assets]
+    corpus = []
     seen = set()
+
+    for asset_name in discovered_assets + manifest_assets:
+        if asset_name not in corpus:
+            corpus.append(asset_name)
 
     for asset_name in corpus:
         seen.add(asset_name)
