@@ -39,6 +39,7 @@ This uses asset mode `auto` by default:
 
 - if `tests/e2e/assets/open-source/` contains media files, those are used as seed inputs
 - otherwise synthetic fixtures are generated (CI-safe fallback)
+- the dashboard source corpus is listed in `tests/e2e/assets/open-source/mezzanine-source-set.txt`
 
 ## Force Real Open-Source Local Assets
 

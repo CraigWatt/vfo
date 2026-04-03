@@ -313,9 +313,15 @@
     var headerSubtitle = selectedPipeline.title === headerTitle
       ? selectedPipeline.runLabel
       : selectedPipeline.title + "  |  " + selectedPipeline.runLabel;
+    var availableAssets = selectedPipeline.assets.filter(function (asset) {
+      return String(asset.status || "").toLowerCase() !== "unavailable";
+    }).length;
     var assetRailSummary = selectedPipeline.assets.length === 1
-      ? "1 mezzanine source available"
-      : String(selectedPipeline.assets.length) + " mezzanine sources available";
+      ? "1 mezzanine source in corpus"
+      : String(selectedPipeline.assets.length) + " mezzanine sources in corpus";
+    if (availableAssets !== selectedPipeline.assets.length) {
+      assetRailSummary += " (" + String(availableAssets) + " available)";
+    }
     var liveAttr = selectedPipeline.sourceRunUrl ? ' data-live="1"' : "";
     var sourceWorkflowHtml = selectedPipeline.sourceWorkflow
       ? '<strong>' + escapeHtml(selectedPipeline.sourceWorkflow) + '</strong>'
@@ -412,11 +418,13 @@
     }) || pipeline.assets[0];
 
     assetList.innerHTML = pipeline.assets.map(function (asset) {
+      var assetStatus = String(asset.status || "available");
+      var assetStatusKey = assetStatus.toLowerCase();
       return [
         '<button type="button" class="vfo-web-app__asset ' + (asset.name === activeAsset.name ? "is-active" : "") + '" data-asset="' + escapeHtml(asset.name) + '">',
-        '  <span class="vfo-web-app__asset-dot vfo-web-app__status-' + String(asset.status || "waiting").toLowerCase() + '"></span>',
+        '  <span class="vfo-web-app__asset-dot vfo-web-app__status-' + escapeHtml(assetStatusKey) + '"></span>',
         '  <span class="vfo-web-app__asset-name">' + escapeHtml(asset.name) + '</span>',
-        '  <span class="vfo-web-app__asset-icon">' + escapeHtml(asset.icon) + '</span>',
+        '  <span class="vfo-web-app__asset-status">' + escapeHtml(assetStatus) + '</span>',
         "</button>"
       ].join("\n");
     }).join("");

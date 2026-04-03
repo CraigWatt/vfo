@@ -322,9 +322,10 @@ e2e_write_web_app_dashboard() {
   local selected_asset="$9"
   local mode="${10}"
   local asset_status="${11:-Waiting}"
-  local asset_list_file="${12:-}"
+  local asset_manifest_file="${12:-}"
+  local asset_list_file="${13:-}"
 
-  python3 - "$output_path" "$pipeline_id" "$pipeline_label" "$pipeline_title" "$run_label" "$source_label" "$source_workflow" "$source_run_url" "$selected_asset" "$mode" "$asset_status" "$asset_list_file" <<'PY'
+  python3 - "$output_path" "$pipeline_id" "$pipeline_label" "$pipeline_title" "$run_label" "$source_label" "$source_workflow" "$source_run_url" "$selected_asset" "$mode" "$asset_status" "$asset_manifest_file" "$asset_list_file" <<'PY'
 import copy
 import json
 import pathlib
@@ -342,7 +343,8 @@ source_run_url = sys.argv[8]
 selected_asset = sys.argv[9] or "mezzanine_asset.mkv"
 mode = sys.argv[10]
 asset_status = sys.argv[11]
-asset_list_file = sys.argv[12]
+asset_manifest_file = sys.argv[12]
+asset_list_file = sys.argv[13]
 
 status_icons = {
     "complete": "✔",
@@ -395,28 +397,28 @@ def make_node(node, status):
     item["status"] = status
     return item
 
-def load_assets():
-    assets = []
-    seen = set()
+def load_asset_names(file_path):
+    names = []
+    if not file_path:
+        return names
 
-    if asset_list_file:
-        path = pathlib.Path(asset_list_file)
-        if path.is_file():
-            for raw_line in path.read_text(encoding="utf-8").splitlines():
-                candidate = raw_line.strip()
-                if not candidate:
-                    continue
-                asset_name = basename(candidate)
-                if asset_name in seen:
-                    continue
-                seen.add(asset_name)
-                assets.append(asset_name)
+    path = pathlib.Path(file_path)
+    if not path.is_file():
+        return names
 
-    selected_name = basename(selected_asset)
-    if selected_name not in seen:
-        assets.append(selected_name)
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        candidate = raw_line.strip()
+        if not candidate:
+            continue
+        asset_name = basename(candidate)
+        if asset_name not in names:
+            names.append(asset_name)
 
-    return assets
+    return names
+
+manifest_assets = load_asset_names(asset_manifest_file)
+discovered_assets = load_asset_names(asset_list_file)
+discovered_set = set(discovered_assets)
 
 def make_workflow(stages, edges, details, status_map):
     nodes = [make_node(stage, status_map.get(stage["id"], "waiting")) for stage in stages]
@@ -744,6 +746,7 @@ dashboard = {
     "sourceLabel": source_label,
     "sourceWorkflow": source_workflow,
     "sourceRunUrl": source_run_url,
+    "sourceSet": basename(asset_manifest_file) if asset_manifest_file else "",
     "pipelines": [
         {
             "id": pipeline_id,
@@ -755,13 +758,18 @@ dashboard = {
             "sourceRunUrl": source_run_url,
             "selectedAsset": selected_asset,
             "selectedNode": stages[0]["id"],
+            "sourceSet": basename(asset_manifest_file) if asset_manifest_file else "",
             "assets": [
                 {
                     "name": asset_name,
-                    "status": asset_status if asset_name == basename(selected_asset) else "Waiting",
-                    "icon": icon_for((asset_status if asset_name == basename(selected_asset) else "Waiting").lower()),
+                    "status": "Available" if asset_name in discovered_set or asset_name == basename(selected_asset) else "Unavailable",
+                    "icon": icon_for("complete" if asset_name in discovered_set or asset_name == basename(selected_asset) else "waiting"),
                 }
-                for asset_name in load_assets()
+                for asset_name in (
+                    manifest_assets
+                    + [name for name in discovered_assets if name not in manifest_assets]
+                    + ([basename(selected_asset)] if basename(selected_asset) not in manifest_assets and basename(selected_asset) not in discovered_set else [])
+                )
             ],
             "filters": ["All", "Failed", "Running", "Waiting", "Complete"],
             "summaryCounts": summary_counts(stages, 0, skipped=asset_status.lower() == "skipped"),
