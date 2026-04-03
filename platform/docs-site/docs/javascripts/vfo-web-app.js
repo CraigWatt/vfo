@@ -164,8 +164,16 @@
     return key;
   }
 
+  function assetToneKey(status) {
+    var key = String(status || "waiting").toLowerCase();
+    if (key === "skipped") {
+      return "waiting";
+    }
+    return key;
+  }
+
   function assetToneClass(status) {
-    return "vfo-web-app__status-" + assetFilterKey(status);
+    return "vfo-web-app__status-" + assetToneKey(status);
   }
 
   function defaultAssetFilters() {
@@ -439,6 +447,10 @@
   function buildAssetSequence(pipeline) {
     return [
       '<div class="vfo-web-app__asset-sequence" data-vfo-asset-sequence>',
+      '  <div class="vfo-web-app__asset-sequence-head">',
+      '    <h4>Replay order</h4>',
+      '    <span>Corpus chapters in emitted sequence</span>',
+      "  </div>",
       pipeline.assets.map(function (asset, index) {
         var status = String(asset.status || "available");
         return [
@@ -523,6 +535,7 @@
       '        <span>Search assets...</span>',
       '        <input type="text" value="' + escapeHtml(state.assetQuery || "") + '" aria-label="Search assets" data-vfo-asset-search />',
       "      </label>",
+      buildAssetSequence(selectedPipeline),
       '      <div class="vfo-web-app__asset-list"></div>',
       '      <div class="vfo-web-app__filter-block">',
         "        <h4>Filters</h4>",
@@ -532,14 +545,19 @@
       '    <section class="vfo-web-app__panel vfo-web-app__workflow">',
       '      <div class="vfo-web-app__panel-head"><h3>Workflow</h3><span>Diagram canvas with pan and zoom</span></div>',
       canvasControls,
-      buildAssetSequence(selectedPipeline),
       '      <div class="vfo-web-app__workflow-shell" data-vfo-canvas-shell>',
       '        <div class="vfo-web-app__workflow-stage">',
-      '          <svg class="vfo-web-app__workflow-edges" aria-hidden="true"></svg>',
+      '          <svg class="vfo-web-app__workflow-edges" aria-hidden="true">',
+      '            <defs>',
+      '              <marker id="vfo-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">',
+      '                <path d="M 0 0 L 10 5 L 0 10 z"></path>',
+      "              </marker>",
+      "            </defs>",
+      "          </svg>",
       '          <div class="vfo-web-app__workflow-nodes"></div>',
       "        </div>",
       "      </div>",
-      '      <div class="vfo-web-app__caption">Node status for the selected asset is shown inline, with failures, running, waiting, and complete states carried directly on the lane transcript.</div>',
+      '      <div class="vfo-web-app__caption">The canvas shows the current chapter state for the selected replay step, with connectors, status badges, and pan/zoom controls.</div>',
       "    </section>",
       '    <aside class="vfo-web-app__panel vfo-web-app__inspector' + (inspectorCollapsed ? " is-collapsed" : "") + '" data-panel="inspector">',
       '      <div class="vfo-web-app__panel-head"><h3>Inspector</h3><span>Current transcript step</span></div>',
@@ -744,7 +762,7 @@
       var x2 = target.x;
       var y2 = target.y + 58;
       var midX = Math.round((x1 + x2) / 2);
-      return '<path d="M ' + x1 + " " + y1 + " C " + midX + " " + y1 + ", " + midX + " " + y2 + ", " + x2 + " " + y2 + '" />';
+      return '<path d="M ' + x1 + " " + y1 + " C " + midX + " " + y1 + ", " + midX + " " + y2 + ", " + x2 + " " + y2 + '" marker-end="url(#vfo-arrow)" />';
     }).join("");
   }
 

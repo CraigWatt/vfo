@@ -438,22 +438,23 @@ def build_asset_corpus():
 corpus_assets = build_asset_corpus()
 selected_asset_name = corpus_assets[0] if corpus_assets else selected_asset_name
 
-def make_asset_entries(active_asset_name, active_status=None):
+def make_asset_entries(active_asset_name, active_status=None, completed_assets=None):
     assets = []
-    corpus = []
-    seen = set()
+    completed = set(completed_assets or [])
 
     for asset_name in corpus_assets:
-        seen.add(asset_name)
-        if asset_name == active_asset_name and active_status:
+        if asset_name in completed:
+            asset_state = "Complete"
+            icon_state = "complete"
+        elif asset_name == active_asset_name and active_status:
             asset_state = active_status
             icon_state = active_status.lower()
         elif asset_name in discovered_set:
             asset_state = "Available"
-            icon_state = "complete"
+            icon_state = "available"
         else:
             asset_state = "Unavailable"
-            icon_state = "waiting"
+            icon_state = "unavailable"
 
         assets.append({
             "name": asset_name,
@@ -461,7 +462,7 @@ def make_asset_entries(active_asset_name, active_status=None):
             "icon": icon_for(icon_state),
         })
 
-    if active_asset_name and active_asset_name not in seen:
+    if active_asset_name and active_asset_name not in corpus_assets:
         asset_state = active_status if active_status else "Unavailable"
         assets.append({
             "name": active_asset_name,
@@ -487,7 +488,7 @@ def make_workflow(stages, edges, details, status_map):
         workflow_details[stage["id"]] = detail
     return {"nodes": nodes, "edges": copy.deepcopy(edges), "details": workflow_details}
 
-def frame(label, stages, edges, details, completed, selected_node, asset_name, asset_index, asset_total, asset_state, final=False, skipped=False):
+def frame(label, stages, edges, details, completed, selected_node, asset_name, asset_index, asset_total, asset_state, completed_assets=None, final=False, skipped=False):
     status_map = {}
     if skipped:
         for stage in stages:
@@ -508,6 +509,7 @@ def frame(label, stages, edges, details, completed, selected_node, asset_name, a
 
     workflow = make_workflow(stages, edges, details, status_map)
     selected = asset_state if asset_state else ("Skipped" if skipped else ("Complete" if final else "Running"))
+    completed_assets = list(completed_assets or [])
     return {
         "label": label,
         "delayMs": 600 if not skipped else 450,
@@ -516,13 +518,14 @@ def frame(label, stages, edges, details, completed, selected_node, asset_name, a
         "assetIndex": asset_index + 1,
         "assetTotal": asset_total,
         "assetLabel": asset_name,
-        "assets": make_asset_entries(asset_name, selected),
+        "assets": make_asset_entries(asset_name, selected, completed_assets),
         "summaryCounts": summary_counts(stages, completed, final=final, skipped=skipped),
         "stageTotals": stage_totals(stages, completed if not skipped else 0),
         "workflow": workflow,
     }
 
 def build_asset_chapter_frames(asset_name, asset_index, asset_total, stages, edges, details, skipped=False):
+    completed_assets = corpus_assets[:asset_index]
     if skipped:
         return [
             frame(
@@ -536,6 +539,7 @@ def build_asset_chapter_frames(asset_name, asset_index, asset_total, stages, edg
                 asset_index,
                 asset_total,
                 "Skipped",
+                completed_assets=completed_assets,
                 skipped=True,
             ),
             frame(
@@ -549,12 +553,25 @@ def build_asset_chapter_frames(asset_name, asset_index, asset_total, stages, edg
                 asset_index,
                 asset_total,
                 "Skipped",
+                completed_assets=completed_assets,
                 skipped=True,
             ),
         ]
 
     frames = [
-        frame("queued", stages, edges, details, 0, stages[0]["id"], asset_name, asset_index, asset_total, "Waiting"),
+        frame(
+            "queued",
+            stages,
+            edges,
+            details,
+            0,
+            stages[0]["id"],
+            asset_name,
+            asset_index,
+            asset_total,
+            "Waiting",
+            completed_assets=completed_assets,
+        ),
     ]
     for index, stage in enumerate(stages):
         frames.append(
@@ -569,6 +586,7 @@ def build_asset_chapter_frames(asset_name, asset_index, asset_total, stages, edg
                 asset_index,
                 asset_total,
                 "Running",
+                completed_assets=completed_assets,
             )
         )
     frames.append(
@@ -583,6 +601,7 @@ def build_asset_chapter_frames(asset_name, asset_index, asset_total, stages, edg
             asset_index,
             asset_total,
             "Complete",
+            completed_assets=completed_assets + [asset_name],
             final=True,
         )
     )
@@ -809,7 +828,7 @@ dashboard = {
             "selectedAsset": selected_asset_name,
             "selectedNode": stages[0]["id"],
             "sourceSet": basename(asset_manifest_file) if asset_manifest_file else "",
-            "assets": make_asset_entries(selected_asset_name),
+            "assets": make_asset_entries(selected_asset_name, completed_assets=[]),
             "filters": ["All", "Failed", "Running", "Waiting", "Complete"],
             "summaryCounts": summary_counts(stages, 0, skipped=asset_status.lower() == "skipped"),
             "stageTotals": stage_totals(stages, 0),
