@@ -276,6 +276,10 @@ div.mermaid {
   min-height: 0;
 }
 
+.vfo-web-app__assets {
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+}
+
 .vfo-web-app__assets.is-collapsed,
 .vfo-web-app__inspector.is-collapsed {
   display: none;
@@ -311,6 +315,30 @@ div.mermaid {
   padding: 0.65rem 0.75rem;
   background: var(--vfo-surface);
   color: var(--vfo-text);
+}
+
+.vfo-web-app__asset-sequence {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0 0.95rem 0.8rem;
+}
+
+.vfo-web-app__asset-sequence-head {
+  display: grid;
+  gap: 0.16rem;
+  color: var(--vfo-muted);
+}
+
+.vfo-web-app__asset-sequence-head h4 {
+  margin: 0;
+  color: var(--vfo-text);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.vfo-web-app__asset-sequence-head span {
+  font-size: 0.75rem;
 }
 
 .vfo-web-app__filter-block {
@@ -413,7 +441,7 @@ div.mermaid {
 
 .vfo-web-app__workflow {
   display: grid;
-  grid-template-rows: auto auto auto minmax(22rem, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   min-height: 0;
 }
 
@@ -432,13 +460,14 @@ div.mermaid {
 }
 
 .vfo-web-app__workflow-controls button {
-  border: 1px solid var(--vfo-border);
+  border: 1px solid rgba(14, 165, 233, 0.28);
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(148, 163, 184, 0.08));
   color: var(--vfo-text);
   padding: 0.32rem 0.62rem;
   font-size: 0.74rem;
   cursor: pointer;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
 }
 
 .vfo-web-app__workflow-scale {
@@ -448,23 +477,19 @@ div.mermaid {
   text-transform: uppercase;
 }
 
-.vfo-web-app__asset-sequence {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: 0.45rem;
-  padding: 0 1rem 0.65rem;
-}
-
 .vfo-web-app__asset-chip {
   display: grid;
   gap: 0.2rem;
   padding: 0.7rem 0.75rem;
   border-radius: 0.8rem;
   border: 1px solid var(--vfo-border);
-  background: rgba(148, 163, 184, 0.06);
+  background:
+    linear-gradient(135deg, rgba(14, 165, 233, 0.04), rgba(148, 163, 184, 0.06)),
+    rgba(148, 163, 184, 0.04);
   color: var(--vfo-text);
   text-align: left;
   min-width: 0;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.05);
 }
 
 .vfo-web-app__asset-chip.is-active {
@@ -503,13 +528,20 @@ div.mermaid {
   margin: 0 0.55rem 0.5rem;
   border-radius: 0.7rem;
   background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.03), rgba(15, 23, 42, 0.05)),
-    radial-gradient(circle at center, rgba(148, 163, 184, 0.08) 0, transparent 55%);
+    radial-gradient(circle at center, rgba(148, 163, 184, 0.09) 0, transparent 56%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.025), rgba(15, 23, 42, 0.045)),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.14) 1px, transparent 1px),
+    linear-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px),
+    var(--vfo-surface);
+  background-size: auto, auto, 1.65rem 1.65rem, 1.65rem 1.65rem, auto;
   overflow: auto;
   overflow-x: auto;
   touch-action: none;
   cursor: grab;
   will-change: transform;
+  box-shadow:
+    inset 0 0 0 1px rgba(148, 163, 184, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .vfo-web-app__workflow-shell.is-panning {
@@ -534,6 +566,13 @@ div.mermaid {
   fill: none;
   stroke: rgba(14, 165, 233, 0.45);
   stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.1));
+}
+
+.vfo-web-app__workflow-edges marker path {
+  fill: rgba(14, 165, 233, 0.7);
 }
 
 .vfo-web-app__workflow-nodes {
@@ -549,8 +588,13 @@ div.mermaid {
   width: 220px;
   border-radius: 0.85rem;
   border: 1px solid var(--vfo-border);
-  background: var(--vfo-surface);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  border-left-width: 5px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(148, 163, 184, 0.05)),
+    var(--vfo-surface);
+  box-shadow:
+    0 12px 26px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
   color: var(--vfo-text);
   padding: 0.78rem 0.82rem;
   text-align: left;
@@ -578,6 +622,23 @@ div.mermaid {
   color: var(--vfo-muted);
   font-size: 0.78rem;
   line-height: 1.35;
+}
+
+.vfo-web-app__node.vfo-web-app__status-complete {
+  border-left-color: #22c55e;
+}
+
+.vfo-web-app__node.vfo-web-app__status-running {
+  border-left-color: #f59e0b;
+}
+
+.vfo-web-app__node.vfo-web-app__status-failed {
+  border-left-color: #ef4444;
+}
+
+.vfo-web-app__node.vfo-web-app__status-waiting,
+.vfo-web-app__node.vfo-web-app__status-skipped {
+  border-left-color: #94a3b8;
 }
 
 .vfo-web-app__caption {
