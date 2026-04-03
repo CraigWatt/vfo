@@ -6,7 +6,7 @@ Current preset packs:
 
 - `balanced_open_audio/`
 - `device_targets_open_audio/`
-- `netflixy_main_subtitle_intent/`
+- `craigstreamy-hevc-selected-english-subtitle-preserve/`
 
 ## How to use
 

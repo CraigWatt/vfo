@@ -1,18 +1,18 @@
-# Netflixy Main Subtitle Intent Pack
+# Craigstreamy HEVC Selected English Subtitle Preserve Pack
 
-This pack targets practical streaming efficiency while preserving viewer-intent essentials.
+This pack targets practical streaming efficiency while preserving selected-English subtitle intent essentials.
 
 ## Intent
 
-This pack standardizes mixed-library inputs into streaming-friendly HEVC outputs while preserving mainline viewing intent.
+This pack standardizes mixed-library inputs into streaming-friendly HEVC outputs while preserving selected-English subtitle intent.
 
 - preserve full audio when possible
-- preserve director-intended english "main subtitle" behavior when detected
+- preserve director-intended english subtitle behavior when detected
 - use MKV when subtitle intent applies, otherwise emit stream-ready fragmented MP4
 
 ## What It Optimizes For
 
-- practical "netflixy" bitrate reduction posture
+- practical HEVC bitrate reduction posture
 - consistent HEVC delivery across 4K, 1080p SDR, and legacy sub-HD lanes
 - audio preservation first, without forcing broad audio transcoding
 - subtitle-intent-sensitive container selection
@@ -29,7 +29,7 @@ This pack standardizes mixed-library inputs into streaming-friendly HEVC outputs
 ## Focus
 
 - preserve all audio streams
-- preserve one "main subtitle" when it appears director-intent oriented
+- preserve one selected English subtitle when it appears intent-oriented
 - when subtitle intent is present, emit MKV for robust subtitle compatibility
 - when subtitle intent is absent, emit stream-ready MP4 (fragmented + init/moov-at-start by default)
 - for legacy sub-HD lane: optional interlace-aware deinterlace + stable black-bar auto-crop
@@ -64,9 +64,9 @@ flowchart LR
     E0 --> E1[Run subtitle-intent action]:::stage
   end
 
-  C0 --> Cq{Main subtitle intent detected?}:::gate
-  D0 --> Dq{Main subtitle intent detected?}:::gate
-  E1 --> Eq{Main subtitle intent detected?}:::gate
+  C0 --> Cq{Selected English subtitle intent detected?}:::gate
+  D0 --> Dq{Selected English subtitle intent detected?}:::gate
+  E1 --> Eq{Selected English subtitle intent detected?}:::gate
 
   Cq -->|Yes| Cmkv[Emit MKV preserving subtitle intent]:::output
   Cq -->|No| Cmp4[Emit fragmented MP4 stream-ready]:::output

@@ -92,7 +92,7 @@ flowchart TD
   - select device target stock profiles (`roku_*`, `fire_tv_*`, `chromecast_*`, `apple_tv_*`)
   - conformance checks validate codec/resolution/audio boundaries in E2E
 - Subtitle intent preservation:
-  - use `netflixy_preserve_audio_main_subtitle_intent_*` profiles
+  - use `craigstreamy_hevc_selected_english_subtitle_preserve_*` profiles
   - forced/default english subtitle intent drives MKV vs MP4 container branch
 - DV profile 7 source handling:
   - `transcode_hevc_4k_dv_profile.sh` now converts profile 7 metadata to 8.1 before injection

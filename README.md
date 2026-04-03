@@ -50,6 +50,21 @@ vfo does not yet claim:
 
 The repository also includes an in-progress sample config at `services/vfo/src/vfo_config.conf`, which is the best reference for how profiles and scenarios are currently expressed.
 
+## AI workflow memory
+
+This repository keeps AI routing context in markdown files that live with the code:
+
+- `AGENTS.md`
+- `objectives.md`
+- `architecture.md`
+- `subsystems.md`
+- `testing.md`
+- `escalation.md`
+
+These files define the cheap-first routing policy, subsystem map, verification bar, and Codex escalation rules for issue-driven automation.
+
+For day-to-day Codex work, the repository also keeps a small packet format in `task-packets.md` and issue templates under `.github/ISSUE_TEMPLATE/` so requests stay scoped and context-light.
+
 ## Terminology
 
 - `Mezzanine` = high-quality working library input
@@ -144,10 +159,12 @@ CI/CD test integration:
 - The self-hosted full-media workflow runs automatically on same-repo PRs to `main` and on `main` pushes, and can also be triggered manually with custom `assets_dir`, `clip_duration`, `max_seeds`, and optional DV fixture inputs.
 - Use local run mode (`VFO_E2E_ASSET_MODE=local`) when you want to validate against your own mounted media library.
 - Every e2e run captures `vfo` + dependency versions under `tests/e2e/.reports/latest/` and uploads them as workflow artifacts.
-- Codex autonomous loop v1 is available via:
-  - `.github/workflows/ci-codex-autonomous-loop.yml` (scheduled sweep + `agent-ready` issue trigger)
-  - `.github/workflows/ci-codex-pr-autofix.yml` (bounded CI autofix for Codex-owned PRs only)
-  - setup and guardrails doc: `infra/docs/codex-autonomous-loop.md`
+- AI routing + premium escalation lanes are available via:
+  - `.github/workflows/ci-issue-routing.yml` (issue open/label routing with `GPT-5.4 mini first` or `GPT-5.4 high now` recommendation)
+  - `.github/workflows/ci-codex-autonomous-loop.yml` (premium Codex sweep + `agent-ready` issue trigger, opt-in only)
+  - `.github/workflows/ci-codex-pr-autofix.yml` (bounded premium CI autofix for Codex-owned PRs only, opt-in only)
+  - premium lane guardrails doc: `infra/docs/codex-autonomous-loop.md`
+  - task packet guide: `task-packets.md`
 - Docs site build + Pages deploy is available via:
   - `.github/workflows/ci-docs-pages.yml` (PR build validation + `main` Pages deploy)
 - GHCR package lane is available via:
@@ -292,7 +309,7 @@ Wizard behavior highlights:
 - preflight checks for required tools and config-path write permissions
 - step-based onboarding flow with explicit review before write
 - safe config writes (temporary file + atomic replace + timestamped backup)
-- stock preset multi-select (`balanced_open_audio`, `device_targets_open_audio`, `netflixy_main_subtitle_intent`)
+- stock preset multi-select (`balanced_open_audio`, `device_targets_open_audio`, `craigstreamy_hevc_selected_english_subtitle_preserve`)
 
 ## Configuration guide
 

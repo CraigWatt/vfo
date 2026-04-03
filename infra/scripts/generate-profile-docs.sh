@@ -195,7 +195,7 @@ write_profile_doc() {
   local criteria_codec_display
   local criteria_bits_display
   local criteria_color_display
-  local is_netflixy_main_subtitle_pack
+  local is_craigstreamy_selected_english_subtitle_pack
   local dep_ffmpeg
   local dep_ffprobe
   local dep_mkvmerge
@@ -239,7 +239,7 @@ write_profile_doc() {
   typical_input_containers="mkv, mp4, mov, mxf (anything ffmpeg can demux)"
   output_intent="profile-specific output written by selected scenario command"
   if [ "$mermaid_variant" = "subtitle_intent" ]; then
-    output_intent="conditional: MKV when main subtitle intent is detected, otherwise stream-ready MP4 (fragmented + init/moov at start by default)"
+    output_intent="conditional: MKV when selected English subtitle intent is detected, otherwise stream-ready MP4 (fragmented + init/moov at start by default)"
   elif printf '%s' "$first_command" | grep -q "ffmpeg"; then
     output_intent="output container and streams are defined directly by the ffmpeg command"
   fi
@@ -293,9 +293,9 @@ write_profile_doc() {
     i=$((i + 1))
   done
 
-  is_netflixy_main_subtitle_pack="0"
-  if [ "$pack" = "netflixy_main_subtitle_intent" ] && [ "$mermaid_variant" = "subtitle_intent" ]; then
-    is_netflixy_main_subtitle_pack="1"
+  is_craigstreamy_selected_english_subtitle_pack="0"
+  if [ "$pack" = "craigstreamy-hevc-selected-english-subtitle-preserve" ] && [ "$mermaid_variant" = "subtitle_intent" ]; then
+    is_craigstreamy_selected_english_subtitle_pack="1"
   fi
 
   criteria_line="
@@ -351,14 +351,14 @@ write_profile_doc() {
     printf '\n'
     printf -- '- Combined toolchain snapshot: [Latest E2E Toolchain Report](../../e2e-toolchain-latest.md)\n\n'
 
-    if [ "$is_netflixy_main_subtitle_pack" = "1" ]; then
+    if [ "$is_craigstreamy_selected_english_subtitle_pack" = "1" ]; then
       printf '## Intent\n\n'
-      printf 'This profile converts candidates into streaming-friendly HEVC outputs while preserving mainline viewing intent where feasible.\n\n'
+      printf 'This profile converts candidates into streaming-friendly HEVC outputs while preserving selected-English subtitle intent where feasible.\n\n'
       printf '## What It Optimizes For\n\n'
       printf -- '- practical bitrate efficiency with a consistent HEVC target\n'
       printf -- '- preserve all audio streams by default when packaging permits\n'
-      printf -- '- preserve one director-intent "main subtitle" when detected\n'
-      printf -- '- conditional container selection: MKV when subtitle intent applies, fragmented MP4 otherwise\n'
+      printf -- '- preserve one selected English subtitle when detected\n'
+      printf -- '- conditional container selection: MKV when selected-English subtitle intent applies, fragmented MP4 otherwise\n'
       if printf '%s' "$first_command" | grep -q "legacy_main_subtitle_preserve_profile.sh"; then
         printf -- '- for legacy sub-HD intake: optional deinterlace and persistent black-bar auto-crop\n'
       fi
@@ -462,8 +462,8 @@ flowchart LR
   C -->|Yes| D{Evaluate scenarios in order}:::gate
   D --> E[Execute subtitle-intent action]:::stage
   E --> P[Optional lane-specific pre-processing]:::stage
-  P --> F{Main subtitle intent detected?}:::gate
-  F -->|Yes| G[Encode HEVC + preserve audio + preserve main subtitle]:::stage
+  P --> F{Selected English subtitle intent detected?}:::gate
+  F -->|Yes| G[Encode HEVC + preserve audio + preserve selected English subtitle]:::stage
   G --> H[Emit MKV output]:::output
   F -->|No| I[Encode HEVC + preserve audio]:::stage
   I --> J[Finalize fragmented MP4 + init/moov at start]:::stage
@@ -490,7 +490,7 @@ MERMAID
       printf '```\n'
     fi
 
-    if [ "$is_netflixy_main_subtitle_pack" = "1" ]; then
+    if [ "$is_craigstreamy_selected_english_subtitle_pack" = "1" ]; then
       printf '\n## What This Profile Does Not Do\n\n'
       printf -- '- It does not normalize frame rate; source cadence/timebase is preserved by default.\n'
       printf -- '- It does not transcode audio for target-device compatibility by default.\n'
@@ -578,7 +578,7 @@ done < <(find "$PRESETS_DIR" -type f -name 'vfo_config.preset.conf' | sort)
 
   printf '\n## Notes\n\n'
   printf -- '- This matrix reflects stock presets, not every custom profile a user may define.\n'
-  printf -- '- `netflixy_main_subtitle_intent` currently ships lane 1 as active profiles.\n'
+  printf -- '- `craigstreamy_hevc_selected_english_subtitle_preserve` currently ships lane 1 as active profiles.\n'
 } > "$MATRIX_DOC"
 
 echo "Generated profile docs under: ${PROFILE_OUT_DIR#$REPO_ROOT/}"
