@@ -27,4 +27,4 @@ Generated from stock preset criteria (`PROFILE=` blocks).
 
 - This matrix reflects stock presets, not every custom profile a user may define.
 - `craigstreamy_hevc_selected_english_subtitle_preserve` remains the preserve-audio subtitle-intent pack.
-- `craigstreamy_hevc_smart_eng_sub_audio_conform` adds DTS-family conform behavior on top of the subtitle-intent family.
+- `craigstreamy_hevc_smart_eng_sub_audio_conform` adds DTS/PCM delivery-conform behavior on top of the subtitle-intent family.

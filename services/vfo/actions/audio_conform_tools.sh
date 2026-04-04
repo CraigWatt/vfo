@@ -5,12 +5,12 @@ set -euo pipefail
 #
 # Policy:
 # - preserve AAC and Dolby-family audio streams by default
-# - preserve any non-DTS audio stream as-is unless the caller decides otherwise
-# - only DTS-family streams are actively conformed in this helper
-# - DTS mono/stereo -> AAC + loudnorm
-# - DTS 3.0/4.0/5.0/5.1 -> E-AC-3 when available, else AC-3, preserving channel count
-# - DTS > 5.1 (including many DTS:X renders) -> downmix to 5.1 E-AC-3/AC-3
-# - loudness normalization is only applied when a DTS-family stream is transcoded
+# - preserve AAC and Dolby-family streams as-is unless the caller decides otherwise
+# - DTS-family and PCM-family streams are actively conformed in this helper
+# - DTS/PCM mono/stereo -> AAC + loudnorm
+# - DTS/PCM 3.0/4.0/5.0/5.1 -> E-AC-3 when available, else AC-3, preserving channel count
+# - DTS/PCM > 5.1 (including many DTS:X renders) -> downmix to 5.1 E-AC-3/AC-3
+# - loudness normalization is only applied when a stream is transcoded
 # - if a preserved stream is not MP4-safe, callers should force MKV output
 
 AUDIO_CONFORM_WORK_FILE=""
@@ -77,6 +77,21 @@ audio_conform_is_dts_family_codec() {
       return 1
       ;;
   esac
+}
+
+audio_conform_is_pcm_family_codec() {
+  case "$(audio_conform_lower_text "$1")" in
+    pcm|pcm_*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+audio_conform_requires_delivery_conform() {
+  audio_conform_is_dts_family_codec "$1" || audio_conform_is_pcm_family_codec "$1"
 }
 
 audio_conform_is_mp4_safe_preserve_codec() {
@@ -253,7 +268,7 @@ audio_conform_render_audio_work() {
     safe_profile_display="$(audio_conform_lower_text "$profile")"
 
     map_args+=(-map "0:a:${pos}")
-    if audio_conform_is_dts_family_codec "$codec"; then
+    if audio_conform_requires_delivery_conform "$codec"; then
       target_channels="$(audio_conform_stream_target_channels "$channels")"
       target_codec="$(audio_conform_stream_target_codec "$channels")"
       bitrate="$(audio_conform_stream_bitrate "$target_codec" "$target_channels")"
@@ -322,15 +337,50 @@ audio_conform_resolve_mp4_movflags() {
   esac
 }
 
+audio_conform_media_has_audio_codec() {
+  local input_audio_media="$1"
+  local codec_name="$2"
+
+  [ -n "$input_audio_media" ] || return 1
+  [ -s "$input_audio_media" ] || return 1
+
+  ffprobe -v error \
+    -select_streams a \
+    -show_entries stream=codec_name \
+    -of default=nw=1:nk=1 \
+    "$input_audio_media" 2>/dev/null \
+    | tr '[:upper:]' '[:lower:]' \
+    | grep -qx "$(printf '%s' "$codec_name" | tr '[:upper:]' '[:lower:]')"
+}
+
+audio_conform_effective_mp4_stream_mode() {
+  local requested_mode="$1"
+  local input_audio_media="$2"
+
+  case "$requested_mode" in
+    fmp4_faststart|fmp4)
+      if audio_conform_media_has_audio_codec "$input_audio_media" "eac3"; then
+        echo "Audio conform note: E-AC-3 packaging falls back to faststart MP4 because fragmented MP4 finalize is not reliable for this codec in ffmpeg" >&2
+        printf 'faststart\n'
+        return 0
+      fi
+      ;;
+  esac
+
+  printf '%s\n' "$requested_mode"
+}
+
 audio_conform_finalize_streamable_mp4() {
   local input_video_mp4="$1"
   local input_audio_media="$2"
   local output_mp4="$3"
   local stream_mode="$4"
+  local effective_stream_mode=""
   local movflags=""
 
-  movflags="$(audio_conform_resolve_mp4_movflags "$stream_mode")"
-  echo "Finalizing MP4 stream packaging mode=${stream_mode} movflags=${movflags}"
+  effective_stream_mode="$(audio_conform_effective_mp4_stream_mode "$stream_mode" "$input_audio_media")"
+  movflags="$(audio_conform_resolve_mp4_movflags "$effective_stream_mode")"
+  echo "Finalizing MP4 stream packaging mode=${effective_stream_mode} movflags=${movflags}"
 
   if [ -n "$input_audio_media" ] && [ -s "$input_audio_media" ]; then
     ffmpeg -hide_banner -nostdin -y \

@@ -21,13 +21,13 @@ This profile is considered e2e-verified when its mapped suites pass in CI.
 
 ## Intent
 
-This profile converts candidates into streaming-friendly HEVC outputs while preserving smart-English-subtitle intent and conforming DTS-family audio when needed.
+This profile converts candidates into streaming-friendly HEVC outputs while preserving smart-English-subtitle intent and conforming DTS-family or PCM-family audio when needed.
 
 ## What It Optimizes For
 
 - practical bitrate efficiency with a consistent HEVC target
 - preserve AAC and Dolby-family audio streams when already acceptable
-- conform DTS-family audio into open-source Dolby-aligned delivery codecs when needed
+- conform DTS-family or PCM-family audio into open-source Dolby-aligned delivery codecs when needed
 - preserve one selected English subtitle when detected
 - conditional container selection: MKV when selected-English subtitle intent applies, fragmented MP4 otherwise
 
@@ -59,15 +59,16 @@ Action summary from `transcode_hevc_1080_smart_eng_sub_audio_conform_profile.sh`
 -   priority: forced english -> forced untagged/unknown -> optional default english.
 -   non-english forced tracks are intentionally skipped.
 - Preserves AAC and Dolby-family audio streams by default.
-- Conforms DTS-family audio streams:
--   DTS mono/stereo -> AAC + loudnorm
--   DTS 3.0/4.0/5.0/5.1 -> E-AC-3 when available, else AC-3, with loudnorm
--   DTS > 5.1 -> 5.1 E-AC-3/AC-3 downmix, with loudnorm
+- Conforms DTS-family and PCM-family audio streams:
+-   DTS or PCM mono/stereo -> AAC + loudnorm
+-   DTS or PCM 3.0/4.0/5.0/5.1 -> E-AC-3 when available, else AC-3, with loudnorm
+-   DTS or PCM > 5.1 -> 5.1 E-AC-3/AC-3 downmix, with loudnorm
 - Preserved non-MP4-safe audio (for example TrueHD) forces MKV output.
 - Enforces SDR-oriented 1080 policy metadata on output (`bt709` signaling).
 - If a smart English subtitle is selected, output container is MKV.
 - If no subtitle is selected and preserved audio is MP4-safe, output container is
--   stream-ready MP4 (fragmented MP4 with init/moov at the start).
+-   stream-ready MP4 (fragmented MP4 with init/moov at the start, with faststart
+-   fallback when E-AC-3 packaging needs it).
 
 Operator knobs from `transcode_hevc_1080_smart_eng_sub_audio_conform_profile.sh`:
 
@@ -139,22 +140,22 @@ flowchart LR
 | --- | --- |
 | Dynamic range | `HDR/DV aware` on 4K, SDR-gated on 1080p, broad intake on legacy sub-HD |
 | Resolution | `4K / 1080p / legacy sub-HD` lane family |
-| Audio codecs | `AAC + Dolby preserve`, `DTS-family conform` |
+| Audio codecs | `AAC + Dolby preserve`, `DTS/PCM conform` |
 | Video codecs | `HEVC transcode target` |
 | Interlacing | `legacy lane only; optional deinterlace` |
-| Volume normalisation | `applied when DTS-family audio is transcoded` |
+| Volume normalisation | `applied when DTS/PCM-family audio is transcoded` |
 | Crop | `legacy lane auto-crop enabled` |
 | Lowered video bitrate | `yes` |
-| Lowered audio bitrate | `not as a general policy; only codec-target defaults for DTS conform` |
-| Audio transcoded | `DTS-family only` |
+| Lowered audio bitrate | `not as a general policy; only codec-target defaults for DTS/PCM conform` |
+| Audio transcoded | `DTS/PCM-family only` |
 | Video transcoded | `yes` |
-| Audio switched | `DTS -> AAC / E-AC-3 / AC-3 when needed` |
+| Audio switched | `DTS/PCM -> AAC / E-AC-3 / AC-3 when needed` |
 | Subtitle retained | `selected English subtitle intent` |
 | Subtitle transformed | `no; retain/preserve intent only` |
-| Container changed | `yes when subtitle or preserved-audio safety requires MKV, otherwise fragmented MP4` |
+| Container changed | `yes when subtitle or preserved-audio safety requires MKV, otherwise fragmented MP4 with faststart fallback for E-AC-3` |
 | Container targets | `MKV` / `fragmented MP4` |
 | Bitrate targets | `practical video efficiency; audio preserve-first` |
-| Audio bitrate targets | `codec-target defaults only when DTS-family audio is conformed` |
+| Audio bitrate targets | `codec-target defaults only when DTS/PCM-family audio is conformed` |
 | Overall bitrate targets | `reduce video bitrate while preserving viewing intent and sane audio delivery` |
 | Error | `guardrail skip, missing toolchain, strict DV/HDR mismatch, or unknown error placeholder` |
 

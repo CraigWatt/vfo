@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Hardware-aware legacy/sub-HD HEVC profile action with smart-English-subtitle
-# preserve and DTS-family audio conform handling.
+# preserve and DTS/PCM-family audio conform handling.
 #
 # Contract (called from vfo config):
 #   transcode_hevc_legacy_smart_eng_sub_audio_conform_profile.sh <input_file> <output_file>
@@ -12,10 +12,10 @@ set -euo pipefail
 #   priority: forced english -> forced untagged/unknown -> optional default english.
 #   non-english forced tracks are intentionally skipped.
 # - Preserves AAC and Dolby-family audio streams by default.
-# - Conforms DTS-family audio streams:
-#   DTS mono/stereo -> AAC + loudnorm
-#   DTS 3.0/4.0/5.0/5.1 -> E-AC-3 when available, else AC-3, with loudnorm
-#   DTS > 5.1 -> 5.1 E-AC-3/AC-3 downmix, with loudnorm
+# - Conforms DTS-family and PCM-family audio streams:
+#   DTS or PCM mono/stereo -> AAC + loudnorm
+#   DTS or PCM 3.0/4.0/5.0/5.1 -> E-AC-3 when available, else AC-3, with loudnorm
+#   DTS or PCM > 5.1 -> 5.1 E-AC-3/AC-3 downmix, with loudnorm
 # - Preserved non-MP4-safe audio (for example TrueHD) forces MKV output.
 # - Preserves dynamic-range signaling for HDR workflows by default:
 #   applies metadata-repair defaults when source tags are incomplete.
@@ -24,7 +24,8 @@ set -euo pipefail
 # - If selected subtitle is bitmap-based, crop is disabled for subtitle placement safety.
 # - If a smart English subtitle is selected, output container is MKV.
 # - If no subtitle is selected and preserved audio is MP4-safe, output container is
-#   stream-ready MP4 (fragmented MP4 with init/moov at the start).
+#   stream-ready MP4 (fragmented MP4 with init/moov at the start, with faststart
+#   fallback when E-AC-3 packaging needs it).
 #
 # Optional env:
 #   VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT=1   # include default english subtitle when no forced track exists

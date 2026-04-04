@@ -249,6 +249,68 @@ is_dts_family_codec_name() {
   esac
 }
 
+is_pcm_family_codec_name() {
+  case "$(lower_text "$1")" in
+    pcm|pcm_*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+requires_delivery_conform_codec_name() {
+  is_dts_family_codec_name "$1" || is_pcm_family_codec_name "$1"
+}
+
+is_mp4_safe_preserve_codec_name() {
+  case "$(lower_text "$1")" in
+    aac|ac3|eac3|alac|mp3)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+audio_conform_expected_container_for_input() {
+  local requested_container="$1"
+  local input="$2"
+  local stream_count=""
+  local pos=0
+  local codec=""
+
+  if [ "$requested_container" = "mkv" ]; then
+    printf 'mkv\n'
+    return 0
+  fi
+  if [ "$requested_container" != "mp4" ]; then
+    fail "Unsupported expected container '${requested_container}' for audio conform assertions"
+  fi
+
+  stream_count="$(probe_audio_count "$input")"
+  case "$stream_count" in
+    ''|*[!0-9]*)
+      stream_count="0"
+      ;;
+  esac
+
+  while [ "$pos" -lt "$stream_count" ]; do
+    codec="$(probe_audio_codec_at "$input" "$pos" || true)"
+    if [ -n "$codec" ] \
+      && ! requires_delivery_conform_codec_name "$codec" \
+      && ! is_mp4_safe_preserve_codec_name "$codec"; then
+      printf 'mkv\n'
+      return 0
+    fi
+    pos=$((pos + 1))
+  done
+
+  printf 'mp4\n'
+}
+
 probe_subtitle_count() {
   ffprobe -v error -select_streams s \
     -show_entries stream=index \
@@ -492,14 +554,17 @@ run_audio_conform_action_assertions() {
   local input="$3"
   local requested_output="$4"
   local max_height="$5"
-  local expected_container="$6" # mp4|mkv
+  local requested_container="$6" # mp4|mkv
   local expected_subtitle_count="$7"
   local include_default_main_sub="${8:-0}"
   local expected_output="$requested_output"
+  local effective_expected_container=""
   local input_audio_codec=""
   local input_audio_channels=""
   local output_audio_codec=""
   local expected_transcode_codec=""
+
+  effective_expected_container="$(audio_conform_expected_container_for_input "$requested_container" "$input")"
 
   run_main_subtitle_action_assertions \
     "$action_name" \
@@ -507,11 +572,11 @@ run_audio_conform_action_assertions() {
     "$input" \
     "$requested_output" \
     "$max_height" \
-    "$expected_container" \
+    "$effective_expected_container" \
     "$expected_subtitle_count" \
     "$include_default_main_sub"
 
-  if [ "$expected_container" = "mkv" ]; then
+  if [ "$effective_expected_container" = "mkv" ]; then
     expected_output="${requested_output%.*}.mkv"
   fi
 
@@ -522,7 +587,7 @@ run_audio_conform_action_assertions() {
   [ -n "$input_audio_codec" ] || return 0
   [ -n "$output_audio_codec" ] || fail "${action_name} lost the first audio stream"
 
-  if is_dts_family_codec_name "$input_audio_codec"; then
+  if requires_delivery_conform_codec_name "$input_audio_codec"; then
     case "$input_audio_channels" in
       ''|*[!0-9]*)
         input_audio_channels="2"
@@ -535,12 +600,12 @@ run_audio_conform_action_assertions() {
     else
       expected_transcode_codec="ac3"
     fi
-    assert_equals "$output_audio_codec" "$expected_transcode_codec" "${action_name} should conform DTS-family input to the expected delivery codec"
+    assert_equals "$output_audio_codec" "$expected_transcode_codec" "${action_name} should conform DTS/PCM-family input to the expected delivery codec"
   else
-    assert_equals "$output_audio_codec" "$input_audio_codec" "${action_name} should preserve non-DTS first audio codec"
+    assert_equals "$output_audio_codec" "$input_audio_codec" "${action_name} should preserve non-conformed first audio codec"
   fi
 
-  log "${action_name} audio conform passed (input_audio=${input_audio_codec}, output_audio=${output_audio_codec})"
+  log "${action_name} audio conform passed (input_audio=${input_audio_codec}, output_audio=${output_audio_codec}, container=${effective_expected_container})"
 }
 
 run_legacy_main_subtitle_autocrop_assertions() {

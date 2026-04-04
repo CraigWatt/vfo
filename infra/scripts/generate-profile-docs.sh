@@ -367,7 +367,7 @@ write_profile_doc() {
     if [ "$is_craigstreamy_subtitle_pack" = "1" ]; then
       printf '## Intent\n\n'
       if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
-        printf 'This profile converts candidates into streaming-friendly HEVC outputs while preserving smart-English-subtitle intent and conforming DTS-family audio when needed.\n\n'
+        printf 'This profile converts candidates into streaming-friendly HEVC outputs while preserving smart-English-subtitle intent and conforming DTS-family or PCM-family audio when needed.\n\n'
       else
         printf 'This profile converts candidates into streaming-friendly HEVC outputs while preserving selected-English subtitle intent where feasible.\n\n'
       fi
@@ -375,7 +375,7 @@ write_profile_doc() {
       printf -- '- practical bitrate efficiency with a consistent HEVC target\n'
       if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
         printf -- '- preserve AAC and Dolby-family audio streams when already acceptable\n'
-        printf -- '- conform DTS-family audio into open-source Dolby-aligned delivery codecs when needed\n'
+        printf -- '- conform DTS-family or PCM-family audio into open-source Dolby-aligned delivery codecs when needed\n'
       else
         printf -- '- preserve all audio streams by default when packaging permits\n'
       fi
@@ -538,43 +538,43 @@ MERMAID
       printf '| Dynamic range | `HDR/DV aware` on 4K, SDR-gated on 1080p, broad intake on legacy sub-HD |\n'
       printf '| Resolution | `4K / 1080p / legacy sub-HD` lane family |\n'
       if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
-        printf '| Audio codecs | `AAC + Dolby preserve`, `DTS-family conform` |\n'
+        printf '| Audio codecs | `AAC + Dolby preserve`, `DTS/PCM conform` |\n'
       else
         printf '| Audio codecs | `preserved by default` |\n'
       fi
       printf '| Video codecs | `HEVC transcode target` |\n'
       printf '| Interlacing | `legacy lane only; optional deinterlace` |\n'
       if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
-        printf '| Volume normalisation | `applied when DTS-family audio is transcoded` |\n'
+        printf '| Volume normalisation | `applied when DTS/PCM-family audio is transcoded` |\n'
       else
         printf '| Volume normalisation | `not applied by default` |\n'
       fi
       printf '| Crop | `legacy lane auto-crop enabled` |\n'
       printf '| Lowered video bitrate | `yes` |\n'
       if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
-        printf '| Lowered audio bitrate | `not as a general policy; only codec-target defaults for DTS conform` |\n'
-        printf '| Audio transcoded | `DTS-family only` |\n'
+        printf '| Lowered audio bitrate | `not as a general policy; only codec-target defaults for DTS/PCM conform` |\n'
+        printf '| Audio transcoded | `DTS/PCM-family only` |\n'
       else
         printf '| Lowered audio bitrate | `no by default` |\n'
         printf '| Audio transcoded | `no by default` |\n'
       fi
       printf '| Video transcoded | `yes` |\n'
       if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
-        printf '| Audio switched | `DTS -> AAC / E-AC-3 / AC-3 when needed` |\n'
+        printf '| Audio switched | `DTS/PCM -> AAC / E-AC-3 / AC-3 when needed` |\n'
       else
         printf '| Audio switched | `no; stream copy preferred` |\n'
       fi
       printf '| Subtitle retained | `selected English subtitle intent` |\n'
       printf '| Subtitle transformed | `no; retain/preserve intent only` |\n'
       if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
-        printf '| Container changed | `yes when subtitle or preserved-audio safety requires MKV, otherwise fragmented MP4` |\n'
+        printf '| Container changed | `yes when subtitle or preserved-audio safety requires MKV, otherwise fragmented MP4 with faststart fallback for E-AC-3` |\n'
       else
         printf '| Container changed | `yes when subtitle intent requires MKV, otherwise fragmented MP4` |\n'
       fi
       printf '| Container targets | `MKV` / `fragmented MP4` |\n'
       if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
         printf '| Bitrate targets | `practical video efficiency; audio preserve-first` |\n'
-        printf '| Audio bitrate targets | `codec-target defaults only when DTS-family audio is conformed` |\n'
+        printf '| Audio bitrate targets | `codec-target defaults only when DTS/PCM-family audio is conformed` |\n'
         printf '| Overall bitrate targets | `reduce video bitrate while preserving viewing intent and sane audio delivery` |\n'
       else
         printf '| Bitrate targets | `practical efficiency over source bit-for-bit preservation` |\n'
@@ -659,7 +659,7 @@ done < <(find "$PRESETS_DIR" -type f -name 'vfo_config.preset.conf' | sort)
   printf '\n## Notes\n\n'
   printf -- '- This matrix reflects stock presets, not every custom profile a user may define.\n'
   printf -- '- `craigstreamy_hevc_selected_english_subtitle_preserve` remains the preserve-audio subtitle-intent pack.\n'
-  printf -- '- `craigstreamy_hevc_smart_eng_sub_audio_conform` adds DTS-family conform behavior on top of the subtitle-intent family.\n'
+  printf -- '- `craigstreamy_hevc_smart_eng_sub_audio_conform` adds DTS/PCM delivery-conform behavior on top of the subtitle-intent family.\n'
 } > "$MATRIX_DOC"
 
 echo "Generated profile docs under: ${PROFILE_OUT_DIR#$REPO_ROOT/}"
