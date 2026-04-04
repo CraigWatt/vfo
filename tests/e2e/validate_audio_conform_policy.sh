@@ -44,6 +44,12 @@ main() {
   assert_true "dts should be recognized as DTS-family" audio_conform_is_dts_family_codec dts
   assert_true "dca should be recognized as DTS-family" audio_conform_is_dts_family_codec dca
   assert_false "aac should not be recognized as DTS-family" audio_conform_is_dts_family_codec aac
+  assert_true "pcm_s24le should be recognized as PCM-family" audio_conform_is_pcm_family_codec pcm_s24le
+  assert_false "aac should not be recognized as PCM-family" audio_conform_is_pcm_family_codec aac
+
+  assert_true "dts should require delivery conform" audio_conform_requires_delivery_conform dts
+  assert_true "pcm_s24le should require delivery conform" audio_conform_requires_delivery_conform pcm_s24le
+  assert_false "aac should not require delivery conform" audio_conform_requires_delivery_conform aac
 
   assert_true "aac should be treated as MP4-safe when preserved" audio_conform_is_mp4_safe_preserve_codec aac
   assert_true "eac3 should be treated as MP4-safe when preserved" audio_conform_is_mp4_safe_preserve_codec eac3
@@ -71,7 +77,7 @@ main() {
     assert_equals "$(audio_conform_stream_bitrate eac3 6)" "$AUDIO_CONFORM_EAC3_6CH_BITRATE" "E-AC-3 5.1 bitrate should use the configured multichannel target"
   fi
 
-  printf '[validate-audio-conform] DTS-family policy checks passed\n'
+  printf '[validate-audio-conform] delivery-conform policy checks passed\n'
 }
 
 main "$@"

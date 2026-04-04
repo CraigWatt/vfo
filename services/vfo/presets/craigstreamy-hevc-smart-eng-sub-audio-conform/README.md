@@ -4,7 +4,7 @@
 
 - practical HEVC bitrate reduction
 - preserving AAC and Dolby-family audio streams when they are already acceptable
-- conforming DTS-family audio streams into open-source Dolby-aligned delivery codecs
+- conforming DTS-family and PCM-family audio streams into open-source Dolby-aligned delivery codecs
 - preserving one smart English subtitle only when it appears intent-appropriate
 - preserving HDR/DV signaling when source essence supports it (strict by default on 4K lane)
 
@@ -25,10 +25,10 @@ Smart-English subtitle heuristic (implemented in action scripts):
 Audio conform strategy:
 
 - `aac`, `ac3`, `eac3`, and `truehd` are preserved as-is
-- DTS-family inputs are conformed stream-by-stream:
-  - mono/stereo DTS -> AAC + loudnorm
-  - DTS 3.0/4.0/5.0/5.1 -> E-AC-3 when available, else AC-3, with loudnorm
-  - DTS > 5.1 -> 5.1 E-AC-3/AC-3 downmix, with loudnorm
+- DTS-family and PCM-family inputs are conformed stream-by-stream:
+  - mono/stereo DTS or PCM -> AAC + loudnorm
+  - DTS or PCM 3.0/4.0/5.0/5.1 -> E-AC-3 when available, else AC-3, with loudnorm
+  - DTS or PCM > 5.1 -> 5.1 E-AC-3/AC-3 downmix, with loudnorm
 - preserved non-MP4-safe audio forces MKV output
 - no broad audio bitrate lowering pass is enabled yet; audio policy is conform-only when necessary
 
@@ -38,6 +38,7 @@ Container behavior:
 - no smart English subtitle and preserved audio is MP4-safe -> stream-ready MP4 output:
   - default mode: fragmented MP4 + init/moov at start (`VFO_MP4_STREAM_MODE=fmp4_faststart`)
   - optional modes: `fmp4` or `faststart`
+  - E-AC-3 audio falls back to `faststart` MP4 packaging because ffmpeg does not finalize the fragmented mode reliably for that codec
 - no smart English subtitle and preserved audio is not MP4-safe -> MKV output
 
 Guardrail mismatch behavior:
