@@ -309,7 +309,7 @@ Wizard behavior highlights:
 - preflight checks for required tools and config-path write permissions
 - step-based onboarding flow with explicit review before write
 - safe config writes (temporary file + atomic replace + timestamped backup)
-- stock preset multi-select (`balanced_open_audio`, `device_targets_open_audio`, `craigstreamy_hevc_selected_english_subtitle_preserve`)
+- stock preset multi-select (`balanced_open_audio`, `device_targets_open_audio`, `craigstreamy_hevc_smart_eng_sub_audio_conform`, `craigstreamy_hevc_selected_english_subtitle_preserve`)
 
 ## Configuration guide
 

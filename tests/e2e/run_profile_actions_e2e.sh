@@ -19,7 +19,11 @@ ACTION_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_profile.sh"
 ACTION_MAIN_SUB_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_main_subtitle_preserve_profile.sh"
 ACTION_MAIN_SUB_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_main_subtitle_preserve_profile.sh"
 ACTION_MAIN_SUB_LEGACY="${ROOT_DIR}/services/vfo/actions/transcode_hevc_legacy_main_subtitle_preserve_profile.sh"
+ACTION_SMART_ENG_AUDIO_CONFORM_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_smart_eng_sub_audio_conform_profile.sh"
+ACTION_SMART_ENG_AUDIO_CONFORM_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_smart_eng_sub_audio_conform_profile.sh"
+ACTION_SMART_ENG_AUDIO_CONFORM_LEGACY="${ROOT_DIR}/services/vfo/actions/transcode_hevc_legacy_smart_eng_sub_audio_conform_profile.sh"
 ACTION_GUARDRAIL_SKIP="${ROOT_DIR}/services/vfo/actions/profile_guardrail_skip.sh"
+VALIDATE_AUDIO_CONFORM_POLICY="${ROOT_DIR}/tests/e2e/validate_audio_conform_policy.sh"
 
 log() {
   printf '[e2e] %s\n' "$*"
@@ -116,6 +120,22 @@ create_fixture_from_input() {
     "$output" >/dev/null 2>&1
 }
 
+create_audio_conform_fixture_from_input() {
+  local input="$1"
+  local width="$2"
+  local height="$3"
+  local output="$4"
+
+  ffmpeg -hide_banner -nostdin -y \
+    -ss 0 -t "$CLIP_DURATION" \
+    -i "$input" \
+    -map 0:v:0 -map 0:a? \
+    -vf "scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2" \
+    -c:v libx264 -preset veryfast -crf 21 -pix_fmt yuv420p \
+    -c:a copy \
+    "$output" >/dev/null 2>&1
+}
+
 create_synthetic_fixture() {
   local width="$1"
   local height="$2"
@@ -194,6 +214,39 @@ probe_audio_count() {
   ffprobe -v error -select_streams a \
     -show_entries stream=index \
     -of csv=p=0 "$1" | wc -l | tr -d ' '
+}
+
+probe_audio_codec_at() {
+  local input="$1"
+  local stream_pos="$2"
+
+  ffprobe -v error -select_streams "a:${stream_pos}" \
+    -show_entries stream=codec_name \
+    -of default=nk=1:nw=1 "$input" | tr -d '\r\n'
+}
+
+probe_audio_channels_at() {
+  local input="$1"
+  local stream_pos="$2"
+
+  ffprobe -v error -select_streams "a:${stream_pos}" \
+    -show_entries stream=channels \
+    -of default=nk=1:nw=1 "$input" | tr -d '\r\n'
+}
+
+lower_text() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+is_dts_family_codec_name() {
+  case "$(lower_text "$1")" in
+    dca|dts|dts_*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 probe_subtitle_count() {
@@ -433,6 +486,63 @@ run_main_subtitle_action_assertions() {
   log "${action_name} passed (codec=${codec}, height=${height}, audio_streams=${output_audio_count}, subtitle_streams=${output_subtitle_count}, data_streams=${output_data_count}, container=${expected_container})"
 }
 
+run_audio_conform_action_assertions() {
+  local action_name="$1"
+  local action_script="$2"
+  local input="$3"
+  local requested_output="$4"
+  local max_height="$5"
+  local expected_container="$6" # mp4|mkv
+  local expected_subtitle_count="$7"
+  local include_default_main_sub="${8:-0}"
+  local expected_output="$requested_output"
+  local input_audio_codec=""
+  local input_audio_channels=""
+  local output_audio_codec=""
+  local expected_transcode_codec=""
+
+  run_main_subtitle_action_assertions \
+    "$action_name" \
+    "$action_script" \
+    "$input" \
+    "$requested_output" \
+    "$max_height" \
+    "$expected_container" \
+    "$expected_subtitle_count" \
+    "$include_default_main_sub"
+
+  if [ "$expected_container" = "mkv" ]; then
+    expected_output="${requested_output%.*}.mkv"
+  fi
+
+  input_audio_codec="$(probe_audio_codec_at "$input" 0 || true)"
+  output_audio_codec="$(probe_audio_codec_at "$expected_output" 0 || true)"
+  input_audio_channels="$(probe_audio_channels_at "$input" 0 || true)"
+
+  [ -n "$input_audio_codec" ] || return 0
+  [ -n "$output_audio_codec" ] || fail "${action_name} lost the first audio stream"
+
+  if is_dts_family_codec_name "$input_audio_codec"; then
+    case "$input_audio_channels" in
+      ''|*[!0-9]*)
+        input_audio_channels="2"
+        ;;
+    esac
+    if [ "$input_audio_channels" -le 2 ]; then
+      expected_transcode_codec="aac"
+    elif ffmpeg -hide_banner -encoders 2>/dev/null | awk 'NF >= 2 { print $2 }' | grep -qx 'eac3'; then
+      expected_transcode_codec="eac3"
+    else
+      expected_transcode_codec="ac3"
+    fi
+    assert_equals "$output_audio_codec" "$expected_transcode_codec" "${action_name} should conform DTS-family input to the expected delivery codec"
+  else
+    assert_equals "$output_audio_codec" "$input_audio_codec" "${action_name} should preserve non-DTS first audio codec"
+  fi
+
+  log "${action_name} audio conform passed (input_audio=${input_audio_codec}, output_audio=${output_audio_codec})"
+}
+
 run_legacy_main_subtitle_autocrop_assertions() {
   local action_name="$1"
   local input="$2"
@@ -540,21 +650,33 @@ run_seed_from_input() {
   local seed_asset="$2"
   local fixture_1080="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080.mkv"
   local fixture_2160="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160.mkv"
+  local fixture_1080_audio_conform="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_audio_conform.mkv"
+  local fixture_2160_audio_conform="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160_audio_conform.mkv"
   local fixture_1080_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_forced_sub.mkv"
   local fixture_2160_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160_forced_sub.mkv"
   local fixture_1080_default_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_default_sub.mkv"
   local fixture_1080_forced_non_english_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_forced_non_english_sub.mkv"
   local fixture_legacy_letterbox="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_legacy_letterbox.mkv"
   local fixture_legacy_letterbox_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_legacy_letterbox_forced_sub.mkv"
+  local fixture_1080_audio_conform_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_audio_conform_forced_sub.mkv"
+  local fixture_1080_audio_conform_default_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_audio_conform_default_sub.mkv"
+  local fixture_2160_audio_conform_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160_audio_conform_forced_sub.mkv"
+  local fixture_legacy_audio_conform_letterbox="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_legacy_audio_conform_letterbox.mkv"
+  local fixture_legacy_audio_conform_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_legacy_audio_conform_forced_sub.mkv"
   local output_1080="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_output.mkv"
   local output_4k="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_output.mkv"
   local output_1080_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_main_sub.mp4"
   local output_4k_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_main_sub.mp4"
+  local output_1080_audio_conform_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_audio_conform_main_sub.mp4"
+  local output_1080_audio_conform_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_audio_conform_default_sub_off.mp4"
+  local output_4k_audio_conform_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_audio_conform_main_sub.mp4"
+  local output_4k_audio_conform_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_audio_conform_default_sub_off.mp4"
   local output_1080_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_off.mp4"
   local output_1080_default_sub_on="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_on.mp4"
   local output_1080_forced_non_english_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_forced_non_english_sub.mp4"
   local output_legacy_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_default_sub_off.mp4"
   local output_legacy_forced_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_forced_sub.mp4"
+  local output_legacy_audio_conform_forced_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_audio_conform_forced_sub.mp4"
   local output_guardrail_skip="${OUTPUTS_DIR}/seed_${seed_index}_profile_guardrail_skip.mp4"
   local run_sdr_lanes=1
 
@@ -564,6 +686,8 @@ run_seed_from_input() {
   log "Using local open-source asset seed #${seed_index}: ${seed_asset}"
   create_fixture_from_input "$seed_asset" 1920 1080 "$fixture_1080"
   create_fixture_from_input "$seed_asset" 3840 2160 "$fixture_2160"
+  create_audio_conform_fixture_from_input "$seed_asset" 1920 1080 "$fixture_1080_audio_conform"
+  create_audio_conform_fixture_from_input "$seed_asset" 3840 2160 "$fixture_2160_audio_conform"
 
   if ! should_run_sdr_lanes_for_input "$fixture_1080"; then
     run_sdr_lanes=0
@@ -571,6 +695,7 @@ run_seed_from_input() {
   fi
 
   create_subtitle_fixture "$fixture_2160" "$fixture_2160_forced_sub" forced
+  create_subtitle_fixture "$fixture_2160_audio_conform" "$fixture_2160_audio_conform_forced_sub" forced
 
   if [ "$run_sdr_lanes" = "1" ]; then
     create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_sub" forced
@@ -578,6 +703,11 @@ run_seed_from_input() {
     create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_non_english_sub" forced_non_english
     create_legacy_letterbox_fixture "$fixture_1080" "$fixture_legacy_letterbox"
     create_subtitle_fixture "$fixture_legacy_letterbox" "$fixture_legacy_letterbox_forced_sub" forced
+
+    create_subtitle_fixture "$fixture_1080_audio_conform" "$fixture_1080_audio_conform_forced_sub" forced
+    create_subtitle_fixture "$fixture_1080_audio_conform" "$fixture_1080_audio_conform_default_sub" default
+    create_legacy_letterbox_fixture "$fixture_1080_audio_conform" "$fixture_legacy_audio_conform_letterbox"
+    create_subtitle_fixture "$fixture_legacy_audio_conform_letterbox" "$fixture_legacy_audio_conform_forced_sub" forced
   fi
 
   if [ "$run_sdr_lanes" = "1" ]; then
@@ -619,6 +749,18 @@ run_seed_from_input() {
     0
 
   if [ "$run_sdr_lanes" = "1" ]; then
+    run_audio_conform_action_assertions \
+      "hevc_1080_smart_eng_sub_audio_conform_forced(seed_${seed_index})" \
+      "$ACTION_SMART_ENG_AUDIO_CONFORM_1080" \
+      "$fixture_1080_audio_conform_forced_sub" \
+      "$output_1080_audio_conform_main_sub" \
+      1080 \
+      mkv \
+      1 \
+      0
+  fi
+
+  if [ "$run_sdr_lanes" = "1" ]; then
     run_main_subtitle_action_assertions \
       "hevc_1080_main_subtitle_default_off(seed_${seed_index})" \
       "$ACTION_MAIN_SUB_1080" \
@@ -629,6 +771,38 @@ run_seed_from_input() {
       0 \
       0
   fi
+
+  if [ "$run_sdr_lanes" = "1" ]; then
+    run_audio_conform_action_assertions \
+      "hevc_1080_smart_eng_sub_audio_conform_default_off(seed_${seed_index})" \
+      "$ACTION_SMART_ENG_AUDIO_CONFORM_1080" \
+      "$fixture_1080_audio_conform_default_sub" \
+      "$output_1080_audio_conform_default_sub_off" \
+      1080 \
+      mp4 \
+      0 \
+      0
+  fi
+
+  run_audio_conform_action_assertions \
+    "hevc_4k_smart_eng_sub_audio_conform_forced(seed_${seed_index})" \
+    "$ACTION_SMART_ENG_AUDIO_CONFORM_4K" \
+    "$fixture_2160_audio_conform_forced_sub" \
+    "$output_4k_audio_conform_main_sub" \
+    2160 \
+    mkv \
+    1 \
+    0
+
+  run_audio_conform_action_assertions \
+    "hevc_4k_smart_eng_sub_audio_conform_default_off(seed_${seed_index})" \
+    "$ACTION_SMART_ENG_AUDIO_CONFORM_4K" \
+    "$fixture_2160_audio_conform" \
+    "$output_4k_audio_conform_default_sub_off" \
+    2160 \
+    mp4 \
+    0 \
+    0
 
   if [ "$run_sdr_lanes" = "1" ]; then
     run_main_subtitle_action_assertions \
@@ -676,6 +850,18 @@ run_seed_from_input() {
       540
   fi
 
+  if [ "$run_sdr_lanes" = "1" ]; then
+    run_audio_conform_action_assertions \
+      "hevc_legacy_smart_eng_sub_audio_conform_forced(seed_${seed_index})" \
+      "$ACTION_SMART_ENG_AUDIO_CONFORM_LEGACY" \
+      "$fixture_legacy_audio_conform_forced_sub" \
+      "$output_legacy_audio_conform_forced_sub" \
+      540 \
+      mkv \
+      1 \
+      0
+  fi
+
   run_guardrail_skip_action_assertions \
     "profile_guardrail_skip_action(seed_${seed_index})" \
     "$fixture_1080" \
@@ -687,21 +873,33 @@ run_seed_synthetic() {
   local seed_index="$1"
   local fixture_1080="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080.mkv"
   local fixture_2160="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160.mkv"
+  local fixture_1080_audio_conform="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_audio_conform.mkv"
+  local fixture_2160_audio_conform="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160_audio_conform.mkv"
   local fixture_1080_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_forced_sub.mkv"
   local fixture_2160_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160_forced_sub.mkv"
   local fixture_1080_default_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_default_sub.mkv"
   local fixture_1080_forced_non_english_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_forced_non_english_sub.mkv"
   local fixture_legacy_letterbox="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_legacy_letterbox.mkv"
   local fixture_legacy_letterbox_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_legacy_letterbox_forced_sub.mkv"
+  local fixture_1080_audio_conform_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_audio_conform_forced_sub.mkv"
+  local fixture_1080_audio_conform_default_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_1080_audio_conform_default_sub.mkv"
+  local fixture_2160_audio_conform_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_2160_audio_conform_forced_sub.mkv"
+  local fixture_legacy_audio_conform_letterbox="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_legacy_audio_conform_letterbox.mkv"
+  local fixture_legacy_audio_conform_forced_sub="${FIXTURES_DIR}/seed_${seed_index}_mezzanine_legacy_audio_conform_forced_sub.mkv"
   local output_1080="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_output.mkv"
   local output_4k="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_output.mkv"
   local output_1080_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_main_sub.mp4"
   local output_4k_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_main_sub.mp4"
+  local output_1080_audio_conform_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_audio_conform_main_sub.mp4"
+  local output_1080_audio_conform_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_audio_conform_default_sub_off.mp4"
+  local output_4k_audio_conform_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_audio_conform_main_sub.mp4"
+  local output_4k_audio_conform_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_audio_conform_default_sub_off.mp4"
   local output_1080_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_off.mp4"
   local output_1080_default_sub_on="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_on.mp4"
   local output_1080_forced_non_english_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_forced_non_english_sub.mp4"
   local output_legacy_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_default_sub_off.mp4"
   local output_legacy_forced_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_forced_sub.mp4"
+  local output_legacy_audio_conform_forced_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_audio_conform_forced_sub.mp4"
   local output_guardrail_skip="${OUTPUTS_DIR}/seed_${seed_index}_profile_guardrail_skip.mp4"
 
   WEB_APP_SELECTED_ASSET="synthetic_seed_${seed_index}.mkv"
@@ -710,12 +908,21 @@ run_seed_synthetic() {
   log "Using synthetic fixtures for seed #${seed_index} (no local assets required)"
   create_synthetic_fixture 1920 1080 "$fixture_1080"
   create_synthetic_fixture 3840 2160 "$fixture_2160"
+  create_synthetic_fixture 1920 1080 "$fixture_1080_audio_conform"
+  create_synthetic_fixture 3840 2160 "$fixture_2160_audio_conform"
+
   create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_sub" forced
   create_subtitle_fixture "$fixture_2160" "$fixture_2160_forced_sub" forced
   create_subtitle_fixture "$fixture_1080" "$fixture_1080_default_sub" default
   create_subtitle_fixture "$fixture_1080" "$fixture_1080_forced_non_english_sub" forced_non_english
   create_legacy_letterbox_fixture "$fixture_1080" "$fixture_legacy_letterbox"
   create_subtitle_fixture "$fixture_legacy_letterbox" "$fixture_legacy_letterbox_forced_sub" forced
+
+  create_subtitle_fixture "$fixture_1080_audio_conform" "$fixture_1080_audio_conform_forced_sub" forced
+  create_subtitle_fixture "$fixture_1080_audio_conform" "$fixture_1080_audio_conform_default_sub" default
+  create_subtitle_fixture "$fixture_2160_audio_conform" "$fixture_2160_audio_conform_forced_sub" forced
+  create_legacy_letterbox_fixture "$fixture_1080_audio_conform" "$fixture_legacy_audio_conform_letterbox"
+  create_subtitle_fixture "$fixture_legacy_audio_conform_letterbox" "$fixture_legacy_audio_conform_forced_sub" forced
 
   run_action_assertions \
     "hevc_1080_profile_action(seed_${seed_index})" \
@@ -749,6 +956,46 @@ run_seed_synthetic() {
     2160 \
     mkv \
     1 \
+    0
+
+  run_audio_conform_action_assertions \
+    "hevc_1080_smart_eng_sub_audio_conform_forced(seed_${seed_index})" \
+    "$ACTION_SMART_ENG_AUDIO_CONFORM_1080" \
+    "$fixture_1080_audio_conform_forced_sub" \
+    "$output_1080_audio_conform_main_sub" \
+    1080 \
+    mkv \
+    1 \
+    0
+
+  run_audio_conform_action_assertions \
+    "hevc_1080_smart_eng_sub_audio_conform_default_off(seed_${seed_index})" \
+    "$ACTION_SMART_ENG_AUDIO_CONFORM_1080" \
+    "$fixture_1080_audio_conform_default_sub" \
+    "$output_1080_audio_conform_default_sub_off" \
+    1080 \
+    mp4 \
+    0 \
+    0
+
+  run_audio_conform_action_assertions \
+    "hevc_4k_smart_eng_sub_audio_conform_forced(seed_${seed_index})" \
+    "$ACTION_SMART_ENG_AUDIO_CONFORM_4K" \
+    "$fixture_2160_audio_conform_forced_sub" \
+    "$output_4k_audio_conform_main_sub" \
+    2160 \
+    mkv \
+    1 \
+    0
+
+  run_audio_conform_action_assertions \
+    "hevc_4k_smart_eng_sub_audio_conform_default_off(seed_${seed_index})" \
+    "$ACTION_SMART_ENG_AUDIO_CONFORM_4K" \
+    "$fixture_2160_audio_conform" \
+    "$output_4k_audio_conform_default_sub_off" \
+    2160 \
+    mp4 \
+    0 \
     0
 
   run_main_subtitle_action_assertions \
@@ -798,6 +1045,16 @@ run_seed_synthetic() {
     1 \
     0 \
     540
+
+  run_audio_conform_action_assertions \
+    "hevc_legacy_smart_eng_sub_audio_conform_forced(seed_${seed_index})" \
+    "$ACTION_SMART_ENG_AUDIO_CONFORM_LEGACY" \
+    "$fixture_legacy_audio_conform_forced_sub" \
+    "$output_legacy_audio_conform_forced_sub" \
+    540 \
+    mkv \
+    1 \
+    0
 
   run_guardrail_skip_action_assertions \
     "profile_guardrail_skip_action(seed_${seed_index})" \
@@ -849,7 +1106,11 @@ main() {
   [ -f "$ACTION_MAIN_SUB_4K" ] || fail "Missing action script: $ACTION_MAIN_SUB_4K"
   [ -f "$ACTION_MAIN_SUB_1080" ] || fail "Missing action script: $ACTION_MAIN_SUB_1080"
   [ -f "$ACTION_MAIN_SUB_LEGACY" ] || fail "Missing action script: $ACTION_MAIN_SUB_LEGACY"
+  [ -f "$ACTION_SMART_ENG_AUDIO_CONFORM_4K" ] || fail "Missing action script: $ACTION_SMART_ENG_AUDIO_CONFORM_4K"
+  [ -f "$ACTION_SMART_ENG_AUDIO_CONFORM_1080" ] || fail "Missing action script: $ACTION_SMART_ENG_AUDIO_CONFORM_1080"
+  [ -f "$ACTION_SMART_ENG_AUDIO_CONFORM_LEGACY" ] || fail "Missing action script: $ACTION_SMART_ENG_AUDIO_CONFORM_LEGACY"
   [ -f "$ACTION_GUARDRAIL_SKIP" ] || fail "Missing action script: $ACTION_GUARDRAIL_SKIP"
+  [ -f "$VALIDATE_AUDIO_CONFORM_POLICY" ] || fail "Missing validation script: $VALIDATE_AUDIO_CONFORM_POLICY"
 
   rm -rf "$TMP_DIR"
   mkdir -p "$FIXTURES_DIR" "$OUTPUTS_DIR"
@@ -864,6 +1125,7 @@ main() {
   assert_positive_int "$MAX_SEEDS" "VFO_E2E_MAX_SEEDS"
 
   log "asset_mode=${ASSET_MODE} assets_dir=${ASSETS_DIR} clip_duration=${CLIP_DURATION}s max_seeds=${MAX_SEEDS}"
+  bash "$VALIDATE_AUDIO_CONFORM_POLICY"
 
   case "$ASSET_MODE" in
     auto|local)
