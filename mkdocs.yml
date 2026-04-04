@@ -87,8 +87,10 @@ markdown_extensions:
 
 extra_javascript:
   - https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js
+  - https://unpkg.com/html-to-image@1.11.11/dist/html-to-image.js
   - javascripts/mermaid-init.js
   - javascripts/reactflow-viewer.js
+  - javascripts/diagram-viewer.js
   - javascripts/vfo-web-app.js
 
 extra_css:

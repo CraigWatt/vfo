@@ -86,6 +86,121 @@ div.mermaid {
   background: var(--vfo-surface);
 }
 
+.vfo-diagram-card {
+  border: 1px solid var(--vfo-border);
+  border-radius: var(--vfo-radius);
+  background:
+    linear-gradient(180deg, rgba(14, 165, 233, 0.08), transparent 3rem),
+    var(--vfo-surface);
+  margin: 1rem 0 1.25rem;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+}
+
+.vfo-diagram-card__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 0.85rem 0.35rem;
+}
+
+.vfo-diagram-card__title {
+  color: var(--vfo-text);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.vfo-diagram-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.vfo-diagram-card__button {
+  border: 1px solid var(--vfo-border);
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--vfo-text);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.vfo-diagram-card__button:hover,
+.vfo-diagram-card__button:focus {
+  border-color: var(--md-primary-fg-color);
+  color: var(--md-primary-fg-color);
+}
+
+.vfo-diagram-card__content {
+  padding: 0.5rem 0.85rem 0.85rem;
+  cursor: zoom-in;
+  overflow: auto;
+}
+
+.vfo-diagram-card__content:focus {
+  outline: 2px solid var(--md-primary-fg-color);
+  outline-offset: -2px;
+}
+
+.vfo-diagram-card__hint {
+  padding: 0 0.9rem 0.8rem;
+  color: var(--vfo-muted);
+  font-size: 0.76rem;
+}
+
+.vfo-diagram-card .mermaid,
+.vfo-diagram-card .reactflow-diagram {
+  margin: 0;
+  border: 0;
+  box-shadow: none;
+}
+
+.vfo-diagram-card .mermaid {
+  padding: 0;
+  background: transparent;
+}
+
+.vfo-diagram-card .mermaid svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+
+.vfo-diagram-card .reactflow-diagram {
+  min-width: 42rem;
+}
+
+.vfo-diagram-card:fullscreen,
+.vfo-diagram-card:-webkit-full-screen,
+.vfo-diagram-card.vfo-diagram-card--expanded {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border-radius: 0;
+  padding-bottom: 0;
+}
+
+.vfo-diagram-card:fullscreen .vfo-diagram-card__content,
+.vfo-diagram-card:-webkit-full-screen .vfo-diagram-card__content,
+.vfo-diagram-card.vfo-diagram-card--expanded .vfo-diagram-card__content {
+  height: calc(100vh - 5.5rem);
+  cursor: zoom-out;
+}
+
+.vfo-diagram-card:fullscreen .reactflow-diagram,
+.vfo-diagram-card:-webkit-full-screen .reactflow-diagram,
+.vfo-diagram-card.vfo-diagram-card--expanded .reactflow-diagram {
+  height: calc(100vh - 8rem);
+  min-width: 100%;
+}
+
 .reactflow-diagram {
   width: 100%;
   height: 380px;
@@ -97,6 +212,17 @@ div.mermaid {
 
 .reactflow-diagram .react-flow__node {
   white-space: normal;
+}
+
+@media (max-width: 700px) {
+  .vfo-diagram-card__toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .vfo-diagram-card .reactflow-diagram {
+    min-width: 32rem;
+  }
 }
 
 .vfo-web-app {
