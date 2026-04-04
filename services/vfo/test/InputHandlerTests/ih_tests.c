@@ -237,6 +237,24 @@ void test_ih_stock_preset_alias_resolution_supports_craigstreamy_and_legacy_name
                       "craigstreamy-hevc-selected-english-subtitle-preserve/vfo_config.preset.conf");
 }
 
+void test_ih_stock_preset_resolution_supports_audio_conform_pack(void **state) {
+  char canonical_key[256];
+  char relative_path[256];
+  (void)state;
+
+  memset(canonical_key, 0, sizeof(canonical_key));
+  memset(relative_path, 0, sizeof(relative_path));
+
+  assert_true(ih_resolve_stock_preset_for_test("craigstreamy_hevc_smart_eng_sub_audio_conform",
+                                               canonical_key,
+                                               sizeof(canonical_key),
+                                               relative_path,
+                                               sizeof(relative_path)));
+  assert_string_equal(canonical_key, "craigstreamy_hevc_smart_eng_sub_audio_conform");
+  assert_string_equal(relative_path,
+                      "craigstreamy-hevc-smart-eng-sub-audio-conform/vfo_config.preset.conf");
+}
+
 void test_quality_reference_mode_parser_accepts_valid_values(void **state) {
   bool valid = false;
   (void)state;
