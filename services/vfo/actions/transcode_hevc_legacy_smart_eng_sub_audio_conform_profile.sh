@@ -48,6 +48,10 @@ set -euo pipefail
 #   VFO_AUDIO_CONFORM_TARGET_I=-14
 #   VFO_AUDIO_CONFORM_TARGET_TP=-1.5
 #   VFO_AUDIO_CONFORM_TARGET_LRA=11
+#   VFO_QUALITY_MODE=standard|aggressive_vmaf
+#     default: standard
+#   VFO_QUALITY_VMAF_MIN=94
+#   VFO_QUALITY_VMAF_MAX_PASSES=4
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
@@ -67,6 +71,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/dynamic_range_tools.sh"
 # shellcheck source=audio_conform_tools.sh
 . "$SCRIPT_DIR/audio_conform_tools.sh"
+# shellcheck source=quality_mode_tools.sh
+. "$SCRIPT_DIR/quality_mode_tools.sh"
 
 ENCODER_MODE="${VFO_ENCODER_MODE:-auto}" # auto|hw|cpu
 INCLUDE_DEFAULT_MAIN_SUB="${VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT:-0}"
@@ -395,28 +401,27 @@ if [ -n "${DR_REPAIR_NOTES:-}" ]; then
   echo "Dynamic-range metadata repair hints: ${DR_REPAIR_NOTES}"
 fi
 
-VIDEO_ARGS=()
-if [ "$ENCODER_MODE" = "hw" ] || { [ "$ENCODER_MODE" = "auto" ] && has_videotoolbox_encoder; }; then
-  VIDEO_ARGS=(
-    -c:v hevc_videotoolbox
-    -pix_fmt p010le
-    -b:v "${AVG_K_LEGACY}k"
-    -maxrate "${MAXRATE_K_LEGACY}k"
-    -bufsize "${BUFSIZE_K_LEGACY}k"
-    "${COLOR_ARGS[@]}"
-  )
-else
-  VIDEO_ARGS=(
-    -c:v libx265
-    -preset "$CPU_PRESET"
-    -crf "$CRF_LEGACY"
-    -x265-params "vbv-maxrate=${MAXRATE_K_LEGACY}:vbv-bufsize=${BUFSIZE_K_LEGACY}:aq-mode=3"
-    -pix_fmt yuv420p10le
-    "${COLOR_ARGS[@]}"
-  )
-fi
+HW_VIDEO_BASE_ARGS=(
+  -c:v hevc_videotoolbox
+  -pix_fmt p010le
+  "${COLOR_ARGS[@]}"
+)
+
+CPU_VIDEO_BASE_ARGS=(
+  -c:v libx265
+  -preset "$CPU_PRESET"
+  -pix_fmt yuv420p10le
+  "${COLOR_ARGS[@]}"
+)
+
 if [ -n "$VIDEO_FILTER_CHAIN" ]; then
-  VIDEO_ARGS=(-vf "$VIDEO_FILTER_CHAIN" "${VIDEO_ARGS[@]}")
+  HW_VIDEO_BASE_ARGS=(-vf "$VIDEO_FILTER_CHAIN" "${HW_VIDEO_BASE_ARGS[@]}")
+  CPU_VIDEO_BASE_ARGS=(-vf "$VIDEO_FILTER_CHAIN" "${CPU_VIDEO_BASE_ARGS[@]}")
+fi
+
+using_hw=0
+if [ "$ENCODER_MODE" = "hw" ] || { [ "$ENCODER_MODE" = "auto" ] && has_videotoolbox_encoder; }; then
+  using_hw=1
 fi
 
 workdir="$(mktemp -d "${TMPDIR:-/tmp}/vfo-smart-eng-audio-legacy-XXXXXX")"
@@ -427,14 +432,128 @@ audio_work_output="${workdir}/audio_work.mka"
 
 audio_conform_render_audio_work "$INPUT" "$audio_work_output"
 
-ffmpeg -hide_banner -nostdin -y \
-  -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
-  -i "$INPUT" \
-  -map 0:v:0 \
-  "${VIDEO_ARGS[@]}" \
-  -movflags +faststart \
-  -max_muxing_queue_size 4096 \
-  "$video_work_output"
+encode_legacy_video_candidate() {
+  local output_path="$1"
+  local pass_index="$2"
+  local current_avg=""
+  local current_max=""
+  local current_buf=""
+  local current_crf=""
+  local -a candidate_args=()
+
+  current_avg="$(quality_mode_scale_kbits "$AVG_K_LEGACY" "$pass_index" "$QUALITY_MODE_VMAF_HW_REDUCTION_PCT")"
+  current_max="$(quality_mode_scale_kbits "$MAXRATE_K_LEGACY" "$pass_index" "$QUALITY_MODE_VMAF_HW_REDUCTION_PCT")"
+  current_buf="$(quality_mode_scale_kbits "$BUFSIZE_K_LEGACY" "$pass_index" "$QUALITY_MODE_VMAF_HW_REDUCTION_PCT")"
+  current_crf="$(quality_mode_step_crf "$CRF_LEGACY" "$pass_index" "$QUALITY_MODE_VMAF_CPU_CRF_STEP")"
+
+  if [ "$using_hw" -eq 1 ]; then
+    candidate_args=(
+      "${HW_VIDEO_BASE_ARGS[@]}"
+      -b:v "${current_avg}k"
+      -maxrate "${current_max}k"
+      -bufsize "${current_buf}k"
+    )
+    if ffmpeg -hide_banner -nostdin -y \
+      -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
+      -i "$INPUT" \
+      -map 0:v:0 \
+      "${candidate_args[@]}" \
+      -movflags +faststart \
+      -max_muxing_queue_size 4096 \
+      "$output_path" >/dev/null 2>&1; then
+      echo "Encode pass $((pass_index + 1)): hardware HEVC avg=${current_avg}k maxrate=${current_max}k bufsize=${current_buf}k"
+      return 0
+    fi
+
+    if [ "$ENCODER_MODE" = "auto" ]; then
+      echo "VideoToolbox encode failed during pass $((pass_index + 1)); falling back to CPU for remaining passes" >&2
+      using_hw=0
+    else
+      return 1
+    fi
+  fi
+
+  candidate_args=(
+    "${CPU_VIDEO_BASE_ARGS[@]}"
+    -crf "$current_crf"
+    -x265-params "vbv-maxrate=${current_max}:vbv-bufsize=${current_buf}:aq-mode=3"
+  )
+  echo "Encode pass $((pass_index + 1)): CPU HEVC crf=${current_crf} maxrate=${current_max}k bufsize=${current_buf}k"
+  ffmpeg -hide_banner -nostdin -y \
+    -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
+    -i "$INPUT" \
+    -map 0:v:0 \
+    "${candidate_args[@]}" \
+    -movflags +faststart \
+    -max_muxing_queue_size 4096 \
+    "$output_path" >/dev/null 2>&1
+}
+
+run_legacy_quality_mode_encode() {
+  local output_path="$1"
+  local pass_index=0
+  local candidate_path=""
+  local score=""
+  local best_candidate=""
+  local best_score=""
+
+  if ! quality_mode_is_aggressive_vmaf; then
+    encode_legacy_video_candidate "$output_path" 0
+    return 0
+  fi
+
+  if [ "$DR_SOURCE_CLASS" != "sdr" ]; then
+    echo "Aggressive VMAF requested, but this lane only enables bounded retries for SDR inputs; falling back to standard encode"
+    encode_legacy_video_candidate "$output_path" 0
+    return 0
+  fi
+
+  if ! quality_mode_has_libvmaf; then
+    echo "Aggressive VMAF requested, but ffmpeg libvmaf is unavailable; falling back to standard encode"
+    encode_legacy_video_candidate "$output_path" 0
+    return 0
+  fi
+
+  while [ "$pass_index" -lt "$QUALITY_MODE_VMAF_MAX_PASSES" ]; do
+    candidate_path="${workdir}/enc_video_pass_${pass_index}.mp4"
+    encode_legacy_video_candidate "$candidate_path" "$pass_index"
+    score="$(quality_mode_measure_vmaf "$candidate_path" "$INPUT" || true)"
+    if [ -z "$score" ]; then
+      echo "Aggressive VMAF pass $((pass_index + 1)) could not parse a score; keeping the latest candidate"
+      [ -n "$best_candidate" ] || best_candidate="$candidate_path"
+      break
+    fi
+
+    echo "Aggressive VMAF pass $((pass_index + 1))/${QUALITY_MODE_VMAF_MAX_PASSES}: score=${score} floor=${QUALITY_MODE_VMAF_MIN}"
+
+    if [ -z "$best_candidate" ] || quality_mode_score_meets_floor "$score" "$QUALITY_MODE_VMAF_MIN"; then
+      best_candidate="$candidate_path"
+      best_score="$score"
+    fi
+
+    if ! quality_mode_score_meets_floor "$score" "$QUALITY_MODE_VMAF_MIN"; then
+      if [ "$pass_index" -eq 0 ]; then
+        echo "Baseline encode is already below the VMAF floor; preserving baseline output"
+        best_candidate="$candidate_path"
+      fi
+      break
+    fi
+
+    pass_index=$((pass_index + 1))
+  done
+
+  [ -n "$best_candidate" ] || {
+    echo "Aggressive VMAF could not produce any candidate output" >&2
+    return 1
+  }
+
+  mv "$best_candidate" "$output_path"
+  if [ -n "$best_score" ]; then
+    echo "Aggressive VMAF selected candidate score=${best_score}"
+  fi
+}
+
+run_legacy_quality_mode_encode "$video_work_output"
 
 ACTUAL_OUTPUT="$OUTPUT"
 if [ -n "$MAIN_SUB_POS" ] || [ "$AUDIO_CONFORM_FORCE_MKV" = "1" ]; then

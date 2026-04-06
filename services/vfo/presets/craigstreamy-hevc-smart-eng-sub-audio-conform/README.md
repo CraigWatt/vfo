@@ -5,8 +5,15 @@
 - practical HEVC bitrate reduction
 - preserving AAC and Dolby-family audio streams when they are already acceptable
 - conforming DTS-family and PCM-family audio streams into open-source Dolby-aligned delivery codecs
-- preserving one smart English subtitle only when it appears intent-appropriate
+- subtitle policy: `smart_eng_sub` + `preserve`
 - preserving HDR/DV signaling when source essence supports it (strict by default on 4K lane)
+
+Canonical subtitle policy:
+
+- selection scope: `smart_eng_sub`
+- handling mode: `preserve`
+
+See `platform/docs-site/docs/subtitle-policy-taxonomy.md` for the shared subtitle-policy taxonomy used across `craigstreamy` packs.
 
 Input guardrails:
 
@@ -15,7 +22,7 @@ Input guardrails:
 - Legacy sub-HD lane accepts broad codec/color intake in the 320x240..1279x719 envelope.
 - Codec intake is intentionally broad (`any`) so mezzanines such as HEVC, H.264 (including rare 10-bit), AV1, VP9, and legacy MPEG-2 style assets can be processed.
 
-Smart-English subtitle heuristic (implemented in action scripts):
+`smart_eng_sub` heuristic (implemented in action scripts):
 
 - forced english first
 - forced untagged/unknown fallback
@@ -51,6 +58,7 @@ Legacy lane processing behavior:
 - deinterlace can run automatically when input is interlaced (`VFO_LEGACY_DEINTERLACE=auto`)
 - stable black-bar auto-crop is enabled by default (`VFO_LEGACY_AUTOCROP=1`)
 - auto-crop is disabled for files where the selected subtitle stream is bitmap-based
+- bitmap subtitles are preserved only; this pack does not implement `subtitle_convert`
 - metadata notes are emitted per output in `*.dynamic_range_report.txt`
 
 Dynamic-range behavior:

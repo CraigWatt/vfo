@@ -1,20 +1,30 @@
 # Craigstreamy HEVC Smart Eng Sub Audio Conform Pack
 
-This pack keeps the same subtitle-intent and HEVC posture as the existing craigstreamy preserve pack, but adds a stricter audio-delivery policy for DTS-family and PCM-family mezzanines.
+This pack keeps the same `smart_eng_sub + preserve` subtitle posture and HEVC strategy as the existing craigstreamy preserve pack, but adds a stricter audio-delivery policy for DTS-family and PCM-family mezzanines.
 
 ## Intent
 
 This pack standardizes mixed-library inputs into streaming-friendly HEVC outputs while:
 
-- preserving smart English subtitle intent
+- preserving the `smart_eng_sub + preserve` subtitle policy
 - preserving AAC and Dolby-family audio streams when they are already acceptable
 - conforming DTS-family and PCM-family audio into open-source Dolby-aligned delivery codecs
 - using MKV whenever subtitle or preserved-audio safety requires it
 
+## Subtitle Policy
+
+Canonical subtitle policy for this pack:
+
+- selection scope: `smart_eng_sub`
+- handling mode: `preserve`
+
+This pack uses the same subtitle policy as the existing craigstreamy preserve pack. The shared vocabulary is defined in [Subtitle Policy](../../subtitle-policy-taxonomy.md).
+
 ## What It Optimizes For
 
 - practical HEVC bitrate reduction across 4K, 1080p SDR, and legacy sub-HD lanes
-- subtitle-intent-sensitive container branching
+- subtitle policy: `smart_eng_sub` + `preserve`
+- subtitle-policy-sensitive container branching
 - preserve-first audio policy for already-acceptable streams
 - DTS/PCM delivery cleanup without pretending we can author Atmos
 - loudness normalization only on the audio streams we actually transcode
@@ -45,8 +55,8 @@ This pack standardizes mixed-library inputs into streaming-friendly HEVC outputs
 | Audio transcoded | `DTS/PCM-family only` |
 | Video transcoded | `yes` |
 | Audio switched | `DTS/PCM -> AAC / E-AC-3 / AC-3 when needed` |
-| Subtitle retained | `smart English subtitle intent` |
-| Subtitle transformed | `no; retain/preserve intent only` |
+| Subtitle retained | `smart_eng_sub + preserve` |
+| Subtitle transformed | `no; preserve mode only` |
 | Container changed | `yes when subtitle or preserved-audio safety requires MKV; otherwise fragmented MP4 with faststart fallback for E-AC-3` |
 | Container targets | `MKV` / `fragmented MP4` |
 | Bitrate targets | `practical video efficiency; audio preserve-first` |

@@ -24,14 +24,16 @@ flowchart TD
   D --> E[Write output artifact]:::output
 ```
 
-## Selected-Subtitle Variant
+## `smart_eng_sub` + `preserve` Variant
 
 For `craigstreamy_hevc_selected_english_subtitle_preserve` and `craigstreamy_hevc_smart_eng_sub_audio_conform` profiles, the output container branch is explicit:
 
-- Selected English subtitle found -> MKV output
-- Selected English subtitle not found -> stream-ready MP4 output (fragmented + init/moov at start by default)
+- `smart_eng_sub` subtitle selected -> MKV output
+- no `smart_eng_sub` subtitle selected -> stream-ready MP4 output (fragmented + init/moov at start by default)
 
-This variant is now generated automatically into each selected-subtitle profile sheet.
+This variant is now generated automatically into each `smart_eng_sub + preserve` profile sheet.
+
+Canonical subtitle policy terms live in [Subtitle Policy](subtitle-policy-taxonomy.md).
 
 ## Where to See It
 

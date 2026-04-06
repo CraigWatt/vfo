@@ -4,17 +4,75 @@ Current stock packs in vfo:
 
 - `balanced_open_audio`
 - `device_targets_open_audio`
+- `craigstreamy_hevc_all_sub_preserve`
+- `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf`
 - `craigstreamy_hevc_smart_eng_sub_audio_conform`
+- `craigstreamy_hevc_smart_eng_sub_subtitle_convert`
 - `craigstreamy_hevc_selected_english_subtitle_preserve`
 
 Each pack is an outcome preset family. Use packs to choose the behavior you want first, then tune criteria/actions if needed.
+
+Read [Profile Pack Strategy](profile-pack-strategy.md) for the rule of the road:
+
+- fixed named packs for user-facing selection
+- internal policy composition under the hood
+- quality modes layered on top instead of multiplying pack names too early
+
+Subtitle behavior is now described via the canonical policy taxonomy:
+
+- `smart_eng_sub`
+- `all_sub_preserve`
+- `subtitle_convert`
+
+Read [Subtitle Policy](subtitle-policy-taxonomy.md) for the policy model and how current packs map to it.
+
+Quality behavior is also orthogonal to pack names:
+
+- `standard`
+- `aggressive_vmaf`
+
+Read [Quality Modes](quality-mode-taxonomy.md) for the quality-mode model and the current implementation boundary.
+
+## Selection Model
+
+Use this shorthand:
+
+- choose a pack for subtitle + audio + delivery intent
+- choose a quality mode for how hard video optimization should push
+
+Today that means:
+
+- pack choice is explicit
+- `aggressive_vmaf` now exists both as a reusable quality mode and a fixed named craigstreamy pack
+- subtitle handling is now split more clearly across preserve vs convert variants
+
+Further pack evolution is documented in [Profile Pack Strategy](profile-pack-strategy.md).
+
+## craigstreamy_hevc_all_sub_preserve
+
+Focus:
+
+- practical HEVC bitrate reduction approach
+- subtitle policy: `all_sub_preserve` + `preserve`
+- preserve audio streams
+- emit MKV when subtitle carry-over is active, otherwise stream-ready MP4
+- details + flow: [Craigstreamy HEVC All Sub Preserve Pack](profiles/packs/craigstreamy-hevc-all-sub-preserve.md)
+
+## craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf
+
+Focus:
+
+- the same subtitle + audio intent as the standard audio-conform pack
+- bounded aggressive-VMAF retries on the video encode stage
+- keep audio behavior unchanged while pushing video harder
+- details + flow: [Craigstreamy HEVC Smart Eng Sub Audio Conform Aggressive VMAF Pack](profiles/packs/craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf.md)
 
 ## craigstreamy_hevc_smart_eng_sub_audio_conform
 
 Focus:
 
 - practical HEVC bitrate reduction approach
-- preserve smart English subtitle intent
+- subtitle policy: `smart_eng_sub` + `preserve`
 - preserve AAC and Dolby-family audio when already acceptable
 - conform DTS-family audio into open-source Dolby-aligned delivery codecs when needed
 - apply loudness normalization only on DTS-family transcode paths
@@ -28,13 +86,23 @@ Included active profiles:
 - `craigstreamy_hevc_smart_eng_sub_audio_conform_legacy_subhd`
 - details + flow: [Craigstreamy HEVC Smart Eng Sub Audio Conform Pack](profiles/packs/craigstreamy-hevc-smart-eng-sub-audio-conform.md)
 
+## craigstreamy_hevc_smart_eng_sub_subtitle_convert
+
+Focus:
+
+- practical HEVC bitrate reduction approach
+- subtitle policy: `smart_eng_sub` + `subtitle_convert`
+- preserve audio streams
+- convert selected text subtitles into delivery-friendly subtitle text
+- details + flow: [Craigstreamy HEVC Smart Eng Sub Subtitle Convert Pack](profiles/packs/craigstreamy-hevc-smart-eng-sub-subtitle-convert.md)
+
 ## craigstreamy_hevc_selected_english_subtitle_preserve
 
 Focus:
 
 - practical HEVC bitrate reduction approach
 - preserve audio streams
-- preserve one selected English subtitle when it appears intent-oriented
+- subtitle policy: `smart_eng_sub` + `preserve`
 - emit MKV when subtitle intent applies, otherwise stream-ready MP4 (fragmented + init/moov at start by default)
 - prioritize viewing-experience intent over single-container uniformity
 - guardrails: 1080 lane is SDR-only (`bt709`) in 1280x720..1920x1080, 4K lane accepts SDR/HDR in 1920x1080..3840x2160, legacy sub-HD lane is 320x240..1279x719 with broad codec/color intake
