@@ -2,7 +2,7 @@
 
 These pages are generated from stock preset files and linked action scripts.
 
-Compatibility note: the canonical pack `craigstreamy_hevc_selected_english_subtitle_preserve` still emits generated profile sheets using the legacy `netflixy_preserve_audio_main_subtitle_intent_*` profile ids for compatibility.
+Compatibility note: the canonical pack `craigstreamy_hevc_selected_english_subtitle_preserve` still maps to legacy internal profile ids for compatibility, but the generated docs use canonical `craigstreamy` labels.
 
 Regenerate with:
 
@@ -12,39 +12,58 @@ bash infra/scripts/generate-profile-docs.sh
 
 ## Profiles
 
-- [balanced_4k_open_audio](generated/balanced-4k-open-audio.md) (pack: balanced_open_audio)
-- [balanced_1080_open_audio](generated/balanced-1080-open-audio.md) (pack: balanced_open_audio)
-- [craigstreamy_hevc_all_sub_audio_conform_4k](generated/craigstreamy-hevc-all-sub-audio-conform-4k.md) (pack: craigstreamy-hevc-all-sub-audio-conform)
-- [craigstreamy_hevc_all_sub_audio_conform_1080p](generated/craigstreamy-hevc-all-sub-audio-conform-1080p.md) (pack: craigstreamy-hevc-all-sub-audio-conform)
-- [craigstreamy_hevc_all_sub_audio_conform_legacy_subhd](generated/craigstreamy-hevc-all-sub-audio-conform-legacy-subhd.md) (pack: craigstreamy-hevc-all-sub-audio-conform)
-- [craigstreamy_hevc_all_sub_preserve_4k](generated/craigstreamy-hevc-all-sub-preserve-4k.md) (pack: craigstreamy-hevc-all-sub-preserve)
-- [craigstreamy_hevc_all_sub_preserve_1080p](generated/craigstreamy-hevc-all-sub-preserve-1080p.md) (pack: craigstreamy-hevc-all-sub-preserve)
-- [craigstreamy_hevc_all_sub_preserve_legacy_subhd](generated/craigstreamy-hevc-all-sub-preserve-legacy-subhd.md) (pack: craigstreamy-hevc-all-sub-preserve)
-- [netflixy_preserve_audio_main_subtitle_intent_4k](generated/netflixy-preserve-audio-main-subtitle-intent-4k.md) (pack: craigstreamy-hevc-selected-english-subtitle-preserve)
-- [netflixy_preserve_audio_main_subtitle_intent_1080p](generated/netflixy-preserve-audio-main-subtitle-intent-1080p.md) (pack: craigstreamy-hevc-selected-english-subtitle-preserve)
-- [netflixy_preserve_audio_main_subtitle_intent_legacy_subhd](generated/netflixy-preserve-audio-main-subtitle-intent-legacy-subhd.md) (pack: craigstreamy-hevc-selected-english-subtitle-preserve)
-- [craigstreamy_hevc_smart_eng_sub_aggressive_vmaf_4k](generated/craigstreamy-hevc-smart-eng-sub-aggressive-vmaf-4k.md) (pack: craigstreamy-hevc-smart-eng-sub-aggressive-vmaf)
-- [craigstreamy_hevc_smart_eng_sub_aggressive_vmaf_1080p](generated/craigstreamy-hevc-smart-eng-sub-aggressive-vmaf-1080p.md) (pack: craigstreamy-hevc-smart-eng-sub-aggressive-vmaf)
-- [craigstreamy_hevc_smart_eng_sub_aggressive_vmaf_legacy_subhd](generated/craigstreamy-hevc-smart-eng-sub-aggressive-vmaf-legacy-subhd.md) (pack: craigstreamy-hevc-smart-eng-sub-aggressive-vmaf)
-- [craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf_4k](generated/craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf-4k.md) (pack: craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf)
-- [craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf_1080p](generated/craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf-1080p.md) (pack: craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf)
-- [craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf_legacy_subhd](generated/craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf-legacy-subhd.md) (pack: craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf)
-- [craigstreamy_hevc_smart_eng_sub_audio_conform_4k](generated/craigstreamy-hevc-smart-eng-sub-audio-conform-4k.md) (pack: craigstreamy-hevc-smart-eng-sub-audio-conform)
-- [craigstreamy_hevc_smart_eng_sub_audio_conform_1080p](generated/craigstreamy-hevc-smart-eng-sub-audio-conform-1080p.md) (pack: craigstreamy-hevc-smart-eng-sub-audio-conform)
-- [craigstreamy_hevc_smart_eng_sub_audio_conform_legacy_subhd](generated/craigstreamy-hevc-smart-eng-sub-audio-conform-legacy-subhd.md) (pack: craigstreamy-hevc-smart-eng-sub-audio-conform)
-- [craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform_4k](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform-4k.md) (pack: craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform)
-- [craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform_1080p](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform-1080p.md) (pack: craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform)
-- [craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform_legacy_subhd](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform-legacy-subhd.md) (pack: craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform)
-- [craigstreamy_hevc_smart_eng_sub_subtitle_convert_4k](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-4k.md) (pack: craigstreamy-hevc-smart-eng-sub-subtitle-convert)
-- [craigstreamy_hevc_smart_eng_sub_subtitle_convert_1080p](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-1080p.md) (pack: craigstreamy-hevc-smart-eng-sub-subtitle-convert)
-- [craigstreamy_hevc_smart_eng_sub_subtitle_convert_legacy_subhd](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-legacy-subhd.md) (pack: craigstreamy-hevc-smart-eng-sub-subtitle-convert)
-- [roku_express_1080_open_audio](generated/roku-express-1080-open-audio.md) (pack: device_targets_open_audio)
-- [roku_4k_open_audio](generated/roku-4k-open-audio.md) (pack: device_targets_open_audio)
-- [fire_tv_stick_lite_1080_open_audio](generated/fire-tv-stick-lite-1080-open-audio.md) (pack: device_targets_open_audio)
-- [fire_tv_stick_4k_open_audio](generated/fire-tv-stick-4k-open-audio.md) (pack: device_targets_open_audio)
-- [fire_tv_stick_4k_max_open_audio](generated/fire-tv-stick-4k-max-open-audio.md) (pack: device_targets_open_audio)
-- [chromecast_google_tv_hd_open_audio](generated/chromecast-google-tv-hd-open-audio.md) (pack: device_targets_open_audio)
-- [chromecast_google_tv_4k_open_audio](generated/chromecast-google-tv-4k-open-audio.md) (pack: device_targets_open_audio)
-- [apple_tv_hd_open_audio](generated/apple-tv-hd-open-audio.md) (pack: device_targets_open_audio)
-- [apple_tv_4k_open_audio](generated/apple-tv-4k-open-audio.md) (pack: device_targets_open_audio)
-- [fire_tv_stick_4k_dv_open_audio](generated/fire-tv-stick-4k-dv-open-audio.md) (pack: device_targets_open_audio)
+## Balanced Open Audio
+- [Balanced 4K Open Audio](generated/balanced-4k-open-audio.md)
+- [Balanced 1080 Open Audio](generated/balanced-1080-open-audio.md)
+
+## Craigstreamy HEVC All Sub Audio Conform
+- [Craigstreamy HEVC All Subtitles Audio Conform 4K](generated/craigstreamy-hevc-all-sub-audio-conform-4k.md)
+- [Craigstreamy HEVC All Subtitles Audio Conform 1080p](generated/craigstreamy-hevc-all-sub-audio-conform-1080p.md)
+- [Craigstreamy HEVC All Subtitles Audio Conform Legacy Sub-HD](generated/craigstreamy-hevc-all-sub-audio-conform-legacy-subhd.md)
+
+## Craigstreamy HEVC All Sub Preserve
+- [Craigstreamy HEVC All Subtitles Preserve 4K](generated/craigstreamy-hevc-all-sub-preserve-4k.md)
+- [Craigstreamy HEVC All Subtitles Preserve 1080p](generated/craigstreamy-hevc-all-sub-preserve-1080p.md)
+- [Craigstreamy HEVC All Subtitles Preserve Legacy Sub-HD](generated/craigstreamy-hevc-all-sub-preserve-legacy-subhd.md)
+
+## Craigstreamy HEVC Selected English Subtitle Preserve
+- [Craigstreamy HEVC Selected English Subtitle Preserve 4K](generated/craigstreamy-hevc-selected-english-subtitle-preserve-4k.md)
+- [Craigstreamy HEVC Selected English Subtitle Preserve 1080p](generated/craigstreamy-hevc-selected-english-subtitle-preserve-1080p.md)
+- [Craigstreamy HEVC Selected English Subtitle Preserve Legacy Sub-HD](generated/craigstreamy-hevc-selected-english-subtitle-preserve-legacy-subhd.md)
+
+## Craigstreamy HEVC Smart Eng Sub Aggressive VMAF
+- [Craigstreamy HEVC Smart English Subtitle Aggressive VMAF 4K](generated/craigstreamy-hevc-smart-eng-sub-aggressive-vmaf-4k.md)
+- [Craigstreamy HEVC Smart English Subtitle Aggressive VMAF 1080p](generated/craigstreamy-hevc-smart-eng-sub-aggressive-vmaf-1080p.md)
+- [Craigstreamy HEVC Smart English Subtitle Aggressive VMAF Legacy Sub-HD](generated/craigstreamy-hevc-smart-eng-sub-aggressive-vmaf-legacy-subhd.md)
+
+## Craigstreamy HEVC Smart Eng Sub Audio Conform Aggressive VMAF
+- [Craigstreamy HEVC Smart English Subtitle Audio Conform Aggressive VMAF 4K](generated/craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf-4k.md)
+- [Craigstreamy HEVC Smart English Subtitle Audio Conform Aggressive VMAF 1080p](generated/craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf-1080p.md)
+- [Craigstreamy HEVC Smart English Subtitle Audio Conform Aggressive VMAF Legacy Sub-HD](generated/craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf-legacy-subhd.md)
+
+## Craigstreamy HEVC Smart Eng Sub Audio Conform
+- [Craigstreamy HEVC Smart English Subtitle Audio Conform 4K](generated/craigstreamy-hevc-smart-eng-sub-audio-conform-4k.md)
+- [Craigstreamy HEVC Smart English Subtitle Audio Conform 1080p](generated/craigstreamy-hevc-smart-eng-sub-audio-conform-1080p.md)
+- [Craigstreamy HEVC Smart English Subtitle Audio Conform Legacy Sub-HD](generated/craigstreamy-hevc-smart-eng-sub-audio-conform-legacy-subhd.md)
+
+## Craigstreamy HEVC Smart Eng Sub Subtitle Convert Audio Conform
+- [Craigstreamy HEVC Smart English Subtitle Convert Audio Conform 4K](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform-4k.md)
+- [Craigstreamy HEVC Smart English Subtitle Convert Audio Conform 1080p](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform-1080p.md)
+- [Craigstreamy HEVC Smart English Subtitle Convert Audio Conform Legacy Sub-HD](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform-legacy-subhd.md)
+
+## Craigstreamy HEVC Smart Eng Sub Subtitle Convert
+- [Craigstreamy HEVC Smart English Subtitle Convert 4K](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-4k.md)
+- [Craigstreamy HEVC Smart English Subtitle Convert 1080p](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-1080p.md)
+- [Craigstreamy HEVC Smart English Subtitle Convert Legacy Sub-HD](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-legacy-subhd.md)
+
+## Device Targets Open Audio
+- [Roku Express 1080 Open Audio](generated/roku-express-1080-open-audio.md)
+- [Roku 4K Open Audio](generated/roku-4k-open-audio.md)
+- [Fire TV Stick Lite 1080 Open Audio](generated/fire-tv-stick-lite-1080-open-audio.md)
+- [Fire TV Stick 4K Open Audio](generated/fire-tv-stick-4k-open-audio.md)
+- [Fire TV Stick 4K Max Open Audio](generated/fire-tv-stick-4k-max-open-audio.md)
+- [Chromecast Google TV HD Open Audio](generated/chromecast-google-tv-hd-open-audio.md)
+- [Chromecast Google TV 4K Open Audio](generated/chromecast-google-tv-4k-open-audio.md)
+- [Apple TV HD Open Audio](generated/apple-tv-hd-open-audio.md)
+- [Apple TV 4K Open Audio](generated/apple-tv-4k-open-audio.md)
+- [Fire TV Stick 4K DV Open Audio](generated/fire-tv-stick-4k-dv-open-audio.md)

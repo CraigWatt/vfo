@@ -1,4 +1,4 @@
-# apple_tv_hd_open_audio
+# Apple TV HD Open Audio Profile
 
 Generated from stock preset pack `device_targets_open_audio`.
 
@@ -33,9 +33,9 @@ This profile is considered e2e-verified when its mapped suites pass in CI.
 
 | Scenario | Command |
 | --- | --- |
-| `CODEC_JUST_RIGHT RES_JUST_RIGHT` | `ffmpeg -nostdin -i $vfo_input -c copy -map 0 -movflags faststart -strict -2 $vfo_output` |
-| `RES_TOO_HIGH` | `transcode_h264_1080_hdr_to_sdr_profile.sh $vfo_input $vfo_output` |
-| `ELSE` | `transcode_h264_1080_hdr_to_sdr_profile.sh $vfo_input $vfo_output` |
+| `CODEC_JUST_RIGHT RES_JUST_RIGHT` | `ffmpeg (inline command)` |
+| `RES_TOO_HIGH` | `transcode_h264_1080_hdr_to_sdr_profile.sh` |
+| `ELSE` | `transcode_h264_1080_hdr_to_sdr_profile.sh` |
 
 ## Runtime Behavior
 

@@ -15,6 +15,8 @@ Current stock packs in vfo:
 
 Each pack is an outcome preset family. Use packs to choose the behavior you want first, then tune criteria/actions if needed.
 
+In the sections below, each heading uses a friendly label while the exact selectable pack id is shown inline.
+
 Read [Profile Pack Strategy](profile-pack-strategy.md) for the rule of the road:
 
 - fixed named packs for user-facing selection
@@ -52,7 +54,9 @@ Today that means:
 
 Further pack evolution is documented in [Profile Pack Strategy](profile-pack-strategy.md).
 
-## craigstreamy_hevc_all_sub_preserve
+## Craigstreamy HEVC All Sub Preserve
+
+Pack id: `craigstreamy_hevc_all_sub_preserve`
 
 Focus:
 
@@ -62,7 +66,9 @@ Focus:
 - emit MKV when subtitle carry-over is active, otherwise stream-ready MP4
 - details + flow: [Craigstreamy HEVC All Sub Preserve Pack](profiles/packs/craigstreamy-hevc-all-sub-preserve.md)
 
-## craigstreamy_hevc_all_sub_audio_conform
+## Craigstreamy HEVC All Sub Audio Conform
+
+Pack id: `craigstreamy_hevc_all_sub_audio_conform`
 
 Focus:
 
@@ -73,7 +79,9 @@ Focus:
 - keep MKV whenever subtitle carry-over or preserved-audio safety requires it
 - details + flow: [Craigstreamy HEVC All Sub Audio Conform Pack](profiles/packs/craigstreamy-hevc-all-sub-audio-conform.md)
 
-## craigstreamy_hevc_smart_eng_sub_aggressive_vmaf
+## Craigstreamy HEVC Smart Eng Sub Aggressive VMAF
+
+Pack id: `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf`
 
 Focus:
 
@@ -83,7 +91,9 @@ Focus:
 - same container decisions as the preserve-audio baseline
 - details + flow: [Craigstreamy HEVC Smart Eng Sub Aggressive VMAF Pack](profiles/packs/craigstreamy-hevc-smart-eng-sub-aggressive-vmaf.md)
 
-## craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf
+## Craigstreamy HEVC Smart Eng Sub Audio Conform Aggressive VMAF
+
+Pack id: `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf`
 
 Focus:
 
@@ -92,7 +102,9 @@ Focus:
 - keep audio behavior unchanged while pushing video harder
 - details + flow: [Craigstreamy HEVC Smart Eng Sub Audio Conform Aggressive VMAF Pack](profiles/packs/craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf.md)
 
-## craigstreamy_hevc_smart_eng_sub_audio_conform
+## Craigstreamy HEVC Smart Eng Sub Audio Conform
+
+Pack id: `craigstreamy_hevc_smart_eng_sub_audio_conform`
 
 Focus:
 
@@ -111,7 +123,9 @@ Included active profiles:
 - `craigstreamy_hevc_smart_eng_sub_audio_conform_legacy_subhd`
 - details + flow: [Craigstreamy HEVC Smart Eng Sub Audio Conform Pack](profiles/packs/craigstreamy-hevc-smart-eng-sub-audio-conform.md)
 
-## craigstreamy_hevc_smart_eng_sub_subtitle_convert
+## Craigstreamy HEVC Smart Eng Sub Subtitle Convert
+
+Pack id: `craigstreamy_hevc_smart_eng_sub_subtitle_convert`
 
 Focus:
 
@@ -121,7 +135,9 @@ Focus:
 - convert selected text subtitles into delivery-friendly subtitle text
 - details + flow: [Craigstreamy HEVC Smart Eng Sub Subtitle Convert Pack](profiles/packs/craigstreamy-hevc-smart-eng-sub-subtitle-convert.md)
 
-## craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform
+## Craigstreamy HEVC Smart Eng Sub Subtitle Convert Audio Conform
+
+Pack id: `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform`
 
 Focus:
 
@@ -133,7 +149,9 @@ Focus:
 - preserve selected subtitles in MKV rather than pretending conversion succeeded when another constraint forces MKV
 - details + flow: [Craigstreamy HEVC Smart Eng Sub Subtitle Convert Audio Conform Pack](profiles/packs/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform.md)
 
-## craigstreamy_hevc_selected_english_subtitle_preserve
+## Craigstreamy HEVC Selected English Subtitle Preserve
+
+Pack id: `craigstreamy_hevc_selected_english_subtitle_preserve`
 
 Focus:
 
@@ -146,13 +164,15 @@ Focus:
 
 Included active profiles:
 
-- `netflixy_preserve_audio_main_subtitle_intent_4k`
-- `netflixy_preserve_audio_main_subtitle_intent_1080p`
-- `netflixy_preserve_audio_main_subtitle_intent_legacy_subhd`
-- these legacy profile ids remain in place as compatibility aliases under the canonical `craigstreamy` pack name
+- `Craigstreamy HEVC Selected English Subtitle Preserve 4K`
+- `Craigstreamy HEVC Selected English Subtitle Preserve 1080p`
+- `Craigstreamy HEVC Selected English Subtitle Preserve Legacy Sub-HD`
+- these map to legacy internal profile ids for compatibility, but the docs surface stays canonical `craigstreamy`
 - details + flow: [Craigstreamy HEVC Selected English Subtitle Preserve Pack](profiles/packs/craigstreamy-hevc-selected-english-subtitle-preserve.md)
 
-## device_targets_open_audio
+## Device Targets Open Audio
+
+Pack id: `device_targets_open_audio`
 
 Focus:
 
@@ -162,7 +182,9 @@ Focus:
 - optimize for broad playback success across popular streaming devices
 - details + flow: [Device Targets Open Audio Pack](profiles/packs/device-targets-open-audio.md)
 
-## balanced_open_audio
+## Balanced Open Audio
+
+Pack id: `balanced_open_audio`
 
 Focus:
 

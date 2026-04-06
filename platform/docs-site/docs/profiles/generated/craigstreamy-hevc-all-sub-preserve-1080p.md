@@ -1,4 +1,4 @@
-# craigstreamy_hevc_all_sub_preserve_1080p
+# Craigstreamy HEVC All Subtitles Preserve 1080p Profile
 
 Generated from stock preset pack `craigstreamy-hevc-all-sub-preserve`.
 
@@ -44,8 +44,8 @@ This profile converts candidates into streaming-friendly HEVC outputs while pres
 
 | Scenario | Command |
 | --- | --- |
-| `RES_JUST_RIGHT COLOR_SPACE_JUST_RIGHT` | `transcode_hevc_1080_all_sub_preserve_profile.sh $vfo_input $vfo_output` |
-| `ELSE` | `profile_guardrail_skip.sh $vfo_input $vfo_output craigstreamy_hevc_all_sub_preserve_1080p_guardrail_requires_sdr_bt709_and_1280x720_to_1920x1080_input` |
+| `RES_JUST_RIGHT COLOR_SPACE_JUST_RIGHT` | `transcode_hevc_1080_all_sub_preserve_profile.sh` |
+| `ELSE` | `profile_guardrail_skip.sh (requires SDR bt709 and 1280x720 to 1920x1080 input)` |
 
 ## Runtime Behavior
 

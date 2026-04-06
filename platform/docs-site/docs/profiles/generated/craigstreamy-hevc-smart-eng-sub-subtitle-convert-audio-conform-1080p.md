@@ -1,4 +1,4 @@
-# craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform_1080p
+# Craigstreamy HEVC Smart English Subtitle Convert Audio Conform 1080p Profile
 
 Generated from stock preset pack `craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform`.
 
@@ -45,8 +45,8 @@ This profile converts candidates into streaming-friendly HEVC outputs while keep
 
 | Scenario | Command |
 | --- | --- |
-| `RES_JUST_RIGHT COLOR_SPACE_JUST_RIGHT` | `transcode_hevc_1080_smart_eng_sub_subtitle_convert_audio_conform_profile.sh $vfo_input $vfo_output` |
-| `ELSE` | `profile_guardrail_skip.sh $vfo_input $vfo_output craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform_1080p_guardrail_requires_sdr_bt709_and_1280x720_to_1920x1080_input` |
+| `RES_JUST_RIGHT COLOR_SPACE_JUST_RIGHT` | `transcode_hevc_1080_smart_eng_sub_subtitle_convert_audio_conform_profile.sh` |
+| `ELSE` | `profile_guardrail_skip.sh (requires SDR bt709 and 1280x720 to 1920x1080 input)` |
 
 ## Runtime Behavior
 
