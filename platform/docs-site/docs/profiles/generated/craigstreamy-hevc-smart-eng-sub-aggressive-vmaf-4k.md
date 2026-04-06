@@ -1,4 +1,4 @@
-# craigstreamy_hevc_smart_eng_sub_aggressive_vmaf_4k
+# Craigstreamy HEVC Smart English Subtitle Aggressive VMAF 4K Profile
 
 Generated from stock preset pack `craigstreamy-hevc-smart-eng-sub-aggressive-vmaf`.
 
@@ -45,8 +45,8 @@ This profile converts candidates into streaming-friendly HEVC outputs while pres
 
 | Scenario | Command |
 | --- | --- |
-| `RES_JUST_RIGHT` | `transcode_hevc_4k_smart_eng_sub_aggressive_vmaf_profile.sh $vfo_input $vfo_output` |
-| `ELSE` | `profile_guardrail_skip.sh $vfo_input $vfo_output craigstreamy_hevc_smart_eng_sub_aggressive_vmaf_4k_guardrail_requires_1920x1080_to_3840x2160_input` |
+| `RES_JUST_RIGHT` | `transcode_hevc_4k_smart_eng_sub_aggressive_vmaf_profile.sh` |
+| `ELSE` | `profile_guardrail_skip.sh (requires 1920x1080 to 3840x2160 input)` |
 
 ## Runtime Behavior
 

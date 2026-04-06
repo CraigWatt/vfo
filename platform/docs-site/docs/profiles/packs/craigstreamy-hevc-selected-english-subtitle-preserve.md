@@ -17,13 +17,7 @@ Canonical subtitle policy for this pack:
 - selection scope: `smart_eng_sub`
 - handling mode: `preserve`
 
-This pack keeps its existing legacy-facing profile ids, but its subtitle behavior should now be understood through the shared [Subtitle Policy](../../subtitle-policy-taxonomy.md) taxonomy.
-
-Compatibility note:
-
-- the pack name is now canonical `craigstreamy`
-- the generated profile ids inside this pack still use the legacy `netflixy_preserve_audio_main_subtitle_intent_*` names
-- that legacy profile-id surface remains intentional for compatibility
+This pack keeps legacy internal profile ids for compatibility, but its subtitle behavior should now be understood through the shared [Subtitle Policy](../../subtitle-policy-taxonomy.md) taxonomy.
 
 ## What It Optimizes For
 
@@ -79,9 +73,9 @@ These are the labels used to summarize what the pack takes in and what it tends 
 
 ## Included Profiles
 
-- [netflixy_preserve_audio_main_subtitle_intent_4k](../generated/netflixy-preserve-audio-main-subtitle-intent-4k.md)
-- [netflixy_preserve_audio_main_subtitle_intent_1080p](../generated/netflixy-preserve-audio-main-subtitle-intent-1080p.md)
-- [netflixy_preserve_audio_main_subtitle_intent_legacy_subhd](../generated/netflixy-preserve-audio-main-subtitle-intent-legacy-subhd.md)
+- [Craigstreamy HEVC Selected English Subtitle Preserve 4K](../generated/craigstreamy-hevc-selected-english-subtitle-preserve-4k.md)
+- [Craigstreamy HEVC Selected English Subtitle Preserve 1080p](../generated/craigstreamy-hevc-selected-english-subtitle-preserve-1080p.md)
+- [Craigstreamy HEVC Selected English Subtitle Preserve Legacy Sub-HD](../generated/craigstreamy-hevc-selected-english-subtitle-preserve-legacy-subhd.md)
 
 ## Pack Flow
 

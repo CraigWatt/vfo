@@ -25,6 +25,153 @@ to_slug() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr '_' '-' | tr -cd 'a-z0-9-'
 }
 
+friendly_token() {
+  local token="$1"
+  case "$token" in
+    av1) printf '%s' "AV1" ;;
+    hevc) printf '%s' "HEVC" ;;
+    h264) printf '%s' "H.264" ;;
+    4k) printf '%s' "4K" ;;
+    1080p) printf '%s' "1080p" ;;
+    1080) printf '%s' "1080" ;;
+    hd) printf '%s' "HD" ;;
+    dv) printf '%s' "DV" ;;
+    tv) printf '%s' "TV" ;;
+    eng) printf '%s' "English" ;;
+    sub) printf '%s' "Subtitle" ;;
+    subhd) printf '%s' "Sub-HD" ;;
+    aac) printf '%s' "AAC" ;;
+    pcm) printf '%s' "PCM" ;;
+    dts) printf '%s' "DTS" ;;
+    vmaf) printf '%s' "VMAF" ;;
+    *)
+      printf '%s%s' \
+        "$(printf '%s' "$token" | cut -c1 | tr '[:lower:]' '[:upper:]')" \
+        "$(printf '%s' "$token" | cut -c2-)"
+      ;;
+  esac
+}
+
+doc_slug_for_profile() {
+  local pack="$1"
+  local profile="$2"
+  case "$profile" in
+    netflixy_preserve_audio_main_subtitle_intent_4k)
+      printf '%s' "craigstreamy-hevc-selected-english-subtitle-preserve-4k"
+      ;;
+    netflixy_preserve_audio_main_subtitle_intent_1080p)
+      printf '%s' "craigstreamy-hevc-selected-english-subtitle-preserve-1080p"
+      ;;
+    netflixy_preserve_audio_main_subtitle_intent_legacy_subhd)
+      printf '%s' "craigstreamy-hevc-selected-english-subtitle-preserve-legacy-subhd"
+      ;;
+    *)
+      to_slug "$profile"
+      ;;
+  esac
+}
+
+friendly_lane_label() {
+  case "$1" in
+    4k) printf '%s' "4K" ;;
+    1080p) printf '%s' "1080p" ;;
+    1080) printf '%s' "1080" ;;
+    legacy_subhd) printf '%s' "Legacy Sub-HD" ;;
+    *) printf '%s' "$(friendly_token "$1")" ;;
+  esac
+}
+
+doc_label_for_profile() {
+  local pack="$1"
+  local profile="$2"
+  local token
+  local parts
+  local words=()
+  local label
+  local lane
+
+  case "$profile" in
+    netflixy_preserve_audio_main_subtitle_intent_4k)
+      printf '%s' "Craigstreamy HEVC Selected English Subtitle Preserve 4K"
+      return 0
+      ;;
+    netflixy_preserve_audio_main_subtitle_intent_1080p)
+      printf '%s' "Craigstreamy HEVC Selected English Subtitle Preserve 1080p"
+      return 0
+      ;;
+    netflixy_preserve_audio_main_subtitle_intent_legacy_subhd)
+      printf '%s' "Craigstreamy HEVC Selected English Subtitle Preserve Legacy Sub-HD"
+      return 0
+      ;;
+  esac
+
+  case "$profile" in
+    craigstreamy_hevc_all_sub_audio_conform_*)
+      lane="${profile##craigstreamy_hevc_all_sub_audio_conform_}"
+      printf 'Craigstreamy HEVC All Subtitles Audio Conform %s' "$(friendly_lane_label "$lane")"
+      return 0
+      ;;
+    craigstreamy_hevc_all_sub_preserve_*)
+      lane="${profile##craigstreamy_hevc_all_sub_preserve_}"
+      printf 'Craigstreamy HEVC All Subtitles Preserve %s' "$(friendly_lane_label "$lane")"
+      return 0
+      ;;
+    craigstreamy_hevc_smart_eng_sub_aggressive_vmaf_*)
+      lane="${profile##craigstreamy_hevc_smart_eng_sub_aggressive_vmaf_}"
+      printf 'Craigstreamy HEVC Smart English Subtitle Aggressive VMAF %s' "$(friendly_lane_label "$lane")"
+      return 0
+      ;;
+    craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf_*)
+      lane="${profile##craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf_}"
+      printf 'Craigstreamy HEVC Smart English Subtitle Audio Conform Aggressive VMAF %s' "$(friendly_lane_label "$lane")"
+      return 0
+      ;;
+    craigstreamy_hevc_smart_eng_sub_audio_conform_*)
+      lane="${profile##craigstreamy_hevc_smart_eng_sub_audio_conform_}"
+      printf 'Craigstreamy HEVC Smart English Subtitle Audio Conform %s' "$(friendly_lane_label "$lane")"
+      return 0
+      ;;
+    craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform_*)
+      lane="${profile##craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform_}"
+      printf 'Craigstreamy HEVC Smart English Subtitle Convert Audio Conform %s' "$(friendly_lane_label "$lane")"
+      return 0
+      ;;
+    craigstreamy_hevc_smart_eng_sub_subtitle_convert_*)
+      lane="${profile##craigstreamy_hevc_smart_eng_sub_subtitle_convert_}"
+      printf 'Craigstreamy HEVC Smart English Subtitle Convert %s' "$(friendly_lane_label "$lane")"
+      return 0
+      ;;
+  esac
+
+  IFS='_' read -r -a parts <<< "$profile"
+  for token in "${parts[@]}"; do
+    words+=("$(friendly_token "$token")")
+  done
+  printf '%s' "${words[*]}"
+}
+
+doc_title_for_profile() {
+  local pack="$1"
+  local profile="$2"
+  printf '%s Profile' "$(doc_label_for_profile "$pack" "$profile")"
+}
+
+pack_label_for_docs() {
+  case "$1" in
+    balanced_open_audio) printf '%s' "Balanced Open Audio" ;;
+    device_targets_open_audio) printf '%s' "Device Targets Open Audio" ;;
+    craigstreamy-hevc-all-sub-preserve) printf '%s' "Craigstreamy HEVC All Sub Preserve" ;;
+    craigstreamy-hevc-all-sub-audio-conform) printf '%s' "Craigstreamy HEVC All Sub Audio Conform" ;;
+    craigstreamy-hevc-smart-eng-sub-aggressive-vmaf) printf '%s' "Craigstreamy HEVC Smart Eng Sub Aggressive VMAF" ;;
+    craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf) printf '%s' "Craigstreamy HEVC Smart Eng Sub Audio Conform Aggressive VMAF" ;;
+    craigstreamy-hevc-smart-eng-sub-audio-conform) printf '%s' "Craigstreamy HEVC Smart Eng Sub Audio Conform" ;;
+    craigstreamy-hevc-smart-eng-sub-subtitle-convert) printf '%s' "Craigstreamy HEVC Smart Eng Sub Subtitle Convert" ;;
+    craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform) printf '%s' "Craigstreamy HEVC Smart Eng Sub Subtitle Convert Audio Conform" ;;
+    craigstreamy-hevc-selected-english-subtitle-preserve) printf '%s' "Craigstreamy HEVC Selected English Subtitle Preserve" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
 normalize_criteria_codec() {
   local value="${1:-}"
   case "$value" in
@@ -120,6 +267,44 @@ command_label() {
   printf '%s' "${token:-command}"
 }
 
+doc_command_display() {
+  local command="$1"
+  local token
+  local marker
+
+  token="${command%% *}"
+  if [ "$token" = "profile_guardrail_skip.sh" ]; then
+    marker="${command##* }"
+    case "$marker" in
+      *requires_1920x1080_to_3840x2160_input)
+        printf '%s' "profile_guardrail_skip.sh (requires 1920x1080 to 3840x2160 input)"
+        ;;
+      *requires_sdr_bt709_and_1280x720_to_1920x1080_input)
+        printf '%s' "profile_guardrail_skip.sh (requires SDR bt709 and 1280x720 to 1920x1080 input)"
+        ;;
+      *requires_320x240_to_1279x719_input)
+        printf '%s' "profile_guardrail_skip.sh (requires 320x240 to 1279x719 input)"
+        ;;
+      *)
+        printf '%s' "profile_guardrail_skip.sh (profile guardrail skip)"
+        ;;
+    esac
+    return 0
+  fi
+
+  if [ "$token" = "ffmpeg" ]; then
+    printf '%s' "ffmpeg (inline command)"
+    return 0
+  fi
+
+  if [[ "$token" == *.sh ]]; then
+    printf '%s' "$token"
+    return 0
+  fi
+
+  printf '%s' "${token:-command}"
+}
+
 mermaid_text() {
   printf '%s' "$1" | tr '"' "'" | tr '|' '/'
 }
@@ -200,11 +385,14 @@ write_profile_doc() {
   local file_path="${10}"
 
   local slug
+  local doc_slug
+  local doc_label
+  local doc_title
+  local legacy_profile_note
   local prefix
   local scenarios
   local commands
   local criteria_line
-  local heading
   local i
   local scenario
   local command
@@ -218,8 +406,6 @@ write_profile_doc() {
   local first_command_label
   local profile_doc
   local mermaid_variant
-  local subtitle_scope_label
-  local subtitle_handle_label
   local subtitle_gate_label
   local yes_stage_label
   local yes_output_label
@@ -245,8 +431,15 @@ write_profile_doc() {
   local covered_by_dv_optional
 
   slug="$(to_slug "$profile")"
+  doc_slug="$(doc_slug_for_profile "$pack" "$profile")"
+  doc_label="$(doc_label_for_profile "$pack" "$profile")"
+  doc_title="$(doc_title_for_profile "$pack" "$profile")"
+  legacy_profile_note=""
+  if [[ "$profile" == netflixy_preserve_audio_main_subtitle_intent_* ]]; then
+    legacy_profile_note="This profile still uses a legacy internal config id for compatibility."
+  fi
   prefix="$(to_upper_prefix "$profile")"
-  profile_doc="$PROFILE_OUT_DIR/${slug}.md"
+  profile_doc="$PROFILE_OUT_DIR/${doc_slug}.md"
 
   scenarios=()
   while IFS= read -r line; do
@@ -271,12 +464,15 @@ write_profile_doc() {
 
   first_command_label="$(command_label "$first_command")"
   mermaid_variant="generic"
+  subtitle_gate_label="smart_eng_sub subtitle selected?"
+  yes_stage_label="Encode HEVC + preserve audio + preserve smart_eng_sub subtitle"
+  yes_output_label="Emit MKV output"
+  no_stage_label="Encode HEVC + preserve audio"
+  no_output_label="Finalize fragmented MP4 + init/moov at start"
   if printf '%s' "$first_command" | grep -Eq "main_subtitle_preserve_profile.sh|all_sub_preserve_profile.sh|all_sub_audio_conform_profile.sh|smart_eng_sub_audio_conform_profile.sh|smart_eng_sub_audio_conform_aggressive_vmaf_profile.sh|smart_eng_sub_aggressive_vmaf_profile.sh|smart_eng_sub_subtitle_convert_profile.sh|smart_eng_sub_subtitle_convert_audio_conform_profile.sh"; then
     mermaid_variant="subtitle_intent"
   fi
 
-  subtitle_scope_label="smart_eng_sub"
-  subtitle_handle_label="preserve"
   subtitle_gate_label="smart_eng_sub subtitle selected?"
   yes_stage_label="Encode HEVC + preserve audio + preserve smart_eng_sub subtitle"
   yes_output_label="Emit MKV output"
@@ -387,8 +583,6 @@ write_profile_doc() {
   fi
 
   if [ "$is_craigstreamy_all_sub_pack" = "1" ]; then
-    subtitle_scope_label="all_sub_preserve"
-    subtitle_handle_label="preserve"
     subtitle_gate_label="Any subtitle streams present?"
     if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
       yes_stage_label="Encode HEVC + conform audio if needed + preserve all subtitle streams"
@@ -400,8 +594,6 @@ write_profile_doc() {
     yes_output_label="Emit MKV output carrying all subtitle streams"
     no_output_label="Finalize fragmented MP4 + init/moov at start"
   elif [ "$is_craigstreamy_subtitle_convert_pack" = "1" ]; then
-    subtitle_scope_label="smart_eng_sub"
-    subtitle_handle_label="subtitle_convert"
     subtitle_gate_label="Selected subtitle is text-convertible and MP4 remains viable?"
     if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
       yes_stage_label="Encode HEVC + conform audio if needed + convert selected subtitle to mov_text"
@@ -409,6 +601,7 @@ write_profile_doc() {
     else
       yes_stage_label="Encode HEVC + preserve audio + convert selected subtitle to mov_text"
       no_stage_label="Encode HEVC + preserve audio + apply bitmap/fallback subtitle policy"
+      no_stage_label="Encode HEVC + preserve audio + apply bitmap or fallback subtitle policy"
     fi
     yes_output_label="Emit MP4 output with converted subtitle text"
     no_output_label="Emit explicit fallback output (usually MKV preserve or fail)"
@@ -428,8 +621,11 @@ write_profile_doc() {
 "
 
   {
-    printf '# %s\n\n' "$profile"
+    printf '# %s\n\n' "$doc_title"
     printf 'Generated from stock preset pack `%s`.\n\n' "$pack"
+    if [ -n "$legacy_profile_note" ]; then
+      printf '%s\n\n' "$legacy_profile_note"
+    fi
     printf '## Dependencies\n\n'
     printf '| Tool | Needed | Why |\n'
     printf '| --- | --- | --- |\n'
@@ -472,8 +668,8 @@ write_profile_doc() {
 
     if [ "$is_craigstreamy_subtitle_pack" = "1" ]; then
       printf '## Intent\n\n'
-      if [ "$pack" = "craigstreamy-hevc-selected-english-subtitle-preserve" ]; then
-        printf 'Compatibility note: this pack is the canonical replacement for the older `netflixy_main_subtitle_intent` family, but its generated profile ids still use the legacy `netflixy_preserve_audio_main_subtitle_intent_*` names for compatibility.\n\n'
+      if [ -n "$legacy_profile_note" ]; then
+        printf 'Compatibility note: this profile belongs to the canonical `craigstreamy` pack family even though the current config profile id is legacy-shaped.\n\n'
       fi
       if [ "$is_craigstreamy_subtitle_convert_pack" = "1" ]; then
         printf 'This profile converts candidates into streaming-friendly HEVC outputs while keeping the `smart_eng_sub` subtitle selection heuristic and converting selected text subtitles into delivery-friendly text form when the final container remains MP4-friendly.\n\n'
@@ -526,10 +722,12 @@ write_profile_doc() {
       while [ "$i" -lt "$scenario_count" ]; do
         scenario="${scenarios[$i]}"
         command=""
+        command_display=""
         if [ "$i" -lt "${#commands[@]}" ]; then
           command="${commands[$i]}"
+          command_display="$(doc_command_display "$command")"
         fi
-        printf '| `%s` | `%s` |\n' "$scenario" "$command"
+        printf '| `%s` | `%s` |\n' "$scenario" "$command_display"
         i=$((i + 1))
       done
       printf '\n'
@@ -738,24 +936,34 @@ write_profile_doc() {
     printf -- '- Generated by: `infra/scripts/generate-profile-docs.sh`\n'
   } > "$profile_doc"
 
-  printf '%s|%s|%s|%s|%s|%s|%s|%s|%s\n' \
+  printf '%s|%s|%s|%s|%s|%s|%s|%s|%s|%s\n' \
     "$profile" \
+    "$doc_label" \
     "$pack" \
     "$criteria_codec_display" \
     "$criteria_bits_display" \
     "$criteria_color_display" \
     "${min_w:-0}x${min_h:-0}" \
     "${max_w:-any}x${max_h:-any}" \
-    "$slug" \
+    "$doc_slug" \
     "$scenario_count"
 }
 
 declare -a MATRIX_ROWS=()
 declare -a PROFILE_LINKS=()
+last_pack=""
 
 while IFS= read -r preset_file; do
   [ -f "$preset_file" ] || continue
   pack="$(basename "$(dirname "$preset_file")")"
+
+  if [ "$pack" != "$last_pack" ]; then
+    if [ "${#PROFILE_LINKS[@]}" -gt 0 ]; then
+      PROFILE_LINKS+=("")
+    fi
+    PROFILE_LINKS+=("## $(pack_label_for_docs "$pack")")
+    last_pack="$pack"
+  fi
 
   profiles=()
   while IFS= read -r line; do
@@ -776,15 +984,16 @@ while IFS= read -r preset_file; do
     row="$(write_profile_doc "$pack" "$profile" "$criteria_codec" "$criteria_bits" "$criteria_color" "$min_w" "$min_h" "$max_w" "$max_h" "$preset_file")"
     MATRIX_ROWS+=("$row")
 
-    slug="$(to_slug "$profile")"
-    PROFILE_LINKS+=("- [$profile](generated/${slug}.md) (pack: $pack)")
+    doc_slug="$(doc_slug_for_profile "$pack" "$profile")"
+    doc_label="$(doc_label_for_profile "$pack" "$profile")"
+    PROFILE_LINKS+=("- [$doc_label](generated/${doc_slug}.md)")
   done
 done < <(find "$PRESETS_DIR" -type f -name 'vfo_config.preset.conf' | sort)
 
 {
   printf '# Stock Profile Info Sheets\n\n'
   printf 'These pages are generated from stock preset files and linked action scripts.\n\n'
-  printf 'Compatibility note: the canonical pack `craigstreamy_hevc_selected_english_subtitle_preserve` still emits generated profile sheets using the legacy `netflixy_preserve_audio_main_subtitle_intent_*` profile ids for compatibility.\n\n'
+  printf 'Compatibility note: the canonical pack `craigstreamy_hevc_selected_english_subtitle_preserve` still maps to legacy internal profile ids for compatibility, but the generated docs use canonical `craigstreamy` labels.\n\n'
   printf 'Regenerate with:\n\n'
   printf '```bash\n'
   printf 'bash infra/scripts/generate-profile-docs.sh\n'
@@ -801,15 +1010,15 @@ done < <(find "$PRESETS_DIR" -type f -name 'vfo_config.preset.conf' | sort)
   printf '| Profile | Pack | Codec | Bits | Color Space | Min Res | Max Res | Scenarios |\n'
   printf '| --- | --- | --- | --- | --- | --- | --- | --- |\n'
   for row in "${MATRIX_ROWS[@]}"; do
-    IFS='|' read -r profile pack codec bits color min_res max_res slug scenario_count <<< "$row"
+    IFS='|' read -r profile doc_label pack codec bits color min_res max_res slug scenario_count <<< "$row"
     printf '| [%s](profiles/generated/%s.md) | `%s` | `%s` | `%s` | `%s` | `%s` | `%s` | `%s` |\n' \
-      "$profile" "$slug" "$pack" "$codec" "$bits" "$color" "$min_res" "$max_res" "$scenario_count"
+      "$doc_label" "$slug" "$pack" "$codec" "$bits" "$color" "$min_res" "$max_res" "$scenario_count"
   done
 
   printf '\n## Notes\n\n'
   printf -- '- This matrix reflects stock presets, not every custom profile a user may define.\n'
   printf -- '- `craigstreamy_hevc_selected_english_subtitle_preserve` remains the preserve-audio subtitle-intent pack.\n'
-  printf -- '- Its generated profile ids still use the legacy `netflixy_preserve_audio_main_subtitle_intent_*` names for compatibility.\n'
+  printf -- '- Its selected-English generated docs are labeled with canonical `craigstreamy` names even though the current config profile ids remain legacy-shaped for compatibility.\n'
   printf -- '- `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf` adds video-only aggressive-VMAF behavior on top of the preserve-audio subtitle-intent family.\n'
   printf -- '- `craigstreamy_hevc_smart_eng_sub_audio_conform` adds DTS/PCM delivery-conform behavior on top of the subtitle-intent family.\n'
   printf -- '- `craigstreamy_hevc_all_sub_audio_conform` and `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform` complete the first audio-conform subtitle matrix.\n'

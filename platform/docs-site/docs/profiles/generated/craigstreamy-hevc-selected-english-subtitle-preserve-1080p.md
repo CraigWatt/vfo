@@ -1,6 +1,8 @@
-# netflixy_preserve_audio_main_subtitle_intent_4k
+# Craigstreamy HEVC Selected English Subtitle Preserve 1080p Profile
 
 Generated from stock preset pack `craigstreamy-hevc-selected-english-subtitle-preserve`.
+
+This profile still uses a legacy internal config id for compatibility.
 
 ## Dependencies
 
@@ -8,9 +10,6 @@ Generated from stock preset pack `craigstreamy-hevc-selected-english-subtitle-pr
 | --- | --- | --- |
 | `ffmpeg` | required | scenario execution, encode/transcode, and mux packaging |
 | `ffprobe` | required | criteria probing and stream/metadata inspection |
-| `mkvmerge` | conditional | used by at least one action path in this profile family (MKV/DV helper path) |
-| `mkvextract` | conditional | optional DV extraction helper path for MKV inputs |
-| `dovi_tool` | conditional | required for Dolby Vision retention and profile 7 to 8.1 conversion paths |
 
 ## E2E Verification
 
@@ -19,13 +18,12 @@ This profile is considered e2e-verified when its mapped suites pass in CI.
 | Suite | What it proves | Toolchain version report |
 | --- | --- | --- |
 | `tests/e2e/run_profile_actions_e2e.sh` | action-level output behavior, guardrails, and subtitle-intent pathways | `tests/e2e/.reports/latest/run_profile_actions_e2e_toolchain_versions.md` |
-| `tests/e2e/run_dv_metadata_optional_e2e.sh` | optional DV metadata retention and profile 7 to 8.1 checks | `tests/e2e/.reports/latest/run_dv_metadata_optional_e2e_toolchain_versions.md` |
 
 - Combined toolchain snapshot: [Latest E2E Toolchain Report](../../e2e-toolchain-latest.md)
 
 ## Intent
 
-Compatibility note: this pack is the canonical replacement for the older `netflixy_main_subtitle_intent` family, but its generated profile ids still use the legacy `netflixy_preserve_audio_main_subtitle_intent_*` names for compatibility.
+Compatibility note: this profile belongs to the canonical `craigstreamy` pack family even though the current config profile id is legacy-shaped.
 
 This profile converts candidates into streaming-friendly HEVC outputs while preserving the `smart_eng_sub + preserve` subtitle policy where feasible.
 
@@ -42,23 +40,23 @@ This profile converts candidates into streaming-friendly HEVC outputs while pres
 | --- | --- |
 | Codec | `any` |
 | Bit depth | `any` |
-| Color space | `any` |
-| Min resolution | `1920x1080` |
-| Max resolution | `3840x2160` |
+| Color space | `bt709` |
+| Min resolution | `1280x720` |
+| Max resolution | `1920x1080` |
 
 ## Scenario Map
 
 | Scenario | Command |
 | --- | --- |
-| `RES_JUST_RIGHT` | `transcode_hevc_4k_main_subtitle_preserve_profile.sh $vfo_input $vfo_output` |
-| `ELSE` | `profile_guardrail_skip.sh $vfo_input $vfo_output netflixy_4k_guardrail_mismatch_requires_1920x1080_to_3840x2160_input` |
+| `RES_JUST_RIGHT COLOR_SPACE_JUST_RIGHT` | `transcode_hevc_1080_main_subtitle_preserve_profile.sh` |
+| `ELSE` | `profile_guardrail_skip.sh (requires SDR bt709 and 1280x720 to 1920x1080 input)` |
 
 ## Runtime Behavior
 
-- Scenario `RES_JUST_RIGHT` uses action script `transcode_hevc_4k_main_subtitle_preserve_profile.sh`.
+- Scenario `RES_JUST_RIGHT COLOR_SPACE_JUST_RIGHT` uses action script `transcode_hevc_1080_main_subtitle_preserve_profile.sh`.
 - Scenario `ELSE` uses action script `profile_guardrail_skip.sh`.
 
-Action summary from `transcode_hevc_4k_main_subtitle_preserve_profile.sh`:
+Action summary from `transcode_hevc_1080_main_subtitle_preserve_profile.sh`:
 
 - Always preserves audio streams with stream copy.
 - Default subtitle behavior is `smart_eng_sub + preserve`.
@@ -66,17 +64,14 @@ Action summary from `transcode_hevc_4k_main_subtitle_preserve_profile.sh`:
 -   VFO_SUBTITLE_SELECTION_SCOPE=smart_eng_sub|all_sub_preserve
 -   VFO_SUBTITLE_MODE=preserve|subtitle_convert
 -   VFO_SUBTITLE_CONVERT_BITMAP_POLICY=fail|preserve_mkv
-- Preserves dynamic-range signaling for HDR/DV workflows by default:
--   applies metadata-repair defaults when source tags are incomplete.
-- If source signals Dolby Vision side data, attempts DV RPU retention/injection.
-- If source is DV profile 7.x, attempts profile 8.1 conversion semantics before injection.
+- Enforces SDR-oriented 1080 policy metadata on output (`bt709` signaling).
 - `preserve` emits MKV whenever the resolved subtitle policy selects streams.
 - `subtitle_convert` keeps MP4 when selected subtitles are text-convertible and
 -   converts them to `mov_text`; bitmap subtitles fail by default unless
 -   `VFO_SUBTITLE_CONVERT_BITMAP_POLICY=preserve_mkv`.
 - If no subtitle is selected, output container is stream-ready MP4.
 
-Operator knobs from `transcode_hevc_4k_main_subtitle_preserve_profile.sh`:
+Operator knobs from `transcode_hevc_1080_main_subtitle_preserve_profile.sh`:
 
 - `VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT=1   # include default english subtitle when no forced track exists`
 - `VFO_ENCODER_MODE=auto|hw|cpu`
@@ -88,16 +83,6 @@ Operator knobs from `transcode_hevc_4k_main_subtitle_preserve_profile.sh`:
 - `default: 1`
 - `VFO_DYNAMIC_RANGE_REPORT=1|0`
 - `default: 1`
-- `VFO_DV_REQUIRE_DOVI=1|0`
-- `default: 1`
-- `VFO_DV_CONVERT_P7_TO_81=1|0`
-- `default: 1`
-- `VFO_DV_P7_TO_81_MODE=2|5`
-- `default: 2`
-- `VFO_DV_REQUIRE_P7_TO_81=1|0`
-- `default: 1`
-- `VFO_DV_P7_EXTRACT_MODE=auto|mkvextract|ffmpeg`
-- `default: auto`
 - `VFO_QUALITY_MODE=standard|aggressive_vmaf`
 - `default: standard`
 - `VFO_QUALITY_VMAF_MIN=94`
@@ -108,8 +93,8 @@ Operator knobs from `transcode_hevc_4k_main_subtitle_preserve_profile.sh`:
 | Aspect | What this profile expects / does |
 | --- | --- |
 | Starting containers | `mkv, mp4, mov, mxf (anything ffmpeg can demux)` |
-| Required codec envelope | `any` / `any-bit` / `any` |
-| Required resolution range | `1920x1080` to `3840x2160` |
+| Required codec envelope | `any` / `any-bit` / `bt709` |
+| Required resolution range | `1280x720` to `1920x1080` |
 | If criteria do not match | candidate is routed to another profile or skipped |
 | If criteria match | scenario order is evaluated and first match executes |
 | Output intent | conditional: MKV when the smart_eng_sub + preserve policy selects a subtitle, otherwise stream-ready MP4 (fragmented + init/moov at start by default) |

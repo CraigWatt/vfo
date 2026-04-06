@@ -1,4 +1,4 @@
-# craigstreamy_hevc_all_sub_audio_conform_legacy_subhd
+# Craigstreamy HEVC All Subtitles Audio Conform Legacy Sub-HD Profile
 
 Generated from stock preset pack `craigstreamy-hevc-all-sub-audio-conform`.
 
@@ -45,8 +45,8 @@ This profile converts candidates into streaming-friendly HEVC outputs while pres
 
 | Scenario | Command |
 | --- | --- |
-| `RES_JUST_RIGHT` | `transcode_hevc_legacy_all_sub_audio_conform_profile.sh $vfo_input $vfo_output` |
-| `ELSE` | `profile_guardrail_skip.sh $vfo_input $vfo_output craigstreamy_hevc_all_sub_audio_conform_legacy_subhd_guardrail_requires_320x240_to_1279x719_input` |
+| `RES_JUST_RIGHT` | `transcode_hevc_legacy_all_sub_audio_conform_profile.sh` |
+| `ELSE` | `profile_guardrail_skip.sh (requires 320x240 to 1279x719 input)` |
 
 ## Runtime Behavior
 

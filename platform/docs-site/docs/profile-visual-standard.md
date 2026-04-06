@@ -39,7 +39,7 @@ Canonical subtitle policy terms live in [Subtitle Policy](subtitle-policy-taxono
 
 - [Stock profile info sheets](profiles/index.md)
 - `craigstreamy` active profiles:
-  - [4k smart-eng-sub audio-conform sheet](profiles/generated/craigstreamy-hevc-smart-eng-sub-audio-conform-4k.md)
+  - [4K smart-eng-sub audio-conform sheet](profiles/generated/craigstreamy-hevc-smart-eng-sub-audio-conform-4k.md)
   - [1080p smart-eng-sub audio-conform sheet](profiles/generated/craigstreamy-hevc-smart-eng-sub-audio-conform-1080p.md)
-  - [4k selected-subtitle sheet](profiles/generated/netflixy-preserve-audio-main-subtitle-intent-4k.md)
-  - [1080p selected-subtitle sheet](profiles/generated/netflixy-preserve-audio-main-subtitle-intent-1080p.md)
+  - [4K selected-subtitle sheet](profiles/generated/craigstreamy-hevc-selected-english-subtitle-preserve-4k.md)
+  - [1080p selected-subtitle sheet](profiles/generated/craigstreamy-hevc-selected-english-subtitle-preserve-1080p.md)

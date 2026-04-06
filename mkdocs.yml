@@ -59,9 +59,9 @@ nav:
           - Legacy Sub-HD Smart Eng Sub Subtitle Convert Audio Conform: profiles/generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform-legacy-subhd.md
       - Craigstreamy HEVC Selected English Subtitle Preserve:
           - Pack Overview: profiles/packs/craigstreamy-hevc-selected-english-subtitle-preserve.md
-          - 4K Selected English Subtitle Preserve: profiles/generated/netflixy-preserve-audio-main-subtitle-intent-4k.md
-          - 1080p Selected English Subtitle Preserve: profiles/generated/netflixy-preserve-audio-main-subtitle-intent-1080p.md
-          - Legacy Sub-HD Selected English Subtitle Preserve: profiles/generated/netflixy-preserve-audio-main-subtitle-intent-legacy-subhd.md
+          - 4K Selected English Subtitle Preserve: profiles/generated/craigstreamy-hevc-selected-english-subtitle-preserve-4k.md
+          - 1080p Selected English Subtitle Preserve: profiles/generated/craigstreamy-hevc-selected-english-subtitle-preserve-1080p.md
+          - Legacy Sub-HD Selected English Subtitle Preserve: profiles/generated/craigstreamy-hevc-selected-english-subtitle-preserve-legacy-subhd.md
       - Balanced Open Audio:
           - Pack Overview: profiles/packs/balanced-open-audio.md
           - 4K Balanced Open Audio: profiles/generated/balanced-4k-open-audio.md

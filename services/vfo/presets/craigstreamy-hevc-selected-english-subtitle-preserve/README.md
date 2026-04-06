@@ -59,9 +59,14 @@ Dynamic-range behavior:
 
 ## Included active profiles (lane 1)
 
-- `netflixy_preserve_audio_main_subtitle_intent_4k`
-- `netflixy_preserve_audio_main_subtitle_intent_1080p`
-- `netflixy_preserve_audio_main_subtitle_intent_legacy_subhd`
+- `Craigstreamy HEVC Selected English Subtitle Preserve 4K`
+- `Craigstreamy HEVC Selected English Subtitle Preserve 1080p`
+- `Craigstreamy HEVC Selected English Subtitle Preserve Legacy Sub-HD`
+
+Compatibility note:
+
+- the canonical pack name is `craigstreamy_hevc_selected_english_subtitle_preserve`
+- the internal `PROFILE=` ids in this preset block still use older legacy names for compatibility
 
 ## Reserved profile names (lane 2 scaffold, not enabled by default)
 
