@@ -77,14 +77,14 @@ flowchart LR
   B --> C{Matches profile criteria envelope?}:::gate
   C -->|No| Z[Handled by other profile or guardrail skipped]:::skip
   C -->|Yes| D{Evaluate scenarios in order}:::gate
-  D --> E[Execute subtitle-intent action]:::stage
+  D --> E[Execute subtitle-policy action]:::stage
   E --> P[Optional lane-specific pre-processing]:::stage
-  P --> F{smart_eng_sub subtitle selected?}:::gate
-  F -->|Yes| G[Encode HEVC + preserve audio + preserve smart_eng_sub subtitle]:::stage
-  G --> H[Emit MKV output]:::output
-  F -->|No| I[Encode HEVC + preserve audio]:::stage
-  I --> J[Finalize fragmented MP4 + init/moov at start]:::stage
-  J --> K[Emit MP4 output]:::output
+  P --> F{Selected subtitle is text-convertible and MP4 remains viable?}:::gate
+  F -->|Yes| G[Encode HEVC + conform audio if needed + convert selected subtitle to mov_text]:::stage
+  G --> H[Emit MP4 output with converted subtitle text]:::output
+  F -->|No| I[Encode HEVC + conform audio if needed + preserve selected subtitle by explicit fallback]:::stage
+  I --> J[Emit explicit fallback output (usually MKV preserve or fail)]:::stage
+  J --> K[Emit final profile artifact]:::output
 ```
 
 ## What This Profile Does Not Do

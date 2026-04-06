@@ -58,9 +58,6 @@ Action summary from `transcode_hevc_4k_all_sub_preserve_profile.sh`:
 - sets subtitle selection scope to `all_sub_preserve`
 - keeps subtitle mode at `preserve`
 - preserves audio streams with stream copy
-- SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-- export VFO_SUBTITLE_SELECTION_SCOPE="all_sub_preserve"
-- export VFO_SUBTITLE_MODE="preserve"
 
 ## Starting Inputs And Expected Outputs
 
@@ -86,14 +83,14 @@ flowchart LR
   B --> C{Matches profile criteria envelope?}:::gate
   C -->|No| Z[Handled by other profile or guardrail skipped]:::skip
   C -->|Yes| D{Evaluate scenarios in order}:::gate
-  D --> E[Execute subtitle-intent action]:::stage
+  D --> E[Execute subtitle-policy action]:::stage
   E --> P[Optional lane-specific pre-processing]:::stage
-  P --> F{smart_eng_sub subtitle selected?}:::gate
-  F -->|Yes| G[Encode HEVC + preserve audio + preserve smart_eng_sub subtitle]:::stage
-  G --> H[Emit MKV output]:::output
+  P --> F{Any subtitle streams present?}:::gate
+  F -->|Yes| G[Encode HEVC + preserve audio + preserve all subtitle streams]:::stage
+  G --> H[Emit MKV output carrying all subtitle streams]:::output
   F -->|No| I[Encode HEVC + preserve audio]:::stage
   I --> J[Finalize fragmented MP4 + init/moov at start]:::stage
-  J --> K[Emit MP4 output]:::output
+  J --> K[Emit final profile artifact]:::output
 ```
 
 ## What This Profile Does Not Do

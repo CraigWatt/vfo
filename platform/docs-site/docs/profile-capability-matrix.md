@@ -45,6 +45,7 @@ Generated from stock preset criteria (`PROFILE=` blocks).
 
 - This matrix reflects stock presets, not every custom profile a user may define.
 - `craigstreamy_hevc_selected_english_subtitle_preserve` remains the preserve-audio subtitle-intent pack.
+- Its generated profile ids still use the legacy `netflixy_preserve_audio_main_subtitle_intent_*` names for compatibility.
 - `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf` adds video-only aggressive-VMAF behavior on top of the preserve-audio subtitle-intent family.
 - `craigstreamy_hevc_smart_eng_sub_audio_conform` adds DTS/PCM delivery-conform behavior on top of the subtitle-intent family.
 - `craigstreamy_hevc_all_sub_audio_conform` and `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform` complete the first audio-conform subtitle matrix.

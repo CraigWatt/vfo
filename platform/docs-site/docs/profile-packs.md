@@ -149,6 +149,7 @@ Included active profiles:
 - `netflixy_preserve_audio_main_subtitle_intent_4k`
 - `netflixy_preserve_audio_main_subtitle_intent_1080p`
 - `netflixy_preserve_audio_main_subtitle_intent_legacy_subhd`
+- these legacy profile ids remain in place as compatibility aliases under the canonical `craigstreamy` pack name
 - details + flow: [Craigstreamy HEVC Selected English Subtitle Preserve Pack](profiles/packs/craigstreamy-hevc-selected-english-subtitle-preserve.md)
 
 ## device_targets_open_audio

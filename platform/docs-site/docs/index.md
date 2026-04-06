@@ -25,7 +25,7 @@ This site is built to answer three practical questions quickly:
 2. Read [Flow Levels](flow-levels.md) for interactive executive/operator/engine React Flow visuals.
 3. Read [Profile Pack Strategy](profile-pack-strategy.md) to understand how fixed pack names, subtitle policies, audio policies, and quality modes fit together.
 4. Read [Subtitle Policy](subtitle-policy-taxonomy.md) to understand `smart_eng_sub`, `all_sub_preserve`, and `subtitle_convert`.
-5. Read [Quality Modes](quality-mode-taxonomy.md) to understand `standard` and future `aggressive_vmaf` behavior.
+5. Read [Quality Modes](quality-mode-taxonomy.md) to understand `standard` and the shipped bounded `aggressive_vmaf` mode.
 6. Check [Capability Matrix](profile-capability-matrix.md) to see what each stock profile targets.
 7. Open [Profile Info Sheets](profiles/index.md) for deep behavior details per profile.
 8. Review [Latest E2E Toolchain Report](e2e-toolchain-latest.md) for the dependency versions used in recent CI verification.
