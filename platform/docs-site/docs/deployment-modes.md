@@ -22,7 +22,7 @@
 
 - `base`: `ffmpeg`, `ffprobe`, `mkvmerge`
 - `dv`: `dovi_tool` (and related DV utilities where needed)
-- `quality`: PSNR/SSIM via ffmpeg filters, optional VMAF via `libvmaf`
+- `quality`: PSNR/SSIM via ffmpeg filters, optional VMAF via `libvmaf` for post-profile scoring today and future `aggressive_vmaf` quality mode
 
 ## Why Not Bundle Everything by Default?
 

@@ -17,6 +17,13 @@ Subtitle behavior is now described via the canonical policy taxonomy:
 
 Read [Subtitle Policy](subtitle-policy-taxonomy.md) for the policy model and how current packs map to it.
 
+Quality behavior is also orthogonal to pack names:
+
+- `standard`
+- `aggressive_vmaf`
+
+Read [Quality Modes](quality-mode-taxonomy.md) for the quality-mode model and the current implementation boundary.
+
 ## craigstreamy_hevc_smart_eng_sub_audio_conform
 
 Focus:
