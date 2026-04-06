@@ -13,6 +13,7 @@ This pack provides compatibility-shaped profiles for common streaming device fam
 - device-oriented criteria envelopes (Roku, Fire TV, Chromecast, Apple TV)
 - compatibility-first packaging approach
 - open audio stream strategy where possible
+- explicit SDR-target fallback on the 1080 H.264 lane when PQ/HLG inputs arrive without the full HDR tonemap filter stack
 
 ## Included Profiles
 

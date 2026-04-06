@@ -72,6 +72,7 @@ Device-target templates:
 - `transcode_h264_1080_hdr_to_sdr_profile.sh`
   - explicit HDR->SDR conversion intent for SDR-only compatibility lanes
   - normalizes output signaling to BT.709
+  - uses `zscale+tonemap` when available, otherwise falls back to an SDR-signaled compatibility transcode for PQ/HLG inputs instead of failing the lane
   - uses `h264_videotoolbox` when available, `libx264` fallback
 - `transcode_hevc_4k_dv_profile.sh`
   - Dolby Vision retention path with `dovi_tool`

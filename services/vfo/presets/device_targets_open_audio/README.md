@@ -26,6 +26,7 @@ Important:
 - These are conservative baseline profiles, not a guarantee for every firmware/model revision.
 - 1080 SDR-target profiles use explicit HDR->SDR conversion action:
   - `transcode_h264_1080_hdr_to_sdr_profile.sh`
+  - when the runner lacks the full HDR tonemap filters, that action now falls back to an SDR-signaled compatibility transcode rather than failing PQ/HLG inputs outright
 - 4K HDR/DV-oriented profiles keep preserve-style behavior unless explicitly named otherwise.
 - For predictive validation, pair these profiles with:
   - `tests/e2e/validate_device_conformance.sh`
