@@ -123,18 +123,27 @@ action_in_suite_profile_actions() {
     transcode_hevc_1080_profile.sh|\
     transcode_hevc_4k_profile.sh|\
     transcode_hevc_1080_all_sub_preserve_profile.sh|\
+    transcode_hevc_1080_all_sub_audio_conform_profile.sh|\
     transcode_hevc_4k_all_sub_preserve_profile.sh|\
+    transcode_hevc_4k_all_sub_audio_conform_profile.sh|\
     transcode_hevc_1080_main_subtitle_preserve_profile.sh|\
+    transcode_hevc_1080_smart_eng_sub_aggressive_vmaf_profile.sh|\
     transcode_hevc_1080_smart_eng_sub_audio_conform_aggressive_vmaf_profile.sh|\
     transcode_hevc_4k_main_subtitle_preserve_profile.sh|\
+    transcode_hevc_4k_smart_eng_sub_aggressive_vmaf_profile.sh|\
     transcode_hevc_1080_smart_eng_sub_subtitle_convert_profile.sh|\
+    transcode_hevc_1080_smart_eng_sub_subtitle_convert_audio_conform_profile.sh|\
     transcode_hevc_1080_smart_eng_sub_audio_conform_profile.sh|\
     transcode_hevc_4k_smart_eng_sub_audio_conform_aggressive_vmaf_profile.sh|\
     transcode_hevc_4k_smart_eng_sub_subtitle_convert_profile.sh|\
+    transcode_hevc_4k_smart_eng_sub_subtitle_convert_audio_conform_profile.sh|\
     transcode_hevc_4k_smart_eng_sub_audio_conform_profile.sh|\
     transcode_hevc_legacy_all_sub_preserve_profile.sh|\
+    transcode_hevc_legacy_all_sub_audio_conform_profile.sh|\
+    transcode_hevc_legacy_smart_eng_sub_aggressive_vmaf_profile.sh|\
     transcode_hevc_legacy_smart_eng_sub_audio_conform_aggressive_vmaf_profile.sh|\
     transcode_hevc_legacy_smart_eng_sub_audio_conform_profile.sh|\
+    transcode_hevc_legacy_smart_eng_sub_subtitle_convert_audio_conform_profile.sh|\
     transcode_hevc_legacy_smart_eng_sub_subtitle_convert_profile.sh|\
     transcode_hevc_legacy_main_subtitle_preserve_profile.sh|\
     profile_guardrail_skip.sh)
@@ -212,6 +221,7 @@ write_profile_doc() {
   local is_craigstreamy_audio_conform_pack
   local is_craigstreamy_all_sub_pack
   local is_craigstreamy_subtitle_convert_pack
+  local is_craigstreamy_aggressive_vmaf_pack
   local dep_ffmpeg
   local dep_ffprobe
   local dep_mkvmerge
@@ -248,14 +258,18 @@ write_profile_doc() {
 
   first_command_label="$(command_label "$first_command")"
   mermaid_variant="generic"
-  if printf '%s' "$first_command" | grep -Eq "main_subtitle_preserve_profile.sh|all_sub_preserve_profile.sh|smart_eng_sub_audio_conform_profile.sh|smart_eng_sub_audio_conform_aggressive_vmaf_profile.sh|smart_eng_sub_subtitle_convert_profile.sh"; then
+  if printf '%s' "$first_command" | grep -Eq "main_subtitle_preserve_profile.sh|all_sub_preserve_profile.sh|all_sub_audio_conform_profile.sh|smart_eng_sub_audio_conform_profile.sh|smart_eng_sub_audio_conform_aggressive_vmaf_profile.sh|smart_eng_sub_aggressive_vmaf_profile.sh|smart_eng_sub_subtitle_convert_profile.sh|smart_eng_sub_subtitle_convert_audio_conform_profile.sh"; then
     mermaid_variant="subtitle_intent"
   fi
 
   typical_input_containers="mkv, mp4, mov, mxf (anything ffmpeg can demux)"
   output_intent="profile-specific output written by selected scenario command"
-  if printf '%s' "$first_command" | grep -q "subtitle_convert_profile.sh"; then
+  if printf '%s' "$first_command" | grep -q "subtitle_convert_audio_conform_profile.sh"; then
+    output_intent="conditional: stream-ready MP4 with converted text subtitles when the smart_eng_sub policy selects text subtitles and audio remains MP4-safe; fallback to MKV subtitle preservation when preserved audio safety forces MKV"
+  elif printf '%s' "$first_command" | grep -q "subtitle_convert_profile.sh"; then
     output_intent="conditional: stream-ready MP4 with converted text subtitles when the smart_eng_sub policy selects text subtitles; fallback behavior is controlled by VFO_SUBTITLE_CONVERT_BITMAP_POLICY"
+  elif printf '%s' "$first_command" | grep -q "all_sub_audio_conform_profile.sh"; then
+    output_intent="conditional: MKV when subtitle streams are present for carry-over or when preserved-audio safety forces MKV, otherwise stream-ready MP4 with conformed delivery audio"
   elif printf '%s' "$first_command" | grep -q "all_sub_preserve_profile.sh"; then
     output_intent="conditional: MKV when subtitle streams are present for carry-over, otherwise stream-ready MP4"
   elif [ "$mermaid_variant" = "subtitle_intent" ]; then
@@ -317,25 +331,37 @@ write_profile_doc() {
   is_craigstreamy_audio_conform_pack="0"
   is_craigstreamy_all_sub_pack="0"
   is_craigstreamy_subtitle_convert_pack="0"
+  is_craigstreamy_aggressive_vmaf_pack="0"
   if [ "$mermaid_variant" = "subtitle_intent" ]; then
     case "$pack" in
       craigstreamy-hevc-selected-english-subtitle-preserve|\
+      craigstreamy-hevc-smart-eng-sub-aggressive-vmaf|\
       craigstreamy-hevc-smart-eng-sub-audio-conform|\
       craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf|\
       craigstreamy-hevc-all-sub-preserve|\
-      craigstreamy-hevc-smart-eng-sub-subtitle-convert)
+      craigstreamy-hevc-all-sub-audio-conform|\
+      craigstreamy-hevc-smart-eng-sub-subtitle-convert|\
+      craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform)
         is_craigstreamy_subtitle_pack="1"
         ;;
     esac
     if [ "$pack" = "craigstreamy-hevc-smart-eng-sub-audio-conform" ] \
-      || [ "$pack" = "craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf" ]; then
+      || [ "$pack" = "craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf" ] \
+      || [ "$pack" = "craigstreamy-hevc-all-sub-audio-conform" ] \
+      || [ "$pack" = "craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform" ]; then
       is_craigstreamy_audio_conform_pack="1"
     fi
-    if [ "$pack" = "craigstreamy-hevc-all-sub-preserve" ]; then
+    if [ "$pack" = "craigstreamy-hevc-all-sub-preserve" ] \
+      || [ "$pack" = "craigstreamy-hevc-all-sub-audio-conform" ]; then
       is_craigstreamy_all_sub_pack="1"
     fi
-    if [ "$pack" = "craigstreamy-hevc-smart-eng-sub-subtitle-convert" ]; then
+    if [ "$pack" = "craigstreamy-hevc-smart-eng-sub-subtitle-convert" ] \
+      || [ "$pack" = "craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform" ]; then
       is_craigstreamy_subtitle_convert_pack="1"
+    fi
+    if [ "$pack" = "craigstreamy-hevc-smart-eng-sub-aggressive-vmaf" ] \
+      || [ "$pack" = "craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf" ]; then
+      is_craigstreamy_aggressive_vmaf_pack="1"
     fi
   fi
 
@@ -395,7 +421,7 @@ write_profile_doc() {
     if [ "$is_craigstreamy_subtitle_pack" = "1" ]; then
       printf '## Intent\n\n'
       if [ "$is_craigstreamy_subtitle_convert_pack" = "1" ]; then
-        printf 'This profile converts candidates into streaming-friendly HEVC outputs while keeping the `smart_eng_sub` subtitle selection heuristic and converting selected text subtitles into delivery-friendly text form.\n\n'
+        printf 'This profile converts candidates into streaming-friendly HEVC outputs while keeping the `smart_eng_sub` subtitle selection heuristic and converting selected text subtitles into delivery-friendly text form when the final container remains MP4-friendly.\n\n'
       elif [ "$is_craigstreamy_all_sub_pack" = "1" ]; then
         printf 'This profile converts candidates into streaming-friendly HEVC outputs while preserving all subtitle streams for carry-over oriented workflows.\n\n'
       elif [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
@@ -405,6 +431,9 @@ write_profile_doc() {
       fi
       printf '## What It Optimizes For\n\n'
       printf -- '- practical bitrate efficiency with a consistent HEVC target\n'
+      if [ "$is_craigstreamy_aggressive_vmaf_pack" = "1" ]; then
+        printf -- '- bounded aggressive-VMAF retries on the video encode path only\n'
+      fi
       if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
         printf -- '- preserve AAC and Dolby-family audio streams when already acceptable\n'
         printf -- '- conform DTS-family or PCM-family audio into open-source Dolby-aligned delivery codecs when needed\n'
@@ -565,6 +594,9 @@ MERMAID
         printf -- '- It does not transcode audio for target-device compatibility by default.\n'
         printf -- '- It does not guarantee every input audio codec is valid for every selected output container.\n'
       fi
+      if [ "$is_craigstreamy_aggressive_vmaf_pack" = "1" ]; then
+        printf -- '- It does not use VMAF to change audio behavior; aggressive mode is video-only.\n'
+      fi
       printf -- '- It does not semantically understand subtitle meaning; subtitle selection is metadata and flag driven.\n'
       printf -- '- It does not OCR or convert bitmap subtitles to text subtitles.\n'
       printf -- '- It does not generate ABR ladders (HLS/DASH); output is a single-file artifact.\n'
@@ -590,7 +622,11 @@ MERMAID
         printf '| Volume normalisation | `not applied by default` |\n'
       fi
       printf '| Crop | `legacy lane auto-crop enabled` |\n'
-      printf '| Lowered video bitrate | `yes` |\n'
+      if [ "$is_craigstreamy_aggressive_vmaf_pack" = "1" ]; then
+        printf '| Lowered video bitrate | `yes; bounded aggressive-VMAF retry policy` |\n'
+      else
+        printf '| Lowered video bitrate | `yes` |\n'
+      fi
       if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
         printf '| Lowered audio bitrate | `not as a general policy; only codec-target defaults for DTS/PCM conform` |\n'
         printf '| Audio transcoded | `DTS/PCM-family only` |\n'
@@ -628,6 +664,10 @@ MERMAID
         printf '| Bitrate targets | `practical video efficiency; audio preserve-first` |\n'
         printf '| Audio bitrate targets | `codec-target defaults only when DTS/PCM-family audio is conformed` |\n'
         printf '| Overall bitrate targets | `reduce video bitrate while preserving viewing intent and sane audio delivery` |\n'
+      elif [ "$is_craigstreamy_aggressive_vmaf_pack" = "1" ]; then
+        printf '| Bitrate targets | `video-first bounded search for lower bitrate at the configured VMAF floor` |\n'
+        printf '| Audio bitrate targets | `copy/preserve unless a future audio profile says otherwise` |\n'
+        printf '| Overall bitrate targets | `reduce video bitrate more aggressively while keeping audio untouched` |\n'
       elif [ "$is_craigstreamy_subtitle_convert_pack" = "1" ]; then
         printf '| Bitrate targets | `practical efficiency with delivery-friendly subtitle text outputs` |\n'
         printf '| Audio bitrate targets | `copy/preserve unless a future audio profile says otherwise` |\n'
@@ -715,7 +755,9 @@ done < <(find "$PRESETS_DIR" -type f -name 'vfo_config.preset.conf' | sort)
   printf '\n## Notes\n\n'
   printf -- '- This matrix reflects stock presets, not every custom profile a user may define.\n'
   printf -- '- `craigstreamy_hevc_selected_english_subtitle_preserve` remains the preserve-audio subtitle-intent pack.\n'
+  printf -- '- `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf` adds video-only aggressive-VMAF behavior on top of the preserve-audio subtitle-intent family.\n'
   printf -- '- `craigstreamy_hevc_smart_eng_sub_audio_conform` adds DTS/PCM delivery-conform behavior on top of the subtitle-intent family.\n'
+  printf -- '- `craigstreamy_hevc_all_sub_audio_conform` and `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform` complete the first audio-conform subtitle matrix.\n'
 } > "$MATRIX_DOC"
 
 echo "Generated profile docs under: ${PROFILE_OUT_DIR#$REPO_ROOT/}"

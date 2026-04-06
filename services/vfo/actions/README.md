@@ -32,6 +32,15 @@ vfo provides these through scenario command placeholders:
 - `transcode_hevc_4k_smart_eng_sub_subtitle_convert_profile.sh`
 - `transcode_hevc_1080_smart_eng_sub_subtitle_convert_profile.sh`
 - `transcode_hevc_legacy_smart_eng_sub_subtitle_convert_profile.sh`
+- `transcode_hevc_4k_all_sub_audio_conform_profile.sh`
+- `transcode_hevc_1080_all_sub_audio_conform_profile.sh`
+- `transcode_hevc_legacy_all_sub_audio_conform_profile.sh`
+- `transcode_hevc_4k_smart_eng_sub_aggressive_vmaf_profile.sh`
+- `transcode_hevc_1080_smart_eng_sub_aggressive_vmaf_profile.sh`
+- `transcode_hevc_legacy_smart_eng_sub_aggressive_vmaf_profile.sh`
+- `transcode_hevc_4k_smart_eng_sub_subtitle_convert_audio_conform_profile.sh`
+- `transcode_hevc_1080_smart_eng_sub_subtitle_convert_audio_conform_profile.sh`
+- `transcode_hevc_legacy_smart_eng_sub_subtitle_convert_audio_conform_profile.sh`
 - `transcode_hevc_4k_smart_eng_sub_audio_conform_profile.sh`
 - `transcode_hevc_1080_smart_eng_sub_audio_conform_profile.sh`
 - `transcode_hevc_legacy_smart_eng_sub_audio_conform_profile.sh`
@@ -52,6 +61,7 @@ Core templates:
 - preserve audio and subtitle streams (`-c:a copy -c:s copy`)
 - choose hardware encode (`hevc_videotoolbox`) when available by default
 - fall back to software (`libx265`) automatically
+- keep `aggressive_vmaf` scoped to video-only retry behavior when enabled
 
 Device-target templates:
 

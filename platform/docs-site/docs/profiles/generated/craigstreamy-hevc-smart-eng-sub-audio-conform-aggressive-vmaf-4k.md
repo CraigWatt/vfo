@@ -26,6 +26,7 @@ This profile converts candidates into streaming-friendly HEVC outputs while pres
 ## What It Optimizes For
 
 - practical bitrate efficiency with a consistent HEVC target
+- bounded aggressive-VMAF retries on the video encode path only
 - preserve AAC and Dolby-family audio streams when already acceptable
 - conform DTS-family or PCM-family audio into open-source Dolby-aligned delivery codecs when needed
 - subtitle policy: `smart_eng_sub` + `preserve`
@@ -93,6 +94,7 @@ flowchart LR
 - It does not invent Atmos or proprietary immersive metadata.
 - It does not transcode already-acceptable AAC or Dolby-family audio just to make everything uniform.
 - It does not apply a broad audio bitrate-lowering strategy yet.
+- It does not use VMAF to change audio behavior; aggressive mode is video-only.
 - It does not semantically understand subtitle meaning; subtitle selection is metadata and flag driven.
 - It does not OCR or convert bitmap subtitles to text subtitles.
 - It does not generate ABR ladders (HLS/DASH); output is a single-file artifact.
@@ -112,7 +114,7 @@ flowchart LR
 | Interlacing | `legacy lane only; optional deinterlace` |
 | Volume normalisation | `applied when DTS/PCM-family audio is transcoded` |
 | Crop | `legacy lane auto-crop enabled` |
-| Lowered video bitrate | `yes` |
+| Lowered video bitrate | `yes; bounded aggressive-VMAF retry policy` |
 | Lowered audio bitrate | `not as a general policy; only codec-target defaults for DTS/PCM conform` |
 | Audio transcoded | `DTS/PCM-family only` |
 | Video transcoded | `yes` |

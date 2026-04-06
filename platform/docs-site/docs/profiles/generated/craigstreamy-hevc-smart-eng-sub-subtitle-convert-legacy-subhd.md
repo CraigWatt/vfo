@@ -21,7 +21,7 @@ This profile is considered e2e-verified when its mapped suites pass in CI.
 
 ## Intent
 
-This profile converts candidates into streaming-friendly HEVC outputs while keeping the `smart_eng_sub` subtitle selection heuristic and converting selected text subtitles into delivery-friendly text form.
+This profile converts candidates into streaming-friendly HEVC outputs while keeping the `smart_eng_sub` subtitle selection heuristic and converting selected text subtitles into delivery-friendly text form when the final container remains MP4-friendly.
 
 ## What It Optimizes For
 

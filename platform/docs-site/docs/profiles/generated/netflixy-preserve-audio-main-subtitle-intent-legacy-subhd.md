@@ -91,6 +91,10 @@ Operator knobs from `transcode_hevc_legacy_main_subtitle_preserve_profile.sh`:
 - `default: 1`
 - `VFO_DYNAMIC_RANGE_REPORT=1|0`
 - `default: 1`
+- `VFO_QUALITY_MODE=standard|aggressive_vmaf`
+- `default: standard`
+- `VFO_QUALITY_VMAF_MIN=94`
+- `VFO_QUALITY_VMAF_MAX_PASSES=4`
 
 ## Starting Inputs And Expected Outputs
 

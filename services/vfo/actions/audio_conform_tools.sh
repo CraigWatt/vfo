@@ -373,48 +373,79 @@ audio_conform_effective_mp4_stream_mode() {
 audio_conform_finalize_streamable_mp4() {
   local input_video_mp4="$1"
   local input_audio_media="$2"
-  local output_mp4="$3"
-  local stream_mode="$4"
+  local subtitle_source_media="${3:-}"
+  local subtitle_positions="${4:-}"
+  local subtitle_codec="${5:-none}"
+  local output_mp4="${6:-}"
+  local stream_mode="${7:-fmp4_faststart}"
   local effective_stream_mode=""
   local movflags=""
+  local next_input_index=1
+  local pos=""
+  local -a cmd=()
+  local -a maps=()
+  local -a subtitle_args=()
+
+  if [ -z "$output_mp4" ]; then
+    output_mp4="$3"
+    stream_mode="${4:-fmp4_faststart}"
+    subtitle_source_media=""
+    subtitle_positions=""
+    subtitle_codec="none"
+  fi
 
   effective_stream_mode="$(audio_conform_effective_mp4_stream_mode "$stream_mode" "$input_audio_media")"
   movflags="$(audio_conform_resolve_mp4_movflags "$effective_stream_mode")"
   echo "Finalizing MP4 stream packaging mode=${effective_stream_mode} movflags=${movflags}"
 
+  cmd=(-hide_banner -nostdin -y -i "$input_video_mp4")
+  maps=(-map 0:v:0)
+
   if [ -n "$input_audio_media" ] && [ -s "$input_audio_media" ]; then
-    ffmpeg -hide_banner -nostdin -y \
-      -i "$input_video_mp4" -i "$input_audio_media" \
-      -map 0:v:0 -map 1:a? \
-      -sn -dn \
-      -c copy \
-      -write_tmcd 0 \
-      -movflags "$movflags" \
-      -max_muxing_queue_size 4096 \
-      "$output_mp4"
-  else
-    ffmpeg -hide_banner -nostdin -y \
-      -i "$input_video_mp4" \
-      -map 0:v:0 \
-      -an -sn -dn \
-      -c copy \
-      -write_tmcd 0 \
-      -movflags "$movflags" \
-      -max_muxing_queue_size 4096 \
-      "$output_mp4"
+    cmd+=(-i "$input_audio_media")
+    maps+=(-map "${next_input_index}:a?")
+    next_input_index=$((next_input_index + 1))
   fi
+
+  if [ -n "$subtitle_positions" ] && [ "$subtitle_codec" != "none" ]; then
+    cmd+=(-i "$subtitle_source_media")
+    while IFS= read -r pos; do
+      [ -n "$pos" ] || continue
+      maps+=(-map "${next_input_index}:s:${pos}")
+    done <<< "$subtitle_positions"
+    subtitle_args=(-c:s "$subtitle_codec")
+  else
+    subtitle_args=(-sn)
+  fi
+
+  ffmpeg "${cmd[@]}" \
+    "${maps[@]}" \
+    -dn \
+    -c copy \
+    "${subtitle_args[@]}" \
+    -write_tmcd 0 \
+    -movflags "$movflags" \
+    -max_muxing_queue_size 4096 \
+    "$output_mp4"
 }
 
 audio_conform_mux_mkv() {
   local input_video_media="$1"
   local input_audio_media="$2"
   local subtitle_source_media="$3"
-  local subtitle_pos="$4"
-  local output_mkv="$5"
+  local subtitle_positions="${4:-}"
+  local subtitle_codec="${5:-copy}"
+  local output_mkv="${6:-}"
   local next_input_index=1
-  local subtitle_input_index=0
+  local pos=""
   local -a cmd=()
   local -a maps=()
+  local -a subtitle_args=()
+
+  if [ -z "$output_mkv" ]; then
+    output_mkv="$5"
+    subtitle_codec="copy"
+  fi
 
   cmd=(-hide_banner -nostdin -y -i "$input_video_media")
   maps=(-map 0:v:0)
@@ -425,15 +456,21 @@ audio_conform_mux_mkv() {
     next_input_index=$((next_input_index + 1))
   fi
 
-  if [ -n "$subtitle_pos" ] && [ -n "$subtitle_source_media" ]; then
-    subtitle_input_index="$next_input_index"
+  if [ -n "$subtitle_positions" ] && [ "$subtitle_codec" != "none" ] && [ -n "$subtitle_source_media" ]; then
     cmd+=(-i "$subtitle_source_media")
-    maps+=(-map "${subtitle_input_index}:s:${subtitle_pos}")
+    while IFS= read -r pos; do
+      [ -n "$pos" ] || continue
+      maps+=(-map "${next_input_index}:s:${pos}")
+    done <<< "$subtitle_positions"
+    subtitle_args=(-c:s "$subtitle_codec")
+  else
+    subtitle_args=(-sn)
   fi
 
   ffmpeg "${cmd[@]}" \
     "${maps[@]}" \
     -c copy \
+    "${subtitle_args[@]}" \
     -max_muxing_queue_size 4096 \
     "$output_mkv"
 }
