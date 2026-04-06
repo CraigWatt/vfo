@@ -62,9 +62,18 @@ typedef enum ih_toolchain_mode {
 static const ih_stock_preset_option_t IH_STOCK_PRESET_OPTIONS[] = {
   {"balanced_open_audio", "Balanced Open Audio", "balanced_open_audio/vfo_config.preset.conf"},
   {"device_targets_open_audio", "Device Targets Open Audio", "device_targets_open_audio/vfo_config.preset.conf"},
+  {"craigstreamy_hevc_all_sub_preserve",
+   "Craigstreamy HEVC All Subtitle Preserve",
+   "craigstreamy-hevc-all-sub-preserve/vfo_config.preset.conf"},
+  {"craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf",
+   "Craigstreamy HEVC Smart English Subtitle Audio Conform Aggressive VMAF",
+   "craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf/vfo_config.preset.conf"},
   {"craigstreamy_hevc_smart_eng_sub_audio_conform",
    "Craigstreamy HEVC Smart English Subtitle Audio Conform",
    "craigstreamy-hevc-smart-eng-sub-audio-conform/vfo_config.preset.conf"},
+  {"craigstreamy_hevc_smart_eng_sub_subtitle_convert",
+   "Craigstreamy HEVC Smart English Subtitle Convert",
+   "craigstreamy-hevc-smart-eng-sub-subtitle-convert/vfo_config.preset.conf"},
   {"craigstreamy_hevc_selected_english_subtitle_preserve",
    "Craigstreamy HEVC Selected English Subtitle Preserve",
    "craigstreamy-hevc-selected-english-subtitle-preserve/vfo_config.preset.conf"}

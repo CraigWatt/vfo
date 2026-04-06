@@ -255,6 +255,60 @@ void test_ih_stock_preset_resolution_supports_audio_conform_pack(void **state) {
                       "craigstreamy-hevc-smart-eng-sub-audio-conform/vfo_config.preset.conf");
 }
 
+void test_ih_stock_preset_resolution_supports_aggressive_vmaf_pack(void **state) {
+  char canonical_key[256];
+  char relative_path[256];
+  (void)state;
+
+  memset(canonical_key, 0, sizeof(canonical_key));
+  memset(relative_path, 0, sizeof(relative_path));
+
+  assert_true(ih_resolve_stock_preset_for_test("craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf",
+                                               canonical_key,
+                                               sizeof(canonical_key),
+                                               relative_path,
+                                               sizeof(relative_path)));
+  assert_string_equal(canonical_key, "craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf");
+  assert_string_equal(relative_path,
+                      "craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf/vfo_config.preset.conf");
+}
+
+void test_ih_stock_preset_resolution_supports_all_sub_preserve_pack(void **state) {
+  char canonical_key[256];
+  char relative_path[256];
+  (void)state;
+
+  memset(canonical_key, 0, sizeof(canonical_key));
+  memset(relative_path, 0, sizeof(relative_path));
+
+  assert_true(ih_resolve_stock_preset_for_test("craigstreamy_hevc_all_sub_preserve",
+                                               canonical_key,
+                                               sizeof(canonical_key),
+                                               relative_path,
+                                               sizeof(relative_path)));
+  assert_string_equal(canonical_key, "craigstreamy_hevc_all_sub_preserve");
+  assert_string_equal(relative_path,
+                      "craigstreamy-hevc-all-sub-preserve/vfo_config.preset.conf");
+}
+
+void test_ih_stock_preset_resolution_supports_subtitle_convert_pack(void **state) {
+  char canonical_key[256];
+  char relative_path[256];
+  (void)state;
+
+  memset(canonical_key, 0, sizeof(canonical_key));
+  memset(relative_path, 0, sizeof(relative_path));
+
+  assert_true(ih_resolve_stock_preset_for_test("craigstreamy_hevc_smart_eng_sub_subtitle_convert",
+                                               canonical_key,
+                                               sizeof(canonical_key),
+                                               relative_path,
+                                               sizeof(relative_path)));
+  assert_string_equal(canonical_key, "craigstreamy_hevc_smart_eng_sub_subtitle_convert");
+  assert_string_equal(relative_path,
+                      "craigstreamy-hevc-smart-eng-sub-subtitle-convert/vfo_config.preset.conf");
+}
+
 void test_quality_reference_mode_parser_accepts_valid_values(void **state) {
   bool valid = false;
   (void)state;

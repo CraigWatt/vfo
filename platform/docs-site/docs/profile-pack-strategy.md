@@ -105,15 +105,19 @@ Conceptually, the two current `craigstreamy` packs map like this:
 | --- | --- | --- | --- |
 | `craigstreamy_hevc_selected_english_subtitle_preserve` | `smart_eng_sub + preserve` | preserve | `standard` |
 | `craigstreamy_hevc_smart_eng_sub_audio_conform` | `smart_eng_sub + preserve` | `audio_conform` | `standard` |
+| `craigstreamy_hevc_all_sub_preserve` | `all_sub_preserve + preserve` | preserve | `standard` |
+| `craigstreamy_hevc_smart_eng_sub_subtitle_convert` | `smart_eng_sub + subtitle_convert` | preserve | `standard` |
+| `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf` | `smart_eng_sub + preserve` | `audio_conform` | `aggressive_vmaf` |
 
 ## Recommended Next Explicit Packs
 
-To give users a meaningful but still manageable pack choice surface, the next pack additions should be:
+To give users a meaningful but still manageable pack choice surface, the next pack additions should now be read as:
 
-1. `craigstreamy_hevc_all_sub_preserve`
-2. `craigstreamy_hevc_all_sub_audio_conform`
-3. `craigstreamy_hevc_smart_eng_sub_subtitle_convert`
-4. `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform`
+1. shipped: `craigstreamy_hevc_all_sub_preserve`
+2. shipped: `craigstreamy_hevc_smart_eng_sub_subtitle_convert`
+3. shipped: `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf`
+4. next likely: `craigstreamy_hevc_all_sub_audio_conform`
+5. next likely: `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform`
 
 Why these four:
 
@@ -184,7 +188,7 @@ That keeps user selection clear while still letting the codebase scale.
 
 If we follow this strategy, the next broad steps are:
 
-1. implement `QUALITY_MODE=aggressive_vmaf` on an existing `craigstreamy` HEVC pack
-2. implement `craigstreamy_hevc_all_sub_preserve`
-3. implement `craigstreamy_hevc_smart_eng_sub_subtitle_convert`
-4. only then consider whether explicit aggressive-VMAF alias packs are worth exposing
+1. implement `craigstreamy_hevc_all_sub_audio_conform`
+2. implement `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform`
+3. deepen `aggressive_vmaf` controls and pack-level overrides
+4. decide whether the next fixed-name packs should include AV1 / DV-safe variants

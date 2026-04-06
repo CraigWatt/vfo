@@ -1,6 +1,6 @@
-# craigstreamy_hevc_smart_eng_sub_audio_conform_4k
+# craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf_1080p
 
-Generated from stock preset pack `craigstreamy-hevc-smart-eng-sub-audio-conform`.
+Generated from stock preset pack `craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf`.
 
 ## Dependencies
 
@@ -8,9 +8,6 @@ Generated from stock preset pack `craigstreamy-hevc-smart-eng-sub-audio-conform`
 | --- | --- | --- |
 | `ffmpeg` | required | scenario execution, encode/transcode, and mux packaging |
 | `ffprobe` | required | criteria probing and stream/metadata inspection |
-| `mkvmerge` | conditional | used by at least one action path in this profile family (MKV/DV helper path) |
-| `mkvextract` | conditional | optional DV extraction helper path for MKV inputs |
-| `dovi_tool` | conditional | required for Dolby Vision retention and profile 7 to 8.1 conversion paths |
 
 ## E2E Verification
 
@@ -19,7 +16,6 @@ This profile is considered e2e-verified when its mapped suites pass in CI.
 | Suite | What it proves | Toolchain version report |
 | --- | --- | --- |
 | `tests/e2e/run_profile_actions_e2e.sh` | action-level output behavior, guardrails, and subtitle-intent pathways | `tests/e2e/.reports/latest/run_profile_actions_e2e_toolchain_versions.md` |
-| `tests/e2e/run_dv_metadata_optional_e2e.sh` | optional DV metadata retention and profile 7 to 8.1 checks | `tests/e2e/.reports/latest/run_dv_metadata_optional_e2e_toolchain_versions.md` |
 
 - Combined toolchain snapshot: [Latest E2E Toolchain Report](../../e2e-toolchain-latest.md)
 
@@ -41,79 +37,29 @@ This profile converts candidates into streaming-friendly HEVC outputs while pres
 | --- | --- |
 | Codec | `any` |
 | Bit depth | `any` |
-| Color space | `any` |
-| Min resolution | `1920x1080` |
-| Max resolution | `3840x2160` |
+| Color space | `bt709` |
+| Min resolution | `1280x720` |
+| Max resolution | `1920x1080` |
 
 ## Scenario Map
 
 | Scenario | Command |
 | --- | --- |
-| `RES_JUST_RIGHT` | `transcode_hevc_4k_smart_eng_sub_audio_conform_profile.sh $vfo_input $vfo_output` |
-| `ELSE` | `profile_guardrail_skip.sh $vfo_input $vfo_output craigstreamy_hevc_smart_eng_sub_audio_conform_4k_guardrail_requires_1920x1080_to_3840x2160_input` |
+| `RES_JUST_RIGHT COLOR_SPACE_JUST_RIGHT` | `transcode_hevc_1080_smart_eng_sub_audio_conform_aggressive_vmaf_profile.sh $vfo_input $vfo_output` |
+| `ELSE` | `profile_guardrail_skip.sh $vfo_input $vfo_output craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf_1080p_guardrail_requires_sdr_bt709_and_1280x720_to_1920x1080_input` |
 
 ## Runtime Behavior
 
-- Scenario `RES_JUST_RIGHT` uses action script `transcode_hevc_4k_smart_eng_sub_audio_conform_profile.sh`.
+- Scenario `RES_JUST_RIGHT COLOR_SPACE_JUST_RIGHT` uses action script `transcode_hevc_1080_smart_eng_sub_audio_conform_aggressive_vmaf_profile.sh`.
 - Scenario `ELSE` uses action script `profile_guardrail_skip.sh`.
-
-Action summary from `transcode_hevc_4k_smart_eng_sub_audio_conform_profile.sh`:
-
-- Preserves one selected English subtitle when it appears director-intent oriented:
--   priority: forced english -> forced untagged/unknown -> optional default english.
--   non-english forced tracks are intentionally skipped.
-- Preserves AAC and Dolby-family audio streams by default.
-- Conforms DTS-family and PCM-family audio streams:
--   DTS or PCM mono/stereo -> AAC + loudnorm
--   DTS or PCM 3.0/4.0/5.0/5.1 -> E-AC-3 when available, else AC-3, with loudnorm
--   DTS or PCM > 5.1 -> 5.1 E-AC-3/AC-3 downmix, with loudnorm
-- Preserved non-MP4-safe audio (for example TrueHD) forces MKV output.
-- Preserves dynamic-range signaling for HDR/DV workflows by default:
--   applies metadata-repair defaults when source tags are incomplete.
-- If source signals Dolby Vision side data, attempts DV RPU retention/injection.
-- If source is DV profile 7.x, attempts profile 8.1 conversion semantics before injection.
-- If a smart English subtitle is selected, output container is MKV.
-- If no subtitle is selected and preserved audio is MP4-safe, output container is
--   stream-ready MP4 (fragmented MP4 with init/moov at the start, with faststart
--   fallback when E-AC-3 packaging needs it).
-
-Operator knobs from `transcode_hevc_4k_smart_eng_sub_audio_conform_profile.sh`:
-
-- `VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT=1   # include default english subtitle when no forced track exists`
-- `VFO_ENCODER_MODE=auto|hw|cpu`
-- `VFO_MP4_STREAM_MODE=fmp4_faststart|fmp4|faststart`
-- `default: fmp4_faststart`
-- `VFO_DYNAMIC_METADATA_REPAIR=1|0`
-- `default: 1`
-- `VFO_DYNAMIC_RANGE_STRICT=1|0`
-- `default: 1`
-- `VFO_DYNAMIC_RANGE_REPORT=1|0`
-- `default: 1`
-- `VFO_DV_REQUIRE_DOVI=1|0`
-- `default: 1`
-- `VFO_DV_CONVERT_P7_TO_81=1|0`
-- `default: 1`
-- `VFO_DV_P7_TO_81_MODE=2|5`
-- `default: 2`
-- `VFO_DV_REQUIRE_P7_TO_81=1|0`
-- `default: 1`
-- `VFO_DV_P7_EXTRACT_MODE=auto|mkvextract|ffmpeg`
-- `default: auto`
-- `VFO_AUDIO_CONFORM_TARGET_I=-14`
-- `VFO_AUDIO_CONFORM_TARGET_TP=-1.5`
-- `VFO_AUDIO_CONFORM_TARGET_LRA=11`
-- `VFO_QUALITY_MODE=standard|aggressive_vmaf`
-- `default: standard`
-- `VFO_QUALITY_VMAF_MIN=94`
-- `VFO_QUALITY_VMAF_MAX_PASSES=4`
 
 ## Starting Inputs And Expected Outputs
 
 | Aspect | What this profile expects / does |
 | --- | --- |
 | Starting containers | `mkv, mp4, mov, mxf (anything ffmpeg can demux)` |
-| Required codec envelope | `any` / `any-bit` / `any` |
-| Required resolution range | `1920x1080` to `3840x2160` |
+| Required codec envelope | `any` / `any-bit` / `bt709` |
+| Required resolution range | `1280x720` to `1920x1080` |
 | If criteria do not match | candidate is routed to another profile or skipped |
 | If criteria match | scenario order is evaluated and first match executes |
 | Output intent | conditional: MKV when the smart_eng_sub + preserve policy selects a subtitle, otherwise stream-ready MP4 (fragmented + init/moov at start by default) |
@@ -182,5 +128,5 @@ flowchart LR
 
 ## Source
 
-- Preset file: `services/vfo/presets/craigstreamy-hevc-smart-eng-sub-audio-conform/vfo_config.preset.conf`
+- Preset file: `services/vfo/presets/craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf/vfo_config.preset.conf`
 - Generated by: `infra/scripts/generate-profile-docs.sh`

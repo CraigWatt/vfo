@@ -50,6 +50,10 @@ set -euo pipefail
 #   VFO_AUDIO_CONFORM_TARGET_I=-14
 #   VFO_AUDIO_CONFORM_TARGET_TP=-1.5
 #   VFO_AUDIO_CONFORM_TARGET_LRA=11
+#   VFO_QUALITY_MODE=standard|aggressive_vmaf
+#     default: standard
+#   VFO_QUALITY_VMAF_MIN=94
+#   VFO_QUALITY_VMAF_MAX_PASSES=4
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
@@ -69,6 +73,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/dynamic_range_tools.sh"
 # shellcheck source=audio_conform_tools.sh
 . "$SCRIPT_DIR/audio_conform_tools.sh"
+# shellcheck source=quality_mode_tools.sh
+. "$SCRIPT_DIR/quality_mode_tools.sh"
 
 ENCODER_MODE="${VFO_ENCODER_MODE:-auto}" # auto|hw|cpu
 INCLUDE_DEFAULT_MAIN_SUB="${VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT:-0}"
@@ -273,28 +279,19 @@ fi
 HW_VIDEO_ARGS=(
   -c:v hevc_videotoolbox
   -pix_fmt p010le
-  -b:v "${AVG_K}k"
-  -maxrate "${MAXRATE_K}k"
-  -bufsize "${BUFSIZE_K}k"
   "${COLOR_ARGS[@]}"
 )
 
 CPU_VIDEO_ARGS=(
   -c:v libx265
   -preset "$CPU_PRESET"
-  -crf "$CRF_4K"
-  -x265-params "vbv-maxrate=${MAXRATE_K}:vbv-bufsize=${BUFSIZE_K}:aq-mode=3"
   -pix_fmt yuv420p10le
   "${COLOR_ARGS[@]}"
 )
 
-VIDEO_ARGS=()
 using_hw=0
 if [ "$ENCODER_MODE" = "hw" ] || { [ "$ENCODER_MODE" = "auto" ] && has_videotoolbox_encoder; }; then
-  VIDEO_ARGS=("${HW_VIDEO_ARGS[@]}")
   using_hw=1
-else
-  VIDEO_ARGS=("${CPU_VIDEO_ARGS[@]}")
 fi
 
 workdir="$(mktemp -d "${TMPDIR:-/tmp}/vfo-smart-eng-audio-4k-XXXXXX")"
@@ -319,28 +316,130 @@ fi
 
 audio_conform_render_audio_work "$INPUT" "$audio_work_output"
 
-if ! ffmpeg -hide_banner -nostdin -y \
-  -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
-  -i "$INPUT" \
-  -map 0:v:0 \
-  "${VIDEO_ARGS[@]}" \
-  -movflags +faststart \
-  -video_track_timescale "$MP4_TIMESCALE" \
-  "$enc_mp4" >/dev/null 2>&1; then
-  if [ "$ENCODER_MODE" = "auto" ] && [ "$using_hw" -eq 1 ]; then
-    echo "VideoToolbox encode failed; retrying with CPU fallback" >&2
-    ffmpeg -hide_banner -nostdin -y \
+encode_4k_video_candidate() {
+  local output_path="$1"
+  local pass_index="$2"
+  local current_avg=""
+  local current_max=""
+  local current_buf=""
+  local current_crf=""
+  local -a candidate_args=()
+
+  current_avg="$(quality_mode_scale_kbits "$AVG_K" "$pass_index" "$QUALITY_MODE_VMAF_HW_REDUCTION_PCT")"
+  current_max="$(quality_mode_scale_kbits "$MAXRATE_K" "$pass_index" "$QUALITY_MODE_VMAF_HW_REDUCTION_PCT")"
+  current_buf="$(quality_mode_scale_kbits "$BUFSIZE_K" "$pass_index" "$QUALITY_MODE_VMAF_HW_REDUCTION_PCT")"
+  current_crf="$(quality_mode_step_crf "$CRF_4K" "$pass_index" "$QUALITY_MODE_VMAF_CPU_CRF_STEP")"
+
+  if [ "$using_hw" -eq 1 ]; then
+    candidate_args=(
+      "${HW_VIDEO_ARGS[@]}"
+      -b:v "${current_avg}k"
+      -maxrate "${current_max}k"
+      -bufsize "${current_buf}k"
+    )
+    if ffmpeg -hide_banner -nostdin -y \
       -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
       -i "$INPUT" \
       -map 0:v:0 \
-      "${CPU_VIDEO_ARGS[@]}" \
+      "${candidate_args[@]}" \
       -movflags +faststart \
       -video_track_timescale "$MP4_TIMESCALE" \
-      "$enc_mp4" >/dev/null 2>&1
-  else
-    echo "Failed to encode source to HEVC for smart-eng-sub audio-conform workflow" >&2
-    exit 1
+      "$output_path" >/dev/null 2>&1; then
+      echo "Encode pass $((pass_index + 1)): hardware HEVC avg=${current_avg}k maxrate=${current_max}k bufsize=${current_buf}k"
+      return 0
+    fi
+
+    if [ "$ENCODER_MODE" = "auto" ]; then
+      echo "VideoToolbox encode failed during pass $((pass_index + 1)); falling back to CPU for remaining passes" >&2
+      using_hw=0
+    else
+      return 1
+    fi
   fi
+
+  candidate_args=(
+    "${CPU_VIDEO_ARGS[@]}"
+    -crf "$current_crf"
+    -x265-params "vbv-maxrate=${current_max}:vbv-bufsize=${current_buf}:aq-mode=3"
+  )
+  echo "Encode pass $((pass_index + 1)): CPU HEVC crf=${current_crf} maxrate=${current_max}k bufsize=${current_buf}k"
+  ffmpeg -hide_banner -nostdin -y \
+    -probesize "$PROBE_SIZE" -analyzeduration "$ANALYZE_DUR" \
+    -i "$INPUT" \
+    -map 0:v:0 \
+    "${candidate_args[@]}" \
+    -movflags +faststart \
+    -video_track_timescale "$MP4_TIMESCALE" \
+    "$output_path" >/dev/null 2>&1
+}
+
+run_4k_quality_mode_encode() {
+  local output_path="$1"
+  local pass_index=0
+  local candidate_path=""
+  local score=""
+  local best_candidate=""
+  local best_score=""
+
+  if ! quality_mode_is_aggressive_vmaf; then
+    encode_4k_video_candidate "$output_path" 0
+    return 0
+  fi
+
+  if [ "$DR_SOURCE_CLASS" != "sdr" ]; then
+    echo "Aggressive VMAF requested, but 4K retries are currently limited to SDR sources; falling back to standard encode"
+    encode_4k_video_candidate "$output_path" 0
+    return 0
+  fi
+
+  if ! quality_mode_has_libvmaf; then
+    echo "Aggressive VMAF requested, but ffmpeg libvmaf is unavailable; falling back to standard encode"
+    encode_4k_video_candidate "$output_path" 0
+    return 0
+  fi
+
+  while [ "$pass_index" -lt "$QUALITY_MODE_VMAF_MAX_PASSES" ]; do
+    candidate_path="${workdir}/enc_video_pass_${pass_index}.mp4"
+    encode_4k_video_candidate "$candidate_path" "$pass_index"
+    score="$(quality_mode_measure_vmaf "$candidate_path" "$INPUT" || true)"
+    if [ -z "$score" ]; then
+      echo "Aggressive VMAF pass $((pass_index + 1)) could not parse a score; keeping the latest candidate"
+      [ -n "$best_candidate" ] || best_candidate="$candidate_path"
+      break
+    fi
+
+    echo "Aggressive VMAF pass $((pass_index + 1))/${QUALITY_MODE_VMAF_MAX_PASSES}: score=${score} floor=${QUALITY_MODE_VMAF_MIN}"
+
+    if [ -z "$best_candidate" ] || quality_mode_score_meets_floor "$score" "$QUALITY_MODE_VMAF_MIN"; then
+      best_candidate="$candidate_path"
+      best_score="$score"
+    fi
+
+    if ! quality_mode_score_meets_floor "$score" "$QUALITY_MODE_VMAF_MIN"; then
+      if [ "$pass_index" -eq 0 ]; then
+        echo "Baseline encode is already below the VMAF floor; preserving baseline output"
+        best_candidate="$candidate_path"
+      fi
+      break
+    fi
+
+    pass_index=$((pass_index + 1))
+  done
+
+  [ -n "$best_candidate" ] || {
+    echo "Aggressive VMAF could not produce any candidate output" >&2
+    return 1
+  }
+
+  mv "$best_candidate" "$output_path"
+  if [ -n "$best_score" ]; then
+    echo "Aggressive VMAF selected candidate score=${best_score}"
+  fi
+}
+
+if ! run_4k_quality_mode_encode "$enc_mp4"; then
+  echo "Failed to encode source to HEVC for smart-eng-sub audio-conform workflow" >&2
+  exit 1
 fi
 
 new_video="$enc_mp4"

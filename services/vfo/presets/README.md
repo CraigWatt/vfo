@@ -6,8 +6,11 @@ Current preset packs:
 
 - `balanced_open_audio/`
 - `device_targets_open_audio/`
+- `craigstreamy-hevc-all-sub-preserve/`
+- `craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf/`
 - `craigstreamy-hevc-selected-english-subtitle-preserve/`
 - `craigstreamy-hevc-smart-eng-sub-audio-conform/`
+- `craigstreamy-hevc-smart-eng-sub-subtitle-convert/`
 
 Canonical subtitle policy vocabulary now lives in `platform/docs-site/docs/subtitle-policy-taxonomy.md`.
 Quality mode vocabulary now lives in `platform/docs-site/docs/quality-mode-taxonomy.md`.

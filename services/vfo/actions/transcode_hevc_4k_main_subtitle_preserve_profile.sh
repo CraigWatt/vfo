@@ -1,23 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Hardware-aware 4K HEVC profile action with "main subtitle intent" handling.
+# Hardware-aware 4K HEVC profile action with policy-driven subtitle handling.
 #
 # Contract (called from vfo config):
 #   transcode_hevc_4k_main_subtitle_preserve_profile.sh <input_file> <output_file>
 #
 # Behavior:
 # - Always preserves audio streams with stream copy.
-# - Selects one "main subtitle" when it appears director-intent oriented:
-#   priority: forced english -> forced untagged/unknown -> optional default english.
-#   non-english forced tracks are intentionally skipped.
+# - Default subtitle behavior is `smart_eng_sub + preserve`.
+# - Policy can be overridden by wrapper packs via:
+#   VFO_SUBTITLE_SELECTION_SCOPE=smart_eng_sub|all_sub_preserve
+#   VFO_SUBTITLE_MODE=preserve|subtitle_convert
+#   VFO_SUBTITLE_CONVERT_BITMAP_POLICY=fail|preserve_mkv
 # - Preserves dynamic-range signaling for HDR/DV workflows by default:
 #   applies metadata-repair defaults when source tags are incomplete.
 # - If source signals Dolby Vision side data, attempts DV RPU retention/injection.
 # - If source is DV profile 7.x, attempts profile 8.1 conversion semantics before injection.
-# - If a main subtitle is selected, output container is MKV for reliable subtitle preservation.
-# - If no main subtitle is selected, output container is stream-ready MP4:
-#   fragmented MP4 with init/moov at the start.
+# - `preserve` emits MKV whenever the resolved subtitle policy selects streams.
+# - `subtitle_convert` keeps MP4 when selected subtitles are text-convertible and
+#   converts them to `mov_text`; bitmap subtitles fail by default unless
+#   `VFO_SUBTITLE_CONVERT_BITMAP_POLICY=preserve_mkv`.
+# - If no subtitle is selected, output container is stream-ready MP4.
 #
 # Optional env:
 #   VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT=1   # include default english subtitle when no forced track exists
@@ -57,6 +61,8 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=dynamic_range_tools.sh
 . "$SCRIPT_DIR/dynamic_range_tools.sh"
+# shellcheck source=subtitle_policy_tools.sh
+. "$SCRIPT_DIR/subtitle_policy_tools.sh"
 
 ENCODER_MODE="${VFO_ENCODER_MODE:-auto}" # auto|hw|cpu
 INCLUDE_DEFAULT_MAIN_SUB="${VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT:-0}"
@@ -77,103 +83,6 @@ VFO_DV_CONVERT_P7_TO_81="${VFO_DV_CONVERT_P7_TO_81:-1}"
 VFO_DV_P7_TO_81_MODE="${VFO_DV_P7_TO_81_MODE:-2}"
 VFO_DV_REQUIRE_P7_TO_81="${VFO_DV_REQUIRE_P7_TO_81:-1}"
 VFO_DV_P7_EXTRACT_MODE="${VFO_DV_P7_EXTRACT_MODE:-auto}"
-
-lower_text() {
-  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
-}
-
-is_english_language() {
-  case "$(lower_text "$1")" in
-    en|eng|english|en-us|en-gb) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-is_unknown_language() {
-  case "$(lower_text "$1")" in
-    ''|und|unk|unknown|n/a|none) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-is_forced_like_title() {
-  case "$(lower_text "$1")" in
-    *forced*) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-get_sub_stream_value() {
-  local sub_pos="$1"
-  local ffprobe_entry="$2"
-  ffprobe -v error \
-    -select_streams "s:${sub_pos}" \
-    -show_entries "$ffprobe_entry" \
-    -of default=nw=1:nk=1 \
-    "$INPUT" 2>/dev/null | head -n 1 | tr -d '\r'
-}
-
-resolve_main_subtitle_position() {
-  local sub_count
-  local pos
-  local language=""
-  local title=""
-  local forced="0"
-  local default_disposition="0"
-  local forced_like="0"
-  local forced_unknown=""
-  local default_english=""
-
-  sub_count="$(ffprobe -v error -select_streams s -show_entries stream=index -of csv=p=0 "$INPUT" 2>/dev/null | wc -l | tr -d ' ')"
-  if [ -z "$sub_count" ] || [ "$sub_count" -eq 0 ]; then
-    return 1
-  fi
-
-  pos=0
-  while [ "$pos" -lt "$sub_count" ]; do
-    language="$(get_sub_stream_value "$pos" "stream_tags=language")"
-    title="$(get_sub_stream_value "$pos" "stream_tags=title")"
-    forced="$(get_sub_stream_value "$pos" "stream_disposition=forced")"
-    default_disposition="$(get_sub_stream_value "$pos" "stream_disposition=default")"
-
-    [ -n "$forced" ] || forced="0"
-    [ -n "$default_disposition" ] || default_disposition="0"
-    forced_like="0"
-    if [ "$forced" = "1" ] || is_forced_like_title "$title"; then
-      forced_like="1"
-    fi
-
-    if [ "$forced_like" = "1" ] && is_english_language "$language"; then
-      printf '%s\n' "$pos"
-      return 0
-    fi
-
-    if [ "$forced_like" = "1" ] && is_unknown_language "$language" && [ -z "$forced_unknown" ]; then
-      forced_unknown="$pos"
-    fi
-
-    if [ "$INCLUDE_DEFAULT_MAIN_SUB" = "1" ] \
-      && [ "$default_disposition" = "1" ] \
-      && is_english_language "$language" \
-      && [ -z "$default_english" ]; then
-      default_english="$pos"
-    fi
-
-    pos=$((pos + 1))
-  done
-
-  if [ -n "$forced_unknown" ]; then
-    printf '%s\n' "$forced_unknown"
-    return 0
-  fi
-
-  if [ -n "$default_english" ]; then
-    printf '%s\n' "$default_english"
-    return 0
-  fi
-
-  return 1
-}
 
 has_videotoolbox_encoder() {
   ffmpeg -hide_banner -encoders 2>/dev/null | grep -q "hevc_videotoolbox"
@@ -202,16 +111,35 @@ resolve_mp4_movflags() {
 finalize_streamable_mp4() {
   local input_video_mp4="$1"
   local input_source_media="$2"
-  local output_mp4="$3"
+  local subtitle_positions="$3"
+  local subtitle_codec="$4"
+  local output_mp4="$5"
   local movflags
+  local pos=""
+  local -a cmd=()
+  local -a maps=()
+  local -a subtitle_args=()
 
   movflags="$(resolve_mp4_movflags "$MP4_STREAM_MODE")"
   echo "Finalizing MP4 stream packaging mode=${MP4_STREAM_MODE} movflags=${movflags}"
-  ffmpeg -hide_banner -nostdin -y \
-    -i "$input_video_mp4" -i "$input_source_media" \
-    -map 0:v:0 -map 1:a? \
-    -sn -dn \
+  cmd=(-hide_banner -nostdin -y -i "$input_video_mp4" -i "$input_source_media")
+  maps=(-map 0:v:0 -map 1:a?)
+
+  if [ -n "$subtitle_positions" ] && [ "$subtitle_codec" != "none" ]; then
+    while IFS= read -r pos; do
+      [ -n "$pos" ] || continue
+      maps+=(-map "1:s:${pos}")
+    done <<< "$subtitle_positions"
+    subtitle_args=(-c:s "$subtitle_codec")
+  else
+    subtitle_args=(-sn)
+  fi
+
+  ffmpeg "${cmd[@]}" \
+    "${maps[@]}" \
+    -dn \
     -c copy \
+    "${subtitle_args[@]}" \
     -write_tmcd 0 \
     -movflags "$movflags" \
     -max_muxing_queue_size 4096 \
@@ -336,11 +264,15 @@ dv_mp4="$workdir/dv_video.mp4"
 src_p81_hevc="$workdir/src_p81.hevc"
 fps="$(get_fps "$INPUT")"
 
-MAIN_SUB_POS=""
-if MAIN_SUB_POS="$(resolve_main_subtitle_position)"; then
-  echo "MAIN subtitle detected (s:${MAIN_SUB_POS}); final container will be MKV"
+if ! subtitle_policy_resolve_plan "$INPUT" "$INCLUDE_DEFAULT_MAIN_SUB"; then
+  echo "Subtitle policy resolution failed: ${SUBTITLE_POLICY_ERROR:-unknown subtitle policy error}"
+  exit 1
+fi
+
+if [ "$SUBTITLE_POLICY_SELECTED_COUNT" -gt 0 ]; then
+  echo "Subtitle policy selected ${SUBTITLE_POLICY_SELECTED_COUNT} stream(s); scope=${SUBTITLE_POLICY_SELECTION_SCOPE} mode=${SUBTITLE_POLICY_MODE} codec=${SUBTITLE_POLICY_OUTPUT_SUBTITLE_CODEC}"
 else
-  echo "No main subtitle detected; final container will be MP4"
+  echo "Subtitle policy selected no streams; scope=${SUBTITLE_POLICY_SELECTION_SCOPE} mode=${SUBTITLE_POLICY_MODE}"
 fi
 
 if ! ffmpeg -hide_banner -nostdin -y \
@@ -448,16 +380,28 @@ if [ "$source_is_dv" -eq 1 ] && [ "$VFO_DV_REQUIRE_DOVI" = "1" ] && [ "$new_vide
 fi
 
 ACTUAL_OUTPUT="$OUTPUT"
-if [ -n "$MAIN_SUB_POS" ]; then
+if [ "$SUBTITLE_POLICY_OUTPUT_CONTAINER" = "mkv" ]; then
+  subtitle_map_args=()
+  subtitle_pos=""
   ACTUAL_OUTPUT="${OUTPUT%.*}.mkv"
+  while IFS= read -r subtitle_pos; do
+    [ -n "$subtitle_pos" ] || continue
+    subtitle_map_args+=(-map "1:s:${subtitle_pos}")
+  done <<< "$SUBTITLE_POLICY_SELECTED_POSITIONS"
   ffmpeg -hide_banner -nostdin -y \
     -i "$new_video" -i "$INPUT" \
-    -map 0:v:0 -map 1:a? -map "1:s:${MAIN_SUB_POS}" \
-    -c:v copy -c:a copy -c:s copy \
+    -map 0:v:0 -map 1:a? \
+    "${subtitle_map_args[@]}" \
+    -c:v copy -c:a copy -c:s "${SUBTITLE_POLICY_OUTPUT_SUBTITLE_CODEC}" \
     -max_muxing_queue_size 4096 \
     "$ACTUAL_OUTPUT"
 else
-  finalize_streamable_mp4 "$new_video" "$INPUT" "$ACTUAL_OUTPUT"
+  finalize_streamable_mp4 \
+    "$new_video" \
+    "$INPUT" \
+    "$SUBTITLE_POLICY_SELECTED_POSITIONS" \
+    "$SUBTITLE_POLICY_OUTPUT_SUBTITLE_CODEC" \
+    "$ACTUAL_OUTPUT"
 fi
 
 dr_collect_output_state "$ACTUAL_OUTPUT"

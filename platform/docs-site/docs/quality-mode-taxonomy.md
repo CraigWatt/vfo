@@ -207,7 +207,7 @@ Recommended rollout:
 
 ## Recommended First Rollout For `craigstreamy`
 
-Use `aggressive_vmaf` as a quality mode on top of existing `craigstreamy` packs, not as a whole new universe of pack names.
+Use `aggressive_vmaf` as a quality mode on top of existing `craigstreamy` packs, but expose a fixed named pack when that makes selection clearer for users.
 
 Recommended first target:
 
@@ -221,7 +221,7 @@ Recommended first target:
 That means the first high-value path is likely:
 
 - existing `craigstreamy_hevc_smart_eng_sub_audio_conform`
-- plus future `QUALITY_MODE=aggressive_vmaf`
+- now also exposed as `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf`
 
 instead of creating a totally separate pack immediately.
 

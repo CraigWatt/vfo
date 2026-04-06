@@ -125,6 +125,8 @@ Current stock packs map like this:
 | --- | --- |
 | `craigstreamy_hevc_selected_english_subtitle_preserve` | `smart_eng_sub` + `preserve` |
 | `craigstreamy_hevc_smart_eng_sub_audio_conform` | `smart_eng_sub` + `preserve` |
+| `craigstreamy_hevc_all_sub_preserve` | `all_sub_preserve` + `preserve` |
+| `craigstreamy_hevc_smart_eng_sub_subtitle_convert` | `smart_eng_sub` + `subtitle_convert` |
 
 ## Future Composition
 

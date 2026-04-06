@@ -85,6 +85,10 @@ Operator knobs from `transcode_hevc_1080_smart_eng_sub_audio_conform_profile.sh`
 - `VFO_AUDIO_CONFORM_TARGET_I=-14`
 - `VFO_AUDIO_CONFORM_TARGET_TP=-1.5`
 - `VFO_AUDIO_CONFORM_TARGET_LRA=11`
+- `VFO_QUALITY_MODE=standard|aggressive_vmaf`
+- `default: standard`
+- `VFO_QUALITY_VMAF_MIN=94`
+- `VFO_QUALITY_VMAF_MAX_PASSES=4`
 
 ## Starting Inputs And Expected Outputs
 
