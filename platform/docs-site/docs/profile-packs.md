@@ -9,6 +9,12 @@ Current stock packs in vfo:
 
 Each pack is an outcome preset family. Use packs to choose the behavior you want first, then tune criteria/actions if needed.
 
+Read [Profile Pack Strategy](profile-pack-strategy.md) for the rule of the road:
+
+- fixed named packs for user-facing selection
+- internal policy composition under the hood
+- quality modes layered on top instead of multiplying pack names too early
+
 Subtitle behavior is now described via the canonical policy taxonomy:
 
 - `smart_eng_sub`
@@ -23,6 +29,20 @@ Quality behavior is also orthogonal to pack names:
 - `aggressive_vmaf`
 
 Read [Quality Modes](quality-mode-taxonomy.md) for the quality-mode model and the current implementation boundary.
+
+## Selection Model
+
+Use this shorthand:
+
+- choose a pack for subtitle + audio + delivery intent
+- choose a quality mode for how hard video optimization should push
+
+Today that means:
+
+- pack choice is explicit
+- quality mode is still effectively `standard`
+
+Planned next pack additions are documented in [Profile Pack Strategy](profile-pack-strategy.md).
 
 ## craigstreamy_hevc_smart_eng_sub_audio_conform
 

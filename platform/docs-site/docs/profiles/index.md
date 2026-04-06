@@ -2,6 +2,8 @@
 
 These pages are generated from stock preset files and linked action scripts.
 
+For the public pack-selection model and future pack roadmap, read [Profile Pack Strategy](../profile-pack-strategy.md).
+
 Regenerate with:
 
 ```bash
