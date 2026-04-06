@@ -244,7 +244,7 @@ write_profile_doc() {
   typical_input_containers="mkv, mp4, mov, mxf (anything ffmpeg can demux)"
   output_intent="profile-specific output written by selected scenario command"
   if [ "$mermaid_variant" = "subtitle_intent" ]; then
-    output_intent="conditional: MKV when selected English subtitle intent is detected, otherwise stream-ready MP4 (fragmented + init/moov at start by default)"
+    output_intent="conditional: MKV when the smart_eng_sub + preserve policy selects a subtitle, otherwise stream-ready MP4 (fragmented + init/moov at start by default)"
   elif printf '%s' "$first_command" | grep -q "ffmpeg"; then
     output_intent="output container and streams are defined directly by the ffmpeg command"
   fi
@@ -367,9 +367,9 @@ write_profile_doc() {
     if [ "$is_craigstreamy_subtitle_pack" = "1" ]; then
       printf '## Intent\n\n'
       if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
-        printf 'This profile converts candidates into streaming-friendly HEVC outputs while preserving smart-English-subtitle intent and conforming DTS-family or PCM-family audio when needed.\n\n'
+        printf 'This profile converts candidates into streaming-friendly HEVC outputs while preserving the `smart_eng_sub + preserve` subtitle policy and conforming DTS-family or PCM-family audio when needed.\n\n'
       else
-        printf 'This profile converts candidates into streaming-friendly HEVC outputs while preserving selected-English subtitle intent where feasible.\n\n'
+        printf 'This profile converts candidates into streaming-friendly HEVC outputs while preserving the `smart_eng_sub + preserve` subtitle policy where feasible.\n\n'
       fi
       printf '## What It Optimizes For\n\n'
       printf -- '- practical bitrate efficiency with a consistent HEVC target\n'
@@ -379,8 +379,8 @@ write_profile_doc() {
       else
         printf -- '- preserve all audio streams by default when packaging permits\n'
       fi
-      printf -- '- preserve one selected English subtitle when detected\n'
-      printf -- '- conditional container selection: MKV when selected-English subtitle intent applies, fragmented MP4 otherwise\n'
+      printf -- '- subtitle policy: `smart_eng_sub` + `preserve`\n'
+      printf -- '- conditional container selection: MKV when the `smart_eng_sub + preserve` policy selects a subtitle, fragmented MP4 otherwise\n'
       if printf '%s' "$first_command" | grep -q "legacy_main_subtitle_preserve_profile.sh"; then
         printf -- '- for legacy sub-HD intake: optional deinterlace and persistent black-bar auto-crop\n'
       elif printf '%s' "$first_command" | grep -q "legacy_smart_eng_sub_audio_conform_profile.sh"; then
@@ -486,8 +486,8 @@ flowchart LR
   C -->|Yes| D{Evaluate scenarios in order}:::gate
   D --> E[Execute subtitle-intent action]:::stage
   E --> P[Optional lane-specific pre-processing]:::stage
-  P --> F{Selected English subtitle intent detected?}:::gate
-  F -->|Yes| G[Encode HEVC + preserve audio + preserve selected English subtitle]:::stage
+  P --> F{smart_eng_sub subtitle selected?}:::gate
+  F -->|Yes| G[Encode HEVC + preserve audio + preserve smart_eng_sub subtitle]:::stage
   G --> H[Emit MKV output]:::output
   F -->|No| I[Encode HEVC + preserve audio]:::stage
   I --> J[Finalize fragmented MP4 + init/moov at start]:::stage
@@ -564,12 +564,12 @@ MERMAID
       else
         printf '| Audio switched | `no; stream copy preferred` |\n'
       fi
-      printf '| Subtitle retained | `selected English subtitle intent` |\n'
-      printf '| Subtitle transformed | `no; retain/preserve intent only` |\n'
+      printf '| Subtitle retained | `smart_eng_sub + preserve` |\n'
+      printf '| Subtitle transformed | `no; preserve mode only` |\n'
       if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
         printf '| Container changed | `yes when subtitle or preserved-audio safety requires MKV, otherwise fragmented MP4 with faststart fallback for E-AC-3` |\n'
       else
-        printf '| Container changed | `yes when subtitle intent requires MKV, otherwise fragmented MP4` |\n'
+        printf '| Container changed | `yes when the smart_eng_sub + preserve policy requires MKV, otherwise fragmented MP4` |\n'
       fi
       printf '| Container targets | `MKV` / `fragmented MP4` |\n'
       if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then

@@ -25,15 +25,15 @@ This profile is considered e2e-verified when its mapped suites pass in CI.
 
 ## Intent
 
-This profile converts candidates into streaming-friendly HEVC outputs while preserving smart-English-subtitle intent and conforming DTS-family or PCM-family audio when needed.
+This profile converts candidates into streaming-friendly HEVC outputs while preserving the `smart_eng_sub + preserve` subtitle policy and conforming DTS-family or PCM-family audio when needed.
 
 ## What It Optimizes For
 
 - practical bitrate efficiency with a consistent HEVC target
 - preserve AAC and Dolby-family audio streams when already acceptable
 - conform DTS-family or PCM-family audio into open-source Dolby-aligned delivery codecs when needed
-- preserve one selected English subtitle when detected
-- conditional container selection: MKV when selected-English subtitle intent applies, fragmented MP4 otherwise
+- subtitle policy: `smart_eng_sub` + `preserve`
+- conditional container selection: MKV when the `smart_eng_sub + preserve` policy selects a subtitle, fragmented MP4 otherwise
 
 ## Input Envelope
 
@@ -112,7 +112,7 @@ Operator knobs from `transcode_hevc_4k_smart_eng_sub_audio_conform_profile.sh`:
 | Required resolution range | `1920x1080` to `3840x2160` |
 | If criteria do not match | candidate is routed to another profile or skipped |
 | If criteria match | scenario order is evaluated and first match executes |
-| Output intent | conditional: MKV when selected English subtitle intent is detected, otherwise stream-ready MP4 (fragmented + init/moov at start by default) |
+| Output intent | conditional: MKV when the smart_eng_sub + preserve policy selects a subtitle, otherwise stream-ready MP4 (fragmented + init/moov at start by default) |
 
 ## Flow
 
@@ -129,8 +129,8 @@ flowchart LR
   C -->|Yes| D{Evaluate scenarios in order}:::gate
   D --> E[Execute subtitle-intent action]:::stage
   E --> P[Optional lane-specific pre-processing]:::stage
-  P --> F{Selected English subtitle intent detected?}:::gate
-  F -->|Yes| G[Encode HEVC + preserve audio + preserve selected English subtitle]:::stage
+  P --> F{smart_eng_sub subtitle selected?}:::gate
+  F -->|Yes| G[Encode HEVC + preserve audio + preserve smart_eng_sub subtitle]:::stage
   G --> H[Emit MKV output]:::output
   F -->|No| I[Encode HEVC + preserve audio]:::stage
   I --> J[Finalize fragmented MP4 + init/moov at start]:::stage
@@ -167,8 +167,8 @@ flowchart LR
 | Audio transcoded | `DTS/PCM-family only` |
 | Video transcoded | `yes` |
 | Audio switched | `DTS/PCM -> AAC / E-AC-3 / AC-3 when needed` |
-| Subtitle retained | `selected English subtitle intent` |
-| Subtitle transformed | `no; retain/preserve intent only` |
+| Subtitle retained | `smart_eng_sub + preserve` |
+| Subtitle transformed | `no; preserve mode only` |
 | Container changed | `yes when subtitle or preserved-audio safety requires MKV, otherwise fragmented MP4 with faststart fallback for E-AC-3` |
 | Container targets | `MKV` / `fragmented MP4` |
 | Bitrate targets | `practical video efficiency; audio preserve-first` |

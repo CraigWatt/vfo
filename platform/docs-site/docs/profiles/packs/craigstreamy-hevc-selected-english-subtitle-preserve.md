@@ -1,21 +1,31 @@
 # Craigstreamy HEVC Selected English Subtitle Preserve Pack
 
-This pack targets practical streaming efficiency while preserving selected-English subtitle intent essentials.
+This pack targets practical streaming efficiency while preserving the `smart_eng_sub + preserve` subtitle policy.
 
 ## Intent
 
-This pack standardizes mixed-library inputs into streaming-friendly HEVC outputs while preserving selected-English subtitle intent.
+This pack standardizes mixed-library inputs into streaming-friendly HEVC outputs while preserving the `smart_eng_sub + preserve` subtitle policy.
 
 - preserve full audio when possible
-- preserve director-intended english subtitle behavior when detected
+- preserve the `smart_eng_sub` subtitle when detected
 - use MKV when subtitle intent applies, otherwise emit stream-ready fragmented MP4
+
+## Subtitle Policy
+
+Canonical subtitle policy for this pack:
+
+- selection scope: `smart_eng_sub`
+- handling mode: `preserve`
+
+This pack keeps its existing legacy-facing name, but its subtitle behavior should now be understood through the shared [Subtitle Policy](../../subtitle-policy-taxonomy.md) taxonomy.
 
 ## What It Optimizes For
 
 - practical HEVC bitrate reduction posture
 - consistent HEVC delivery across 4K, 1080p SDR, and legacy sub-HD lanes
 - audio preservation first, without forcing broad audio transcoding
-- subtitle-intent-sensitive container selection
+- subtitle policy: `smart_eng_sub` + `preserve`
+- subtitle-policy-sensitive container selection
 - optional legacy remediation (deinterlace + stable black-bar crop) in the sub-HD lane
 
 ## Guardrails
@@ -29,7 +39,7 @@ This pack standardizes mixed-library inputs into streaming-friendly HEVC outputs
 ## Focus
 
 - preserve all audio streams
-- preserve one selected English subtitle when it appears intent-oriented
+- preserve the `smart_eng_sub` subtitle when it appears intent-oriented
 - when subtitle intent is present, emit MKV for robust subtitle compatibility
 - when subtitle intent is absent, emit stream-ready MP4 (fragmented + init/moov-at-start by default)
 - for legacy sub-HD lane: optional interlace-aware deinterlace + stable black-bar auto-crop
@@ -52,9 +62,9 @@ These are the labels used to summarize what the pack takes in and what it tends 
 | Audio transcoded | `no by default` |
 | Video transcoded | `yes` |
 | Audio switched | `no; stream copy preferred` |
-| Subtitle retained | `selected English subtitle intent` |
-| Subtitle transformed | `no; retain/preserve intent only` |
-| Container changed | `yes when subtitle intent requires MKV, otherwise fragmented MP4` |
+| Subtitle retained | `smart_eng_sub + preserve` |
+| Subtitle transformed | `no; preserve mode only` |
+| Container changed | `yes when the smart_eng_sub + preserve policy requires MKV, otherwise fragmented MP4` |
 | Container targets | `MKV` / `fragmented MP4` |
 | Bitrate targets | `practical efficiency over source bit-for-bit preservation` |
 | Audio bitrate targets | `copy/preserve unless a future audio profile says otherwise` |

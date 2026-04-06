@@ -7,6 +7,9 @@ Current preset packs:
 - `balanced_open_audio/`
 - `device_targets_open_audio/`
 - `craigstreamy-hevc-selected-english-subtitle-preserve/`
+- `craigstreamy-hevc-smart-eng-sub-audio-conform/`
+
+Canonical subtitle policy vocabulary now lives in `platform/docs-site/docs/subtitle-policy-taxonomy.md`.
 
 ## How to use
 

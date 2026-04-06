@@ -23,12 +23,13 @@ This site is built to answer three practical questions quickly:
 
 1. Read [Pipeline](pipeline-end-to-end.md) for end-to-end behavior.
 2. Read [Flow Levels](flow-levels.md) for interactive executive/operator/engine React Flow visuals.
-3. Check [Capability Matrix](profile-capability-matrix.md) to see what each stock profile targets.
-4. Open [Profile Info Sheets](profiles/index.md) for deep behavior details per profile.
-5. Review [Latest E2E Toolchain Report](e2e-toolchain-latest.md) for the dependency versions used in recent CI verification.
-6. Read [Observability Contract](observability-contract.md) for the event model that feeds the browser app, logs, metrics, and traces.
-7. Read [Deployment Modes](deployment-modes.md) to choose between local native, desktop-managed, and container lanes.
-8. Open [Demo Pack Replay](vfo-web-app/) for the shareable browser view of the desktop wireframe.
+3. Read [Subtitle Policy](subtitle-policy-taxonomy.md) to understand `smart_eng_sub`, `all_sub_preserve`, and `subtitle_convert`.
+4. Check [Capability Matrix](profile-capability-matrix.md) to see what each stock profile targets.
+5. Open [Profile Info Sheets](profiles/index.md) for deep behavior details per profile.
+6. Review [Latest E2E Toolchain Report](e2e-toolchain-latest.md) for the dependency versions used in recent CI verification.
+7. Read [Observability Contract](observability-contract.md) for the event model that feeds the browser app, logs, metrics, and traces.
+8. Read [Deployment Modes](deployment-modes.md) to choose between local native, desktop-managed, and container lanes.
+9. Open [Demo Pack Replay](vfo-web-app/) for the shareable browser view of the desktop wireframe.
 
 ## Install and Verify
 

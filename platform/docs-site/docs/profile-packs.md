@@ -9,12 +9,20 @@ Current stock packs in vfo:
 
 Each pack is an outcome preset family. Use packs to choose the behavior you want first, then tune criteria/actions if needed.
 
+Subtitle behavior is now described via the canonical policy taxonomy:
+
+- `smart_eng_sub`
+- `all_sub_preserve`
+- `subtitle_convert`
+
+Read [Subtitle Policy](subtitle-policy-taxonomy.md) for the policy model and how current packs map to it.
+
 ## craigstreamy_hevc_smart_eng_sub_audio_conform
 
 Focus:
 
 - practical HEVC bitrate reduction approach
-- preserve smart English subtitle intent
+- subtitle policy: `smart_eng_sub` + `preserve`
 - preserve AAC and Dolby-family audio when already acceptable
 - conform DTS-family audio into open-source Dolby-aligned delivery codecs when needed
 - apply loudness normalization only on DTS-family transcode paths
@@ -34,7 +42,7 @@ Focus:
 
 - practical HEVC bitrate reduction approach
 - preserve audio streams
-- preserve one selected English subtitle when it appears intent-oriented
+- subtitle policy: `smart_eng_sub` + `preserve`
 - emit MKV when subtitle intent applies, otherwise stream-ready MP4 (fragmented + init/moov at start by default)
 - prioritize viewing-experience intent over single-container uniformity
 - guardrails: 1080 lane is SDR-only (`bt709`) in 1280x720..1920x1080, 4K lane accepts SDR/HDR in 1920x1080..3840x2160, legacy sub-HD lane is 320x240..1279x719 with broad codec/color intake
