@@ -17,7 +17,13 @@ Canonical subtitle policy for this pack:
 - selection scope: `smart_eng_sub`
 - handling mode: `preserve`
 
-This pack keeps its existing legacy-facing name, but its subtitle behavior should now be understood through the shared [Subtitle Policy](../../subtitle-policy-taxonomy.md) taxonomy.
+This pack keeps its existing legacy-facing profile ids, but its subtitle behavior should now be understood through the shared [Subtitle Policy](../../subtitle-policy-taxonomy.md) taxonomy.
+
+Compatibility note:
+
+- the pack name is now canonical `craigstreamy`
+- the generated profile ids inside this pack still use the legacy `netflixy_preserve_audio_main_subtitle_intent_*` names
+- that legacy profile-id surface remains intentional for compatibility
 
 ## What It Optimizes For
 

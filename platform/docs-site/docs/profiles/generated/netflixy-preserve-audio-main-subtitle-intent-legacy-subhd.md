@@ -21,6 +21,8 @@ This profile is considered e2e-verified when its mapped suites pass in CI.
 
 ## Intent
 
+Compatibility note: this pack is the canonical replacement for the older `netflixy_main_subtitle_intent` family, but its generated profile ids still use the legacy `netflixy_preserve_audio_main_subtitle_intent_*` names for compatibility.
+
 This profile converts candidates into streaming-friendly HEVC outputs while preserving the `smart_eng_sub + preserve` subtitle policy where feasible.
 
 ## What It Optimizes For
@@ -120,14 +122,14 @@ flowchart LR
   B --> C{Matches profile criteria envelope?}:::gate
   C -->|No| Z[Handled by other profile or guardrail skipped]:::skip
   C -->|Yes| D{Evaluate scenarios in order}:::gate
-  D --> E[Execute subtitle-intent action]:::stage
+  D --> E[Execute subtitle-policy action]:::stage
   E --> P[Optional lane-specific pre-processing]:::stage
   P --> F{smart_eng_sub subtitle selected?}:::gate
   F -->|Yes| G[Encode HEVC + preserve audio + preserve smart_eng_sub subtitle]:::stage
   G --> H[Emit MKV output]:::output
   F -->|No| I[Encode HEVC + preserve audio]:::stage
   I --> J[Finalize fragmented MP4 + init/moov at start]:::stage
-  J --> K[Emit MP4 output]:::output
+  J --> K[Emit final profile artifact]:::output
 ```
 
 ## What This Profile Does Not Do

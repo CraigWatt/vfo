@@ -2,6 +2,8 @@
 
 These pages are generated from stock preset files and linked action scripts.
 
+Compatibility note: the canonical pack `craigstreamy_hevc_selected_english_subtitle_preserve` still emits generated profile sheets using the legacy `netflixy_preserve_audio_main_subtitle_intent_*` profile ids for compatibility.
+
 Regenerate with:
 
 ```bash

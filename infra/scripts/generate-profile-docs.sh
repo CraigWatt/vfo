@@ -57,12 +57,18 @@ parse_behavior_block() {
     return 1
   fi
 
-  behavior="$(sed -n '/^# Behavior:/,/^# Optional env:/p' "$action_file" \
-    | sed '1d;$d' \
-    | sed -E 's/^# ?//' \
-    | sed -E 's/^- +//' \
-    | sed '/^$/d' \
-    || true)"
+  behavior="$(awk '
+    /^# Behavior:/ {in_block=1; next}
+    in_block && /^# Optional env:/ {exit}
+    in_block && /^#/ {
+      line=$0
+      sub(/^# ?/, "", line)
+      sub(/^- /, "", line)
+      if (line != "") print line
+      next
+    }
+    in_block {exit}
+  ' "$action_file" || true)"
 
   if [ -n "$behavior" ]; then
     printf '%s\n' "$behavior"
@@ -212,6 +218,13 @@ write_profile_doc() {
   local first_command_label
   local profile_doc
   local mermaid_variant
+  local subtitle_scope_label
+  local subtitle_handle_label
+  local subtitle_gate_label
+  local yes_stage_label
+  local yes_output_label
+  local no_stage_label
+  local no_output_label
   local typical_input_containers
   local output_intent
   local criteria_codec_display
@@ -261,6 +274,14 @@ write_profile_doc() {
   if printf '%s' "$first_command" | grep -Eq "main_subtitle_preserve_profile.sh|all_sub_preserve_profile.sh|all_sub_audio_conform_profile.sh|smart_eng_sub_audio_conform_profile.sh|smart_eng_sub_audio_conform_aggressive_vmaf_profile.sh|smart_eng_sub_aggressive_vmaf_profile.sh|smart_eng_sub_subtitle_convert_profile.sh|smart_eng_sub_subtitle_convert_audio_conform_profile.sh"; then
     mermaid_variant="subtitle_intent"
   fi
+
+  subtitle_scope_label="smart_eng_sub"
+  subtitle_handle_label="preserve"
+  subtitle_gate_label="smart_eng_sub subtitle selected?"
+  yes_stage_label="Encode HEVC + preserve audio + preserve smart_eng_sub subtitle"
+  yes_output_label="Emit MKV output"
+  no_stage_label="Encode HEVC + preserve audio"
+  no_output_label="Finalize fragmented MP4 + init/moov at start"
 
   typical_input_containers="mkv, mp4, mov, mxf (anything ffmpeg can demux)"
   output_intent="profile-specific output written by selected scenario command"
@@ -365,6 +386,37 @@ write_profile_doc() {
     fi
   fi
 
+  if [ "$is_craigstreamy_all_sub_pack" = "1" ]; then
+    subtitle_scope_label="all_sub_preserve"
+    subtitle_handle_label="preserve"
+    subtitle_gate_label="Any subtitle streams present?"
+    if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
+      yes_stage_label="Encode HEVC + conform audio if needed + preserve all subtitle streams"
+      no_stage_label="Encode HEVC + conform audio if needed"
+    else
+      yes_stage_label="Encode HEVC + preserve audio + preserve all subtitle streams"
+      no_stage_label="Encode HEVC + preserve audio"
+    fi
+    yes_output_label="Emit MKV output carrying all subtitle streams"
+    no_output_label="Finalize fragmented MP4 + init/moov at start"
+  elif [ "$is_craigstreamy_subtitle_convert_pack" = "1" ]; then
+    subtitle_scope_label="smart_eng_sub"
+    subtitle_handle_label="subtitle_convert"
+    subtitle_gate_label="Selected subtitle is text-convertible and MP4 remains viable?"
+    if [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
+      yes_stage_label="Encode HEVC + conform audio if needed + convert selected subtitle to mov_text"
+      no_stage_label="Encode HEVC + conform audio if needed + preserve selected subtitle by explicit fallback"
+    else
+      yes_stage_label="Encode HEVC + preserve audio + convert selected subtitle to mov_text"
+      no_stage_label="Encode HEVC + preserve audio + apply bitmap/fallback subtitle policy"
+    fi
+    yes_output_label="Emit MP4 output with converted subtitle text"
+    no_output_label="Emit explicit fallback output (usually MKV preserve or fail)"
+  elif [ "$is_craigstreamy_audio_conform_pack" = "1" ]; then
+    yes_stage_label="Encode HEVC + conform audio if needed + preserve smart_eng_sub subtitle"
+    no_stage_label="Encode HEVC + conform audio if needed"
+  fi
+
   criteria_line="
 | Field | Value |
 | --- | --- |
@@ -420,6 +472,9 @@ write_profile_doc() {
 
     if [ "$is_craigstreamy_subtitle_pack" = "1" ]; then
       printf '## Intent\n\n'
+      if [ "$pack" = "craigstreamy-hevc-selected-english-subtitle-preserve" ]; then
+        printf 'Compatibility note: this pack is the canonical replacement for the older `netflixy_main_subtitle_intent` family, but its generated profile ids still use the legacy `netflixy_preserve_audio_main_subtitle_intent_*` names for compatibility.\n\n'
+      fi
       if [ "$is_craigstreamy_subtitle_convert_pack" = "1" ]; then
         printf 'This profile converts candidates into streaming-friendly HEVC outputs while keeping the `smart_eng_sub` subtitle selection heuristic and converting selected text subtitles into delivery-friendly text form when the final container remains MP4-friendly.\n\n'
       elif [ "$is_craigstreamy_all_sub_pack" = "1" ]; then
@@ -541,28 +596,26 @@ write_profile_doc() {
 
     printf '## Flow\n\n'
     if [ "$mermaid_variant" = "subtitle_intent" ]; then
-      cat <<'MERMAID'
-```mermaid
-flowchart LR
-  classDef gate fill:#fff7ed,stroke:#f59e0b,color:#7c2d12,stroke-width:1.5px;
-  classDef stage fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,stroke-width:1.2px;
-  classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;
-  classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;
-
-  A[Input candidate: mkv / mp4 / mov / mxf]:::stage --> B[Probe codec bits color resolution]:::stage
-  B --> C{Matches profile criteria envelope?}:::gate
-  C -->|No| Z[Handled by other profile or guardrail skipped]:::skip
-  C -->|Yes| D{Evaluate scenarios in order}:::gate
-  D --> E[Execute subtitle-intent action]:::stage
-  E --> P[Optional lane-specific pre-processing]:::stage
-  P --> F{smart_eng_sub subtitle selected?}:::gate
-  F -->|Yes| G[Encode HEVC + preserve audio + preserve smart_eng_sub subtitle]:::stage
-  G --> H[Emit MKV output]:::output
-  F -->|No| I[Encode HEVC + preserve audio]:::stage
-  I --> J[Finalize fragmented MP4 + init/moov at start]:::stage
-  J --> K[Emit MP4 output]:::output
-```
-MERMAID
+      printf '```mermaid\n'
+      printf 'flowchart LR\n'
+      printf '  classDef gate fill:#fff7ed,stroke:#f59e0b,color:#7c2d12,stroke-width:1.5px;\n'
+      printf '  classDef stage fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,stroke-width:1.2px;\n'
+      printf '  classDef output fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:1.2px;\n'
+      printf '  classDef skip fill:#f3f4f6,stroke:#6b7280,color:#1f2937,stroke-width:1.2px;\n'
+      printf '\n'
+      printf '  A[Input candidate: mkv / mp4 / mov / mxf]:::stage --> B[Probe codec bits color resolution]:::stage\n'
+      printf '  B --> C{Matches profile criteria envelope?}:::gate\n'
+      printf '  C -->|No| Z[Handled by other profile or guardrail skipped]:::skip\n'
+      printf '  C -->|Yes| D{Evaluate scenarios in order}:::gate\n'
+      printf '  D --> E[Execute subtitle-policy action]:::stage\n'
+      printf '  E --> P[Optional lane-specific pre-processing]:::stage\n'
+      printf '  P --> F{%s}:::gate\n' "$(mermaid_text "$subtitle_gate_label")"
+      printf '  F -->|Yes| G[%s]:::stage\n' "$(mermaid_text "$yes_stage_label")"
+      printf '  G --> H[%s]:::output\n' "$(mermaid_text "$yes_output_label")"
+      printf '  F -->|No| I[%s]:::stage\n' "$(mermaid_text "$no_stage_label")"
+      printf '  I --> J[%s]:::stage\n' "$(mermaid_text "$no_output_label")"
+      printf '  J --> K[Emit final profile artifact]:::output\n'
+      printf '```\n'
     else
       first_scenario_safe="$(mermaid_text "$first_scenario")"
       first_command_safe="$(mermaid_text "$first_command_label")"
@@ -731,6 +784,7 @@ done < <(find "$PRESETS_DIR" -type f -name 'vfo_config.preset.conf' | sort)
 {
   printf '# Stock Profile Info Sheets\n\n'
   printf 'These pages are generated from stock preset files and linked action scripts.\n\n'
+  printf 'Compatibility note: the canonical pack `craigstreamy_hevc_selected_english_subtitle_preserve` still emits generated profile sheets using the legacy `netflixy_preserve_audio_main_subtitle_intent_*` profile ids for compatibility.\n\n'
   printf 'Regenerate with:\n\n'
   printf '```bash\n'
   printf 'bash infra/scripts/generate-profile-docs.sh\n'
@@ -755,6 +809,7 @@ done < <(find "$PRESETS_DIR" -type f -name 'vfo_config.preset.conf' | sort)
   printf '\n## Notes\n\n'
   printf -- '- This matrix reflects stock presets, not every custom profile a user may define.\n'
   printf -- '- `craigstreamy_hevc_selected_english_subtitle_preserve` remains the preserve-audio subtitle-intent pack.\n'
+  printf -- '- Its generated profile ids still use the legacy `netflixy_preserve_audio_main_subtitle_intent_*` names for compatibility.\n'
   printf -- '- `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf` adds video-only aggressive-VMAF behavior on top of the preserve-audio subtitle-intent family.\n'
   printf -- '- `craigstreamy_hevc_smart_eng_sub_audio_conform` adds DTS/PCM delivery-conform behavior on top of the subtitle-intent family.\n'
   printf -- '- `craigstreamy_hevc_all_sub_audio_conform` and `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform` complete the first audio-conform subtitle matrix.\n'
