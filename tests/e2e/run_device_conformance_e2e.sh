@@ -108,6 +108,7 @@ create_synthetic_fixture() {
     -t "$CLIP_DURATION" \
     -map 0:v:0 -map 1:a:0 \
     -c:v libx264 -preset veryfast -crf 21 -pix_fmt yuv420p \
+    -colorspace bt2020nc -color_primaries bt2020 -color_trc smpte2084 \
     -c:a aac -b:a 128k \
     "$output" >/dev/null 2>&1
 }

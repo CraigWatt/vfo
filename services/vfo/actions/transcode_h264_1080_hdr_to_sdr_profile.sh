@@ -10,6 +10,10 @@ set -euo pipefail
 # - Downscales to <=1080p while preserving aspect ratio.
 # - Preserves all audio/subtitle streams with stream copy.
 # - Converts HDR transfer to SDR (BT.709) for SDR device compatibility profiles.
+# - Prefers a proper zscale+tonemap path when available.
+# - Falls back to an SDR-signaled compatibility transcode when the runner lacks
+#   the full HDR tonemap filters, instead of failing on unsupported colorspace
+#   conversions for PQ/HLG inputs.
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
@@ -63,11 +67,7 @@ build_filter_chain() {
       printf '%s' "zscale=t=linear:npl=100,format=gbrpf32le,tonemap=mobius:desat=0,zscale=t=bt709:m=bt709:p=bt709:r=tv,format=yuv420p,scale=1920:1080:force_original_aspect_ratio=decrease"
       return 0
     fi
-
-    if has_filter colorspace; then
-      printf '%s' "scale=1920:1080:force_original_aspect_ratio=decrease,colorspace=all=bt709:fast=1,format=yuv420p"
-      return 0
-    fi
+    echo "WARN: HDR source detected (${transfer}), but zscale+tonemap is unavailable; using SDR-signaled compatibility fallback" >&2
   fi
 
   printf '%s' "scale=1920:1080:force_original_aspect_ratio=decrease,format=yuv420p"
