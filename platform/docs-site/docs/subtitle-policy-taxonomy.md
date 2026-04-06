@@ -68,7 +68,7 @@ This is the current live behavior in the shipping `craigstreamy` packs.
 
 Normalize subtitles into a delivery-friendly text-first subtitle representation when preservation is not enough.
 
-For `craigstreamy`, this is the future conversion policy. It is not yet a stock pack.
+For `craigstreamy`, this is now a real stock-pack policy. The current live implementation focuses on text subtitle conversion first and keeps bitmap behavior explicit instead of quietly stripping or burning.
 
 ## What `subtitle_convert` Means
 
@@ -84,6 +84,13 @@ For `craigstreamy`, the practical rule should be:
 - if the chosen subtitle is already text-based and target-safe, normalize or rewrap it as needed
 - if the chosen subtitle is bitmap-based, only convert when we have a trustworthy OCR or authoring path
 - if we do not have a trustworthy conversion path, do not silently drop it
+
+Current implementation detail:
+
+- `smart_eng_sub + subtitle_convert` converts selected text subtitles to `mov_text` when MP4 remains viable
+- bitmap subtitles fail by default
+- `VFO_SUBTITLE_CONVERT_BITMAP_POLICY=preserve_mkv` allows an explicit MKV-preserve fallback instead
+- when `audio_conform` or another safety rule forces MKV, selected subtitles are preserved rather than pretending conversion still happened
 
 That last point matters. `subtitle_convert` should fail or fall back explicitly, not pretend conversion succeeded.
 
@@ -126,7 +133,9 @@ Current stock packs map like this:
 | `craigstreamy_hevc_selected_english_subtitle_preserve` | `smart_eng_sub` + `preserve` |
 | `craigstreamy_hevc_smart_eng_sub_audio_conform` | `smart_eng_sub` + `preserve` |
 | `craigstreamy_hevc_all_sub_preserve` | `all_sub_preserve` + `preserve` |
+| `craigstreamy_hevc_all_sub_audio_conform` | `all_sub_preserve` + `preserve` |
 | `craigstreamy_hevc_smart_eng_sub_subtitle_convert` | `smart_eng_sub` + `subtitle_convert` |
+| `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform` | `smart_eng_sub` + `subtitle_convert` |
 
 ## Future Composition
 
@@ -148,14 +157,16 @@ This taxonomy does not mean:
 - subtitle conversion is safe to do blindly
 - `craigstreamy` should burn subtitles into video by default
 
-## Next Pack Direction
+## What Still Needs More Depth
 
-The clean next subtitle-focused pack work should be one of:
+The main remaining subtitle-policy work is now deeper behavior, not more naming:
 
-1. `craigstreamy_hevc_all_sub_preserve`
-2. `craigstreamy_hevc_smart_eng_sub_subtitle_convert`
+1. define how far we want to go on bitmap subtitle OCR or authoring
+2. decide whether `all_sub_preserve + subtitle_convert` should become a real stock pack
+3. tighten default/forced/SDH/commentary semantics as more subtitle fixtures land in e2e
 
 Recommendation:
 
-- define `subtitle_convert` behavior in code before minting too many convert-oriented pack names
-- use `smart_eng_sub + preserve` as the stable baseline until that implementation exists
+- keep `smart_eng_sub + preserve` as the stable default
+- keep `subtitle_convert` explicit and conservative
+- only mint more convert-oriented pack names when the underlying conversion behavior is trustworthy enough to ship

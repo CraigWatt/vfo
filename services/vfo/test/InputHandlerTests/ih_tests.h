@@ -62,8 +62,11 @@ void test_ih_resolve_config_dir_uses_user_dir_for_wizard(void **state);
 void test_ih_tier_state_evaluation(void **state);
 void test_ih_stock_preset_alias_resolution_supports_craigstreamy_and_legacy_name(void **state);
 void test_ih_stock_preset_resolution_supports_aggressive_vmaf_pack(void **state);
+void test_ih_stock_preset_resolution_supports_video_only_aggressive_vmaf_pack(void **state);
 void test_ih_stock_preset_resolution_supports_all_sub_preserve_pack(void **state);
+void test_ih_stock_preset_resolution_supports_all_sub_audio_conform_pack(void **state);
 void test_ih_stock_preset_resolution_supports_audio_conform_pack(void **state);
 void test_ih_stock_preset_resolution_supports_subtitle_convert_pack(void **state);
+void test_ih_stock_preset_resolution_supports_subtitle_convert_audio_conform_pack(void **state);
 
 #endif // IH_TESTS_H

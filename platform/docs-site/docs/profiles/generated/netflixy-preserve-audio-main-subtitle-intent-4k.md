@@ -96,6 +96,10 @@ Operator knobs from `transcode_hevc_4k_main_subtitle_preserve_profile.sh`:
 - `default: 1`
 - `VFO_DV_P7_EXTRACT_MODE=auto|mkvextract|ffmpeg`
 - `default: auto`
+- `VFO_QUALITY_MODE=standard|aggressive_vmaf`
+- `default: standard`
+- `VFO_QUALITY_VMAF_MIN=94`
+- `VFO_QUALITY_VMAF_MAX_PASSES=4`
 
 ## Starting Inputs And Expected Outputs
 

@@ -59,9 +59,11 @@ This profile converts candidates into streaming-friendly HEVC outputs while pres
 
 Action summary from `transcode_hevc_4k_smart_eng_sub_audio_conform_profile.sh`:
 
-- Preserves one selected English subtitle when it appears director-intent oriented:
--   priority: forced english -> forced untagged/unknown -> optional default english.
--   non-english forced tracks are intentionally skipped.
+- Default subtitle behavior is `smart_eng_sub + preserve`.
+- Policy can be overridden by wrapper packs via:
+-   VFO_SUBTITLE_SELECTION_SCOPE=smart_eng_sub|all_sub_preserve
+-   VFO_SUBTITLE_MODE=preserve|subtitle_convert
+-   VFO_SUBTITLE_CONVERT_BITMAP_POLICY=fail|preserve_mkv
 - Preserves AAC and Dolby-family audio streams by default.
 - Conforms DTS-family and PCM-family audio streams:
 -   DTS or PCM mono/stereo -> AAC + loudnorm
@@ -72,7 +74,10 @@ Action summary from `transcode_hevc_4k_smart_eng_sub_audio_conform_profile.sh`:
 -   applies metadata-repair defaults when source tags are incomplete.
 - If source signals Dolby Vision side data, attempts DV RPU retention/injection.
 - If source is DV profile 7.x, attempts profile 8.1 conversion semantics before injection.
-- If a smart English subtitle is selected, output container is MKV.
+- `preserve` emits MKV whenever the resolved subtitle policy selects streams.
+- `subtitle_convert` keeps MP4 when selected subtitles are text-convertible and
+-   converts them to `mov_text`; bitmap subtitles fail by default unless
+-   `VFO_SUBTITLE_CONVERT_BITMAP_POLICY=preserve_mkv`.
 - If no subtitle is selected and preserved audio is MP4-safe, output container is
 -   stream-ready MP4 (fragmented MP4 with init/moov at the start, with faststart
 -   fallback when E-AC-3 packaging needs it).

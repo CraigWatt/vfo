@@ -33,6 +33,7 @@ Examples:
 - `craigstreamy_hevc_smart_eng_sub_audio_conform`
 - `craigstreamy_hevc_all_sub_preserve`
 - `craigstreamy_hevc_smart_eng_sub_subtitle_convert`
+- `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf`
 
 That keeps pack choice explicit and easy to talk about.
 
@@ -97,33 +98,44 @@ Current stock packs in the repository are:
 - `balanced_open_audio`
 - `device_targets_open_audio`
 - `craigstreamy_hevc_selected_english_subtitle_preserve`
+- `craigstreamy_hevc_all_sub_preserve`
 - `craigstreamy_hevc_smart_eng_sub_audio_conform`
+- `craigstreamy_hevc_all_sub_audio_conform`
+- `craigstreamy_hevc_smart_eng_sub_subtitle_convert`
+- `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform`
+- `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf`
+- `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf`
 
-Conceptually, the two current `craigstreamy` packs map like this:
+Conceptually, the current `craigstreamy` packs map like this:
 
 | Pack | Subtitle policy | Audio policy | Quality mode |
 | --- | --- | --- | --- |
 | `craigstreamy_hevc_selected_english_subtitle_preserve` | `smart_eng_sub + preserve` | preserve | `standard` |
-| `craigstreamy_hevc_smart_eng_sub_audio_conform` | `smart_eng_sub + preserve` | `audio_conform` | `standard` |
 | `craigstreamy_hevc_all_sub_preserve` | `all_sub_preserve + preserve` | preserve | `standard` |
+| `craigstreamy_hevc_smart_eng_sub_audio_conform` | `smart_eng_sub + preserve` | `audio_conform` | `standard` |
+| `craigstreamy_hevc_all_sub_audio_conform` | `all_sub_preserve + preserve` | `audio_conform` | `standard` |
 | `craigstreamy_hevc_smart_eng_sub_subtitle_convert` | `smart_eng_sub + subtitle_convert` | preserve | `standard` |
+| `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform` | `smart_eng_sub + subtitle_convert` | `audio_conform` | `standard` |
+| `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf` | `smart_eng_sub + preserve` | preserve | `aggressive_vmaf` |
 | `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf` | `smart_eng_sub + preserve` | `audio_conform` | `aggressive_vmaf` |
 
-## Recommended Next Explicit Packs
+## Current Explicit Pack Surface
 
-To give users a meaningful but still manageable pack choice surface, the next pack additions should now be read as:
+To give users a meaningful but still manageable pack choice surface, the current shipped craigstreamy set now reads as:
 
 1. shipped: `craigstreamy_hevc_all_sub_preserve`
-2. shipped: `craigstreamy_hevc_smart_eng_sub_subtitle_convert`
-3. shipped: `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf`
-4. next likely: `craigstreamy_hevc_all_sub_audio_conform`
-5. next likely: `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform`
+2. shipped: `craigstreamy_hevc_all_sub_audio_conform`
+3. shipped: `craigstreamy_hevc_smart_eng_sub_subtitle_convert`
+4. shipped: `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform`
+5. shipped: `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf`
+6. shipped: `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf`
 
-Why these four:
+Why this shape:
 
 - they complete the subtitle-policy surface users are already asking for
-- they reuse the now-defined audio policy split
-- they keep the mental model obvious
+- they reuse the now-defined audio policy split cleanly
+- they expose video-only aggressive VMAF separately from audio-conform aggressive VMAF
+- they keep the mental model obvious without exposing internal knobs as the primary UX
 
 ## Recommended Pack Matrix
 
@@ -132,11 +144,13 @@ The clean first `craigstreamy` matrix should be:
 | Pack | Subtitle selection | Subtitle handling | Audio policy | Video family |
 | --- | --- | --- | --- | --- |
 | `craigstreamy_hevc_selected_english_subtitle_preserve` | `smart_eng_sub` | `preserve` | preserve | HEVC |
-| `craigstreamy_hevc_smart_eng_sub_audio_conform` | `smart_eng_sub` | `preserve` | `audio_conform` | HEVC |
 | `craigstreamy_hevc_all_sub_preserve` | `all_sub_preserve` | `preserve` | preserve | HEVC |
+| `craigstreamy_hevc_smart_eng_sub_audio_conform` | `smart_eng_sub` | `preserve` | `audio_conform` | HEVC |
 | `craigstreamy_hevc_all_sub_audio_conform` | `all_sub_preserve` | `preserve` | `audio_conform` | HEVC |
 | `craigstreamy_hevc_smart_eng_sub_subtitle_convert` | `smart_eng_sub` | `subtitle_convert` | preserve | HEVC |
 | `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform` | `smart_eng_sub` | `subtitle_convert` | `audio_conform` | HEVC |
+| `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf` | `smart_eng_sub` | `preserve` | preserve | HEVC |
+| `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf` | `smart_eng_sub` | `preserve` | `audio_conform` | HEVC |
 
 That is already a healthy amount of user choice without becoming chaotic.
 
@@ -149,11 +163,15 @@ Quality should sit above the pack layer:
 
 This is cleaner than immediately creating:
 
-- `..._aggressive_vmaf`
 - `..._all_sub_aggressive_vmaf`
-- `..._audio_conform_aggressive_vmaf`
+- `..._subtitle_convert_aggressive_vmaf`
 
-If, later, we decide users really do benefit from explicit fixed names for aggressive mode, we can add **alias packs** that map onto the same internal policy components.
+We now ship two fixed-name aggressive packs because they make user selection clearer:
+
+- `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf`
+- `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf`
+
+Both still map onto the same internal quality-mode component. They are selection aliases, not a separate implementation family.
 
 That gives us the best of both worlds:
 
@@ -188,7 +206,8 @@ That keeps user selection clear while still letting the codebase scale.
 
 If we follow this strategy, the next broad steps are:
 
-1. implement `craigstreamy_hevc_all_sub_audio_conform`
-2. implement `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform`
-3. deepen `aggressive_vmaf` controls and pack-level overrides
+1. deepen `aggressive_vmaf` controls and pack-level overrides
+2. decide whether `all_sub_preserve + aggressive_vmaf` deserves a fixed-name alias or should remain a mode-only combination
+3. decide whether `subtitle_convert + aggressive_vmaf` deserves a fixed-name alias or should remain mode-only
 4. decide whether the next fixed-name packs should include AV1 / DV-safe variants
+5. strengthen real-media e2e coverage for DTS-family audio and subtitle-convert edge cases

@@ -27,6 +27,16 @@ nav:
           - 4K All Sub Preserve: profiles/generated/craigstreamy-hevc-all-sub-preserve-4k.md
           - 1080p All Sub Preserve: profiles/generated/craigstreamy-hevc-all-sub-preserve-1080p.md
           - Legacy Sub-HD All Sub Preserve: profiles/generated/craigstreamy-hevc-all-sub-preserve-legacy-subhd.md
+      - Craigstreamy HEVC All Sub Audio Conform:
+          - Pack Overview: profiles/packs/craigstreamy-hevc-all-sub-audio-conform.md
+          - 4K All Sub Audio Conform: profiles/generated/craigstreamy-hevc-all-sub-audio-conform-4k.md
+          - 1080p All Sub Audio Conform: profiles/generated/craigstreamy-hevc-all-sub-audio-conform-1080p.md
+          - Legacy Sub-HD All Sub Audio Conform: profiles/generated/craigstreamy-hevc-all-sub-audio-conform-legacy-subhd.md
+      - Craigstreamy HEVC Smart Eng Sub Aggressive VMAF:
+          - Pack Overview: profiles/packs/craigstreamy-hevc-smart-eng-sub-aggressive-vmaf.md
+          - 4K Smart Eng Sub Aggressive VMAF: profiles/generated/craigstreamy-hevc-smart-eng-sub-aggressive-vmaf-4k.md
+          - 1080p Smart Eng Sub Aggressive VMAF: profiles/generated/craigstreamy-hevc-smart-eng-sub-aggressive-vmaf-1080p.md
+          - Legacy Sub-HD Smart Eng Sub Aggressive VMAF: profiles/generated/craigstreamy-hevc-smart-eng-sub-aggressive-vmaf-legacy-subhd.md
       - Craigstreamy HEVC Smart Eng Sub Audio Conform Aggressive VMAF:
           - Pack Overview: profiles/packs/craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf.md
           - 4K Smart Eng Sub Audio Conform Aggressive VMAF: profiles/generated/craigstreamy-hevc-smart-eng-sub-audio-conform-aggressive-vmaf-4k.md
@@ -42,6 +52,11 @@ nav:
           - 4K Smart Eng Sub Subtitle Convert: profiles/generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-4k.md
           - 1080p Smart Eng Sub Subtitle Convert: profiles/generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-1080p.md
           - Legacy Sub-HD Smart Eng Sub Subtitle Convert: profiles/generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-legacy-subhd.md
+      - Craigstreamy HEVC Smart Eng Sub Subtitle Convert Audio Conform:
+          - Pack Overview: profiles/packs/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform.md
+          - 4K Smart Eng Sub Subtitle Convert Audio Conform: profiles/generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform-4k.md
+          - 1080p Smart Eng Sub Subtitle Convert Audio Conform: profiles/generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform-1080p.md
+          - Legacy Sub-HD Smart Eng Sub Subtitle Convert Audio Conform: profiles/generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform-legacy-subhd.md
       - Craigstreamy HEVC Selected English Subtitle Preserve:
           - Pack Overview: profiles/packs/craigstreamy-hevc-selected-english-subtitle-preserve.md
           - 4K Selected English Subtitle Preserve: profiles/generated/netflixy-preserve-audio-main-subtitle-intent-4k.md

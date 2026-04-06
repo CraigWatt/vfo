@@ -13,9 +13,9 @@ The goal is to avoid turning quality policy into a second explosion of pack name
 - optional VMAF via `libvmaf`
 - minimum threshold gates via `QUALITY_CHECK_MIN_*`
 
-What it does **not** have yet is an iterative "keep lowering bitrate until the score floor is hit" mode.
+What it does **not** have yet is a broad all-pack, content-aware iterative quality system.
 
-This page defines the policy model for that next step.
+This page defines the policy model for the aggressive-VMAF step that is now shipping in bounded form.
 
 ## Canonical Terms
 
@@ -33,15 +33,14 @@ Today, `vfo` supports:
 - post-profile quality scoring
 - optional strict threshold gating
 - optional VMAF scoring when `ffmpeg` exposes `libvmaf`
+- bounded aggressive-VMAF retries on the HEVC subtitle-intent family
 
-Today, `vfo` does **not** yet support:
+Today, `vfo` still does **not** yet support:
 
-- iterative bitrate search
-- bitrate re-tries driven by VMAF outcomes
 - content-class-specific VMAF targets
 - model-aware switching between HDTV, phone, and 4K VMAF models
 
-So the current quality story is **measurement + gate**, not **measurement + search**.
+So the current quality story is now **measurement + gate** plus a **bounded retry search** on the shipped aggressive packs.
 
 ## Quality Modes
 
@@ -68,7 +67,8 @@ The intent is:
 - keep the pack's container policy
 - make video encoding more aggressive **only until** the VMAF floor would be missed
 
-This is the future quality mode for `craigstreamy`.
+This is the active aggressive quality mode for `craigstreamy`.
+It is currently implemented on the shipped aggressive craigstreamy packs while keeping audio and subtitle policy fixed.
 
 ## What `aggressive_vmaf` Means
 
@@ -218,12 +218,12 @@ Recommended first target:
 - bounded retry loop
 - user-overridable VMAF floor
 
-That means the first high-value path is likely:
+The current shipped aggressive aliases are:
 
-- existing `craigstreamy_hevc_smart_eng_sub_audio_conform`
-- now also exposed as `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf`
+- `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf`
+- `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf`
 
-instead of creating a totally separate pack immediately.
+Both keep aggressive VMAF scoped to video only.
 
 ## Non-Goals
 

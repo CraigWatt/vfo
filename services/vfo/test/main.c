@@ -57,9 +57,12 @@ int main(void) {
         cmocka_unit_test(test_ih_tier_state_evaluation),
         cmocka_unit_test(test_ih_stock_preset_alias_resolution_supports_craigstreamy_and_legacy_name),
         cmocka_unit_test(test_ih_stock_preset_resolution_supports_aggressive_vmaf_pack),
+        cmocka_unit_test(test_ih_stock_preset_resolution_supports_video_only_aggressive_vmaf_pack),
         cmocka_unit_test(test_ih_stock_preset_resolution_supports_all_sub_preserve_pack),
+        cmocka_unit_test(test_ih_stock_preset_resolution_supports_all_sub_audio_conform_pack),
         cmocka_unit_test(test_ih_stock_preset_resolution_supports_audio_conform_pack),
         cmocka_unit_test(test_ih_stock_preset_resolution_supports_subtitle_convert_pack),
+        cmocka_unit_test(test_ih_stock_preset_resolution_supports_subtitle_convert_audio_conform_pack),
         cmocka_unit_test(test_quality_reference_mode_parser_accepts_valid_values),
         cmocka_unit_test(test_quality_reference_mode_parser_rejects_invalid_values),
 

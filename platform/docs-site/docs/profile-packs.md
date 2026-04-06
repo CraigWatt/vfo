@@ -4,10 +4,13 @@ Current stock packs in vfo:
 
 - `balanced_open_audio`
 - `device_targets_open_audio`
+- `craigstreamy_hevc_all_sub_audio_conform`
 - `craigstreamy_hevc_all_sub_preserve`
+- `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf`
 - `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf`
 - `craigstreamy_hevc_smart_eng_sub_audio_conform`
 - `craigstreamy_hevc_smart_eng_sub_subtitle_convert`
+- `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform`
 - `craigstreamy_hevc_selected_english_subtitle_preserve`
 
 Each pack is an outcome preset family. Use packs to choose the behavior you want first, then tune criteria/actions if needed.
@@ -43,8 +46,9 @@ Use this shorthand:
 Today that means:
 
 - pack choice is explicit
-- `aggressive_vmaf` now exists both as a reusable quality mode and a fixed named craigstreamy pack
+- `aggressive_vmaf` now exists both as a reusable quality mode and fixed named craigstreamy packs
 - subtitle handling is now split more clearly across preserve vs convert variants
+- both aggressive packs keep audio policy unchanged and only push video harder
 
 Further pack evolution is documented in [Profile Pack Strategy](profile-pack-strategy.md).
 
@@ -57,6 +61,27 @@ Focus:
 - preserve audio streams
 - emit MKV when subtitle carry-over is active, otherwise stream-ready MP4
 - details + flow: [Craigstreamy HEVC All Sub Preserve Pack](profiles/packs/craigstreamy-hevc-all-sub-preserve.md)
+
+## craigstreamy_hevc_all_sub_audio_conform
+
+Focus:
+
+- practical HEVC bitrate reduction approach
+- subtitle policy: `all_sub_preserve` + `preserve`
+- preserve AAC and Dolby-family audio when already acceptable
+- conform DTS-family and PCM-family audio into open-source Dolby-aligned delivery codecs when needed
+- keep MKV whenever subtitle carry-over or preserved-audio safety requires it
+- details + flow: [Craigstreamy HEVC All Sub Audio Conform Pack](profiles/packs/craigstreamy-hevc-all-sub-audio-conform.md)
+
+## craigstreamy_hevc_smart_eng_sub_aggressive_vmaf
+
+Focus:
+
+- the same `smart_eng_sub + preserve` subtitle posture as the preserve-audio craigstreamy baseline
+- preserve audio streams unchanged
+- bounded aggressive-VMAF retries on video only
+- same container decisions as the preserve-audio baseline
+- details + flow: [Craigstreamy HEVC Smart Eng Sub Aggressive VMAF Pack](profiles/packs/craigstreamy-hevc-smart-eng-sub-aggressive-vmaf.md)
 
 ## craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf
 
@@ -95,6 +120,18 @@ Focus:
 - preserve audio streams
 - convert selected text subtitles into delivery-friendly subtitle text
 - details + flow: [Craigstreamy HEVC Smart Eng Sub Subtitle Convert Pack](profiles/packs/craigstreamy-hevc-smart-eng-sub-subtitle-convert.md)
+
+## craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform
+
+Focus:
+
+- practical HEVC bitrate reduction approach
+- subtitle policy: `smart_eng_sub` + `subtitle_convert`
+- preserve AAC and Dolby-family audio when already acceptable
+- conform DTS-family and PCM-family audio when needed
+- convert selected text subtitles into delivery-friendly text when MP4 remains viable
+- preserve selected subtitles in MKV rather than pretending conversion succeeded when another constraint forces MKV
+- details + flow: [Craigstreamy HEVC Smart Eng Sub Subtitle Convert Audio Conform Pack](profiles/packs/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform.md)
 
 ## craigstreamy_hevc_selected_english_subtitle_preserve
 

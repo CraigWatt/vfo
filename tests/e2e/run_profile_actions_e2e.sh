@@ -19,8 +19,11 @@ ACTION_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_profile.sh"
 ACTION_MAIN_SUB_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_main_subtitle_preserve_profile.sh"
 ACTION_MAIN_SUB_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_main_subtitle_preserve_profile.sh"
 ACTION_MAIN_SUB_LEGACY="${ROOT_DIR}/services/vfo/actions/transcode_hevc_legacy_main_subtitle_preserve_profile.sh"
+ACTION_SMART_ENG_AGGRESSIVE_VMAF_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_smart_eng_sub_aggressive_vmaf_profile.sh"
 ACTION_ALL_SUB_PRESERVE_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_all_sub_preserve_profile.sh"
+ACTION_ALL_SUB_AUDIO_CONFORM_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_all_sub_audio_conform_profile.sh"
 ACTION_SUBTITLE_CONVERT_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_smart_eng_sub_subtitle_convert_profile.sh"
+ACTION_SUBTITLE_CONVERT_AUDIO_CONFORM_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_smart_eng_sub_subtitle_convert_audio_conform_profile.sh"
 ACTION_SMART_ENG_AUDIO_CONFORM_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_smart_eng_sub_audio_conform_profile.sh"
 ACTION_SMART_ENG_AUDIO_CONFORM_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_smart_eng_sub_audio_conform_profile.sh"
 ACTION_SMART_ENG_AUDIO_CONFORM_LEGACY="${ROOT_DIR}/services/vfo/actions/transcode_hevc_legacy_smart_eng_sub_audio_conform_profile.sh"
@@ -648,6 +651,34 @@ run_subtitle_convert_action_assertions() {
   log "${action_name} subtitle convert passed (subtitle_count=${expected_subtitle_count}, subtitle_codec=${expected_subtitle_codec})"
 }
 
+run_audio_conform_subtitle_convert_action_assertions() {
+  local action_name="$1"
+  local action_script="$2"
+  local input="$3"
+  local requested_output="$4"
+  local max_height="$5"
+  local expected_subtitle_count="$6"
+  local expected_subtitle_codec="$7"
+  local actual_subtitle_codec=""
+
+  run_audio_conform_action_assertions \
+    "$action_name" \
+    "$action_script" \
+    "$input" \
+    "$requested_output" \
+    "$max_height" \
+    mp4 \
+    "$expected_subtitle_count" \
+    0
+
+  if [ "$expected_subtitle_count" -gt 0 ]; then
+    actual_subtitle_codec="$(probe_subtitle_codec_at "$requested_output" 0 || true)"
+    assert_equals "$actual_subtitle_codec" "$expected_subtitle_codec" "${action_name} subtitle codec mismatch"
+  fi
+
+  log "${action_name} audio conform + subtitle convert passed (subtitle_count=${expected_subtitle_count}, subtitle_codec=${expected_subtitle_codec})"
+}
+
 run_legacy_main_subtitle_autocrop_assertions() {
   local action_name="$1"
   local input="$2"
@@ -777,9 +808,12 @@ run_seed_from_input() {
   local output_4k_audio_conform_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_audio_conform_main_sub.mp4"
   local output_4k_audio_conform_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_audio_conform_default_sub_off.mp4"
   local output_1080_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_off.mp4"
+  local output_1080_smart_eng_aggressive_default="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_smart_eng_aggressive_default.mp4"
   local output_1080_default_sub_on="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_on.mp4"
   local output_1080_all_sub_default="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_all_sub_default.mp4"
+  local output_1080_all_sub_audio_conform_default="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_all_sub_audio_conform_default.mp4"
   local output_1080_subtitle_convert_forced="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_subtitle_convert_forced.mp4"
+  local output_1080_subtitle_convert_audio_conform_forced="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_subtitle_convert_audio_conform_forced.mp4"
   local output_1080_audio_conform_aggressive_default="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_audio_conform_aggressive_default.mp4"
   local output_1080_forced_non_english_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_forced_non_english_sub.mp4"
   local output_legacy_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_default_sub_off.mp4"
@@ -882,10 +916,34 @@ run_seed_from_input() {
 
   if [ "$run_sdr_lanes" = "1" ]; then
     run_main_subtitle_action_assertions \
+      "hevc_1080_smart_eng_aggressive_vmaf_default_off(seed_${seed_index})" \
+      "$ACTION_SMART_ENG_AGGRESSIVE_VMAF_1080" \
+      "$fixture_1080_default_sub" \
+      "$output_1080_smart_eng_aggressive_default" \
+      1080 \
+      mp4 \
+      0 \
+      0
+  fi
+
+  if [ "$run_sdr_lanes" = "1" ]; then
+    run_main_subtitle_action_assertions \
       "hevc_1080_all_sub_preserve_default(seed_${seed_index})" \
       "$ACTION_ALL_SUB_PRESERVE_1080" \
       "$fixture_1080_default_sub" \
       "$output_1080_all_sub_default" \
+      1080 \
+      mkv \
+      1 \
+      0
+  fi
+
+  if [ "$run_sdr_lanes" = "1" ]; then
+    run_audio_conform_action_assertions \
+      "hevc_1080_all_sub_audio_conform_default(seed_${seed_index})" \
+      "$ACTION_ALL_SUB_AUDIO_CONFORM_1080" \
+      "$fixture_1080_audio_conform_default_sub" \
+      "$output_1080_all_sub_audio_conform_default" \
       1080 \
       mkv \
       1 \
@@ -910,6 +968,17 @@ run_seed_from_input() {
       "$ACTION_SUBTITLE_CONVERT_1080" \
       "$fixture_1080_forced_sub" \
       "$output_1080_subtitle_convert_forced" \
+      1080 \
+      1 \
+      mov_text
+  fi
+
+  if [ "$run_sdr_lanes" = "1" ]; then
+    run_audio_conform_subtitle_convert_action_assertions \
+      "hevc_1080_smart_eng_sub_subtitle_convert_audio_conform_forced(seed_${seed_index})" \
+      "$ACTION_SUBTITLE_CONVERT_AUDIO_CONFORM_1080" \
+      "$fixture_1080_audio_conform_forced_sub" \
+      "$output_1080_subtitle_convert_audio_conform_forced" \
       1080 \
       1 \
       mov_text
@@ -1038,9 +1107,12 @@ run_seed_synthetic() {
   local output_4k_audio_conform_main_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_audio_conform_main_sub.mp4"
   local output_4k_audio_conform_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_4k_audio_conform_default_sub_off.mp4"
   local output_1080_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_off.mp4"
+  local output_1080_smart_eng_aggressive_default="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_smart_eng_aggressive_default.mp4"
   local output_1080_default_sub_on="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_default_sub_on.mp4"
   local output_1080_all_sub_default="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_all_sub_default.mp4"
+  local output_1080_all_sub_audio_conform_default="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_all_sub_audio_conform_default.mp4"
   local output_1080_subtitle_convert_forced="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_subtitle_convert_forced.mp4"
+  local output_1080_subtitle_convert_audio_conform_forced="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_subtitle_convert_audio_conform_forced.mp4"
   local output_1080_audio_conform_aggressive_default="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_audio_conform_aggressive_default.mp4"
   local output_1080_forced_non_english_sub="${OUTPUTS_DIR}/seed_${seed_index}_profile_1080_forced_non_english_sub.mp4"
   local output_legacy_default_sub_off="${OUTPUTS_DIR}/seed_${seed_index}_profile_legacy_default_sub_off.mp4"
@@ -1155,10 +1227,30 @@ run_seed_synthetic() {
     0
 
   run_main_subtitle_action_assertions \
+    "hevc_1080_smart_eng_aggressive_vmaf_default_off(seed_${seed_index})" \
+    "$ACTION_SMART_ENG_AGGRESSIVE_VMAF_1080" \
+    "$fixture_1080_default_sub" \
+    "$output_1080_smart_eng_aggressive_default" \
+    1080 \
+    mp4 \
+    0 \
+    0
+
+  run_main_subtitle_action_assertions \
     "hevc_1080_all_sub_preserve_default(seed_${seed_index})" \
     "$ACTION_ALL_SUB_PRESERVE_1080" \
     "$fixture_1080_default_sub" \
     "$output_1080_all_sub_default" \
+    1080 \
+    mkv \
+    1 \
+    0
+
+  run_audio_conform_action_assertions \
+    "hevc_1080_all_sub_audio_conform_default(seed_${seed_index})" \
+    "$ACTION_ALL_SUB_AUDIO_CONFORM_1080" \
+    "$fixture_1080_audio_conform_default_sub" \
+    "$output_1080_all_sub_audio_conform_default" \
     1080 \
     mkv \
     1 \
@@ -1189,6 +1281,15 @@ run_seed_synthetic() {
     "$ACTION_SUBTITLE_CONVERT_1080" \
     "$fixture_1080_forced_sub" \
     "$output_1080_subtitle_convert_forced" \
+    1080 \
+    1 \
+    mov_text
+
+  run_audio_conform_subtitle_convert_action_assertions \
+    "hevc_1080_smart_eng_sub_subtitle_convert_audio_conform_forced(seed_${seed_index})" \
+    "$ACTION_SUBTITLE_CONVERT_AUDIO_CONFORM_1080" \
+    "$fixture_1080_audio_conform_forced_sub" \
+    "$output_1080_subtitle_convert_audio_conform_forced" \
     1080 \
     1 \
     mov_text

@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Hardware-aware 4K HEVC profile action with smart-English-subtitle preserve,
+# Hardware-aware 4K HEVC profile action with policy-driven subtitle handling,
 # DTS/PCM-family audio conform handling, and Dolby Vision retention.
 #
 # Contract (called from vfo config):
 #   transcode_hevc_4k_smart_eng_sub_audio_conform_profile.sh <input_file> <output_file>
 #
 # Behavior:
-# - Preserves one selected English subtitle when it appears director-intent oriented:
-#   priority: forced english -> forced untagged/unknown -> optional default english.
-#   non-english forced tracks are intentionally skipped.
+# - Default subtitle behavior is `smart_eng_sub + preserve`.
+# - Policy can be overridden by wrapper packs via:
+#   VFO_SUBTITLE_SELECTION_SCOPE=smart_eng_sub|all_sub_preserve
+#   VFO_SUBTITLE_MODE=preserve|subtitle_convert
+#   VFO_SUBTITLE_CONVERT_BITMAP_POLICY=fail|preserve_mkv
 # - Preserves AAC and Dolby-family audio streams by default.
 # - Conforms DTS-family and PCM-family audio streams:
 #   DTS or PCM mono/stereo -> AAC + loudnorm
@@ -21,7 +23,10 @@ set -euo pipefail
 #   applies metadata-repair defaults when source tags are incomplete.
 # - If source signals Dolby Vision side data, attempts DV RPU retention/injection.
 # - If source is DV profile 7.x, attempts profile 8.1 conversion semantics before injection.
-# - If a smart English subtitle is selected, output container is MKV.
+# - `preserve` emits MKV whenever the resolved subtitle policy selects streams.
+# - `subtitle_convert` keeps MP4 when selected subtitles are text-convertible and
+#   converts them to `mov_text`; bitmap subtitles fail by default unless
+#   `VFO_SUBTITLE_CONVERT_BITMAP_POLICY=preserve_mkv`.
 # - If no subtitle is selected and preserved audio is MP4-safe, output container is
 #   stream-ready MP4 (fragmented MP4 with init/moov at the start, with faststart
 #   fallback when E-AC-3 packaging needs it).
@@ -73,6 +78,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/dynamic_range_tools.sh"
 # shellcheck source=audio_conform_tools.sh
 . "$SCRIPT_DIR/audio_conform_tools.sh"
+# shellcheck source=subtitle_policy_tools.sh
+. "$SCRIPT_DIR/subtitle_policy_tools.sh"
 # shellcheck source=quality_mode_tools.sh
 . "$SCRIPT_DIR/quality_mode_tools.sh"
 
@@ -98,99 +105,6 @@ VFO_DV_P7_EXTRACT_MODE="${VFO_DV_P7_EXTRACT_MODE:-auto}"
 
 lower_text() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
-}
-
-is_english_language() {
-  case "$(lower_text "$1")" in
-    en|eng|english|en-us|en-gb) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-is_unknown_language() {
-  case "$(lower_text "$1")" in
-    ''|und|unk|unknown|n/a|none) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-is_forced_like_title() {
-  case "$(lower_text "$1")" in
-    *forced*) return 0 ;;
-    *) return 1 ;;
-  esac
-}
-
-get_sub_stream_value() {
-  local sub_pos="$1"
-  local ffprobe_entry="$2"
-  ffprobe -v error \
-    -select_streams "s:${sub_pos}" \
-    -show_entries "$ffprobe_entry" \
-    -of default=nw=1:nk=1 \
-    "$INPUT" 2>/dev/null | head -n 1 | tr -d '\r'
-}
-
-resolve_main_subtitle_position() {
-  local sub_count
-  local pos
-  local language=""
-  local title=""
-  local forced="0"
-  local default_disposition="0"
-  local forced_like="0"
-  local forced_unknown=""
-  local default_english=""
-
-  sub_count="$(ffprobe -v error -select_streams s -show_entries stream=index -of csv=p=0 "$INPUT" 2>/dev/null | wc -l | tr -d ' ')"
-  if [ -z "$sub_count" ] || [ "$sub_count" -eq 0 ]; then
-    return 1
-  fi
-
-  pos=0
-  while [ "$pos" -lt "$sub_count" ]; do
-    language="$(get_sub_stream_value "$pos" "stream_tags=language")"
-    title="$(get_sub_stream_value "$pos" "stream_tags=title")"
-    forced="$(get_sub_stream_value "$pos" "stream_disposition=forced")"
-    default_disposition="$(get_sub_stream_value "$pos" "stream_disposition=default")"
-
-    [ -n "$forced" ] || forced="0"
-    [ -n "$default_disposition" ] || default_disposition="0"
-    forced_like="0"
-    if [ "$forced" = "1" ] || is_forced_like_title "$title"; then
-      forced_like="1"
-    fi
-
-    if [ "$forced_like" = "1" ] && is_english_language "$language"; then
-      printf '%s\n' "$pos"
-      return 0
-    fi
-
-    if [ "$forced_like" = "1" ] && is_unknown_language "$language" && [ -z "$forced_unknown" ]; then
-      forced_unknown="$pos"
-    fi
-
-    if [ "$INCLUDE_DEFAULT_MAIN_SUB" = "1" ] \
-      && [ "$default_disposition" = "1" ] \
-      && is_english_language "$language" \
-      && [ -z "$default_english" ]; then
-      default_english="$pos"
-    fi
-
-    pos=$((pos + 1))
-  done
-
-  if [ -n "$forced_unknown" ]; then
-    printf '%s\n' "$forced_unknown"
-    return 0
-  fi
-
-  if [ -n "$default_english" ]; then
-    printf '%s\n' "$default_english"
-    return 0
-  fi
-
-  return 1
 }
 
 has_videotoolbox_encoder() {
@@ -307,11 +221,15 @@ src_p81_hevc="$workdir/src_p81.hevc"
 audio_work_output="$workdir/audio_work.mka"
 fps="$(get_fps "$INPUT")"
 
-MAIN_SUB_POS=""
-if MAIN_SUB_POS="$(resolve_main_subtitle_position)"; then
-  echo "Smart English subtitle detected (s:${MAIN_SUB_POS})"
+if ! subtitle_policy_resolve_plan "$INPUT" "$INCLUDE_DEFAULT_MAIN_SUB"; then
+  echo "Subtitle policy resolution failed: ${SUBTITLE_POLICY_ERROR:-unknown subtitle policy error}"
+  exit 1
+fi
+
+if [ "$SUBTITLE_POLICY_SELECTED_COUNT" -gt 0 ]; then
+  echo "Subtitle policy selected ${SUBTITLE_POLICY_SELECTED_COUNT} stream(s); scope=${SUBTITLE_POLICY_SELECTION_SCOPE} mode=${SUBTITLE_POLICY_MODE} codec=${SUBTITLE_POLICY_OUTPUT_SUBTITLE_CODEC}"
 else
-  echo "No smart English subtitle detected"
+  echo "Subtitle policy selected no streams; scope=${SUBTITLE_POLICY_SELECTION_SCOPE} mode=${SUBTITLE_POLICY_MODE}"
 fi
 
 audio_conform_render_audio_work "$INPUT" "$audio_work_output"
@@ -523,19 +441,25 @@ if [ "$source_is_dv" -eq 1 ] && [ "$VFO_DV_REQUIRE_DOVI" = "1" ] && [ "$new_vide
 fi
 
 ACTUAL_OUTPUT="$OUTPUT"
-if [ -n "$MAIN_SUB_POS" ] || [ "$AUDIO_CONFORM_FORCE_MKV" = "1" ]; then
+FINAL_SUBTITLE_CODEC="$SUBTITLE_POLICY_OUTPUT_SUBTITLE_CODEC"
+if [ "$SUBTITLE_POLICY_OUTPUT_CONTAINER" = "mkv" ] || [ "$AUDIO_CONFORM_FORCE_MKV" = "1" ]; then
   ACTUAL_OUTPUT="${OUTPUT%.*}.mkv"
-  if [ -n "$MAIN_SUB_POS" ] && [ "$AUDIO_CONFORM_FORCE_MKV" = "1" ]; then
-    echo "Final container: MKV (smart English subtitle + preserved non-MP4-safe audio)"
-  elif [ -n "$MAIN_SUB_POS" ]; then
-    echo "Final container: MKV (smart English subtitle preserved)"
+  if [ "$SUBTITLE_POLICY_SELECTED_COUNT" -gt 0 ] && [ "$AUDIO_CONFORM_FORCE_MKV" = "1" ]; then
+    echo "Final container: MKV (subtitle policy + preserved non-MP4-safe audio)"
+  elif [ "$SUBTITLE_POLICY_SELECTED_COUNT" -gt 0 ]; then
+    echo "Final container: MKV (subtitle policy)"
   else
     echo "Final container: MKV (preserved non-MP4-safe audio)"
   fi
-  audio_conform_mux_mkv "$new_video" "$AUDIO_CONFORM_WORK_FILE" "$INPUT" "$MAIN_SUB_POS" "$ACTUAL_OUTPUT"
+  if [ "$SUBTITLE_POLICY_SELECTED_COUNT" -gt 0 ]; then
+    FINAL_SUBTITLE_CODEC="copy"
+  else
+    FINAL_SUBTITLE_CODEC="none"
+  fi
+  audio_conform_mux_mkv "$new_video" "$AUDIO_CONFORM_WORK_FILE" "$INPUT" "$SUBTITLE_POLICY_SELECTED_POSITIONS" "$FINAL_SUBTITLE_CODEC" "$ACTUAL_OUTPUT"
 else
   echo "Final container: stream-ready MP4"
-  audio_conform_finalize_streamable_mp4 "$new_video" "$AUDIO_CONFORM_WORK_FILE" "$ACTUAL_OUTPUT" "$MP4_STREAM_MODE"
+  audio_conform_finalize_streamable_mp4 "$new_video" "$AUDIO_CONFORM_WORK_FILE" "$INPUT" "$SUBTITLE_POLICY_SELECTED_POSITIONS" "$FINAL_SUBTITLE_CODEC" "$ACTUAL_OUTPUT" "$MP4_STREAM_MODE"
 fi
 
 dr_collect_output_state "$ACTUAL_OUTPUT"
