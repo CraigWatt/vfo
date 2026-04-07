@@ -89,7 +89,8 @@ flowchart TD
   - choose `mezzanine -> profile`
   - use when mezzanine is already normalized and you want speed
 - Device compatibility:
-  - select device target stock profiles (`roku_*`, `fire_tv_*`, `chromecast_*`, `apple_tv_*`)
+  - select explicit family packs such as `roku_family_all_sub_convert_audio_conform`
+  - use the device-specific DV lane when you need the Fire TV Stick 4K DV behavior
   - conformance checks validate codec/resolution/audio boundaries in E2E
 - Subtitle intent preservation:
   - use `craigstreamy_hevc_selected_english_subtitle_preserve_*` for preserve-audio behavior

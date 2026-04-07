@@ -136,6 +136,11 @@ Current stock packs map like this:
 | `craigstreamy_hevc_all_sub_audio_conform` | `all_sub_preserve` + `preserve` |
 | `craigstreamy_hevc_smart_eng_sub_subtitle_convert` | `smart_eng_sub` + `subtitle_convert` |
 | `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform` | `smart_eng_sub` + `subtitle_convert` |
+| `roku_family_all_sub_convert_audio_conform` | `all_sub_preserve` + `subtitle_convert` |
+| `fire_tv_family_all_sub_convert_audio_conform` | `all_sub_preserve` + `subtitle_convert` |
+| `chromecast_google_tv_family_all_sub_convert_audio_conform` | `all_sub_preserve` + `subtitle_convert` |
+| `apple_tv_family_all_sub_convert_audio_conform` | `all_sub_preserve` + `subtitle_convert` |
+| `fire_tv_stick_4k_dv_all_sub_convert_audio_conform` | `all_sub_preserve` + `subtitle_convert` |
 
 ## Future Composition
 
@@ -162,11 +167,11 @@ This taxonomy does not mean:
 The main remaining subtitle-policy work is now deeper behavior, not more naming:
 
 1. define how far we want to go on bitmap subtitle OCR or authoring
-2. decide whether `all_sub_preserve + subtitle_convert` should become a real stock pack
-3. tighten default/forced/SDH/commentary semantics as more subtitle fixtures land in e2e
+2. tighten default/forced/SDH/commentary semantics as more subtitle fixtures land in e2e
+3. decide whether future non-device packs should also expose `all_sub_preserve + subtitle_convert`
 
 Recommendation:
 
 - keep `smart_eng_sub + preserve` as the stable default
 - keep `subtitle_convert` explicit and conservative
-- only mint more convert-oriented pack names when the underlying conversion behavior is trustworthy enough to ship
+- only widen convert-oriented pack names when the underlying conversion behavior is trustworthy enough to ship

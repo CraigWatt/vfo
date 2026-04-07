@@ -159,7 +159,12 @@ doc_title_for_profile() {
 pack_label_for_docs() {
   case "$1" in
     balanced_open_audio) printf '%s' "Balanced Open Audio" ;;
-    device_targets_open_audio) printf '%s' "Device Targets Open Audio" ;;
+    roku-family-all-sub-convert-audio-conform) printf '%s' "Roku Family All Sub Convert Audio Conform" ;;
+    fire-tv-family-all-sub-convert-audio-conform) printf '%s' "Fire TV Family All Sub Convert Audio Conform" ;;
+    chromecast-google-tv-family-all-sub-convert-audio-conform) printf '%s' "Chromecast Google TV Family All Sub Convert Audio Conform" ;;
+    apple-tv-family-all-sub-convert-audio-conform) printf '%s' "Apple TV Family All Sub Convert Audio Conform" ;;
+    fire-tv-stick-4k-dv-all-sub-convert-audio-conform) printf '%s' "Fire TV Stick 4K DV All Sub Convert Audio Conform" ;;
+    device_targets_open_audio) printf '%s' "Device Targets Open Audio (Legacy)" ;;
     craigstreamy-hevc-all-sub-preserve) printf '%s' "Craigstreamy HEVC All Sub Preserve" ;;
     craigstreamy-hevc-all-sub-audio-conform) printf '%s' "Craigstreamy HEVC All Sub Audio Conform" ;;
     craigstreamy-hevc-smart-eng-sub-aggressive-vmaf) printf '%s' "Craigstreamy HEVC Smart Eng Sub Aggressive VMAF" ;;

@@ -5,6 +5,11 @@ This folder contains stock profile packs that can be used as starting points.
 Current preset packs:
 
 - `balanced_open_audio/`
+- `roku-family-all-sub-convert-audio-conform/`
+- `fire-tv-family-all-sub-convert-audio-conform/`
+- `chromecast-google-tv-family-all-sub-convert-audio-conform/`
+- `apple-tv-family-all-sub-convert-audio-conform/`
+- `fire-tv-stick-4k-dv-all-sub-convert-audio-conform/`
 - `device_targets_open_audio/`
 - `craigstreamy-hevc-all-sub-preserve/`
 - `craigstreamy-hevc-all-sub-audio-conform/`
@@ -17,6 +22,7 @@ Current preset packs:
 
 Compatibility note:
 
+- `device_targets_open_audio/` remains available as a compatibility umbrella, but the newer device-family packs are now the clearer day-to-day choice
 - `craigstreamy-hevc-selected-english-subtitle-preserve/` is the canonical pack name
 - its generated profile ids still use the legacy `netflixy_preserve_audio_main_subtitle_intent_*` names for compatibility
 

@@ -4,8 +4,13 @@ Generated from stock preset criteria (`PROFILE=` blocks).
 
 | Profile | Pack | Codec | Bits | Color Space | Min Res | Max Res | Scenarios |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| [Apple TV Family HD All Subtitle Convert Audio Conform](profiles/generated/apple-tv-family-hd-all-sub-convert-audio-conform.md) | `apple-tv-family-all-sub-convert-audio-conform` | `any` | `any` | `any` | `352x240` | `1920x1080` | `2` |
+| [Apple TV Family 4K All Subtitle Convert Audio Conform](profiles/generated/apple-tv-family-4k-all-sub-convert-audio-conform.md) | `apple-tv-family-all-sub-convert-audio-conform` | `any` | `any` | `any` | `1921x1081` | `3840x2160` | `2` |
 | [Balanced 4K Open Audio](profiles/generated/balanced-4k-open-audio.md) | `balanced_open_audio` | `hevc` | `any` | `bt709` | `352x240` | `3840x2160` | `3` |
 | [Balanced 1080 Open Audio](profiles/generated/balanced-1080-open-audio.md) | `balanced_open_audio` | `h264` | `any` | `bt709` | `352x240` | `1920x1080` | `3` |
+| [Balanced Legacy Sub-HD Open Audio](profiles/generated/balanced-legacy-subhd-open-audio.md) | `balanced_open_audio` | `hevc` | `any` | `any` | `320x240` | `1279x719` | `2` |
+| [Chromecast Google TV Family HD All Subtitle Convert Audio Conform](profiles/generated/chromecast-google-tv-family-hd-all-sub-convert-audio-conform.md) | `chromecast-google-tv-family-all-sub-convert-audio-conform` | `any` | `any` | `any` | `352x240` | `1920x1080` | `2` |
+| [Chromecast Google TV Family 4K All Subtitle Convert Audio Conform](profiles/generated/chromecast-google-tv-family-4k-all-sub-convert-audio-conform.md) | `chromecast-google-tv-family-all-sub-convert-audio-conform` | `any` | `any` | `any` | `1921x1081` | `3840x2160` | `2` |
 | [Craigstreamy HEVC All Subtitles Audio Conform 4K](profiles/generated/craigstreamy-hevc-all-sub-audio-conform-4k.md) | `craigstreamy-hevc-all-sub-audio-conform` | `any` | `any` | `any` | `1920x1080` | `3840x2160` | `2` |
 | [Craigstreamy HEVC All Subtitles Audio Conform 1080p](profiles/generated/craigstreamy-hevc-all-sub-audio-conform-1080p.md) | `craigstreamy-hevc-all-sub-audio-conform` | `any` | `any` | `bt709` | `1280x720` | `1920x1080` | `2` |
 | [Craigstreamy HEVC All Subtitles Audio Conform Legacy Sub-HD](profiles/generated/craigstreamy-hevc-all-sub-audio-conform-legacy-subhd.md) | `craigstreamy-hevc-all-sub-audio-conform` | `any` | `any` | `any` | `320x240` | `1279x719` | `2` |
@@ -40,6 +45,11 @@ Generated from stock preset criteria (`PROFILE=` blocks).
 | [Apple TV HD Open Audio](profiles/generated/apple-tv-hd-open-audio.md) | `device_targets_open_audio` | `h264` | `any` | `bt709` | `352x240` | `1920x1080` | `3` |
 | [Apple TV 4K Open Audio](profiles/generated/apple-tv-4k-open-audio.md) | `device_targets_open_audio` | `hevc` | `any` | `bt709` | `352x240` | `3840x2160` | `3` |
 | [Fire TV Stick 4K DV Open Audio](profiles/generated/fire-tv-stick-4k-dv-open-audio.md) | `device_targets_open_audio` | `hevc` | `any` | `bt709` | `352x240` | `3840x2160` | `3` |
+| [Fire TV Family HD All Subtitle Convert Audio Conform](profiles/generated/fire-tv-family-hd-all-sub-convert-audio-conform.md) | `fire-tv-family-all-sub-convert-audio-conform` | `any` | `any` | `any` | `352x240` | `1920x1080` | `2` |
+| [Fire TV Family 4K All Subtitle Convert Audio Conform](profiles/generated/fire-tv-family-4k-all-sub-convert-audio-conform.md) | `fire-tv-family-all-sub-convert-audio-conform` | `any` | `any` | `any` | `1921x1081` | `3840x2160` | `2` |
+| [Fire TV Stick 4K DV All Subtitle Convert Audio Conform](profiles/generated/fire-tv-stick-4k-dv-all-sub-convert-audio-conform.md) | `fire-tv-stick-4k-dv-all-sub-convert-audio-conform` | `any` | `any` | `any` | `1921x1081` | `3840x2160` | `2` |
+| [Roku Family HD All Subtitle Convert Audio Conform](profiles/generated/roku-family-hd-all-sub-convert-audio-conform.md) | `roku-family-all-sub-convert-audio-conform` | `any` | `any` | `any` | `352x240` | `1920x1080` | `2` |
+| [Roku Family 4K All Subtitle Convert Audio Conform](profiles/generated/roku-family-4k-all-sub-convert-audio-conform.md) | `roku-family-all-sub-convert-audio-conform` | `any` | `any` | `any` | `1921x1081` | `3840x2160` | `2` |
 
 ## Notes
 

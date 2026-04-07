@@ -255,6 +255,96 @@ void test_ih_stock_preset_resolution_supports_audio_conform_pack(void **state) {
                       "craigstreamy-hevc-smart-eng-sub-audio-conform/vfo_config.preset.conf");
 }
 
+void test_ih_stock_preset_resolution_supports_roku_family_pack(void **state) {
+  char canonical_key[256];
+  char relative_path[256];
+  (void)state;
+
+  memset(canonical_key, 0, sizeof(canonical_key));
+  memset(relative_path, 0, sizeof(relative_path));
+
+  assert_true(ih_resolve_stock_preset_for_test("roku_family_all_sub_convert_audio_conform",
+                                               canonical_key,
+                                               sizeof(canonical_key),
+                                               relative_path,
+                                               sizeof(relative_path)));
+  assert_string_equal(canonical_key, "roku_family_all_sub_convert_audio_conform");
+  assert_string_equal(relative_path,
+                      "roku-family-all-sub-convert-audio-conform/vfo_config.preset.conf");
+}
+
+void test_ih_stock_preset_resolution_supports_fire_tv_family_pack(void **state) {
+  char canonical_key[256];
+  char relative_path[256];
+  (void)state;
+
+  memset(canonical_key, 0, sizeof(canonical_key));
+  memset(relative_path, 0, sizeof(relative_path));
+
+  assert_true(ih_resolve_stock_preset_for_test("fire_tv_family_all_sub_convert_audio_conform",
+                                               canonical_key,
+                                               sizeof(canonical_key),
+                                               relative_path,
+                                               sizeof(relative_path)));
+  assert_string_equal(canonical_key, "fire_tv_family_all_sub_convert_audio_conform");
+  assert_string_equal(relative_path,
+                      "fire-tv-family-all-sub-convert-audio-conform/vfo_config.preset.conf");
+}
+
+void test_ih_stock_preset_resolution_supports_chromecast_family_pack(void **state) {
+  char canonical_key[256];
+  char relative_path[256];
+  (void)state;
+
+  memset(canonical_key, 0, sizeof(canonical_key));
+  memset(relative_path, 0, sizeof(relative_path));
+
+  assert_true(ih_resolve_stock_preset_for_test("chromecast_google_tv_family_all_sub_convert_audio_conform",
+                                               canonical_key,
+                                               sizeof(canonical_key),
+                                               relative_path,
+                                               sizeof(relative_path)));
+  assert_string_equal(canonical_key, "chromecast_google_tv_family_all_sub_convert_audio_conform");
+  assert_string_equal(relative_path,
+                      "chromecast-google-tv-family-all-sub-convert-audio-conform/vfo_config.preset.conf");
+}
+
+void test_ih_stock_preset_resolution_supports_apple_tv_family_pack(void **state) {
+  char canonical_key[256];
+  char relative_path[256];
+  (void)state;
+
+  memset(canonical_key, 0, sizeof(canonical_key));
+  memset(relative_path, 0, sizeof(relative_path));
+
+  assert_true(ih_resolve_stock_preset_for_test("apple_tv_family_all_sub_convert_audio_conform",
+                                               canonical_key,
+                                               sizeof(canonical_key),
+                                               relative_path,
+                                               sizeof(relative_path)));
+  assert_string_equal(canonical_key, "apple_tv_family_all_sub_convert_audio_conform");
+  assert_string_equal(relative_path,
+                      "apple-tv-family-all-sub-convert-audio-conform/vfo_config.preset.conf");
+}
+
+void test_ih_stock_preset_resolution_supports_fire_tv_dv_pack(void **state) {
+  char canonical_key[256];
+  char relative_path[256];
+  (void)state;
+
+  memset(canonical_key, 0, sizeof(canonical_key));
+  memset(relative_path, 0, sizeof(relative_path));
+
+  assert_true(ih_resolve_stock_preset_for_test("fire_tv_stick_4k_dv_all_sub_convert_audio_conform",
+                                               canonical_key,
+                                               sizeof(canonical_key),
+                                               relative_path,
+                                               sizeof(relative_path)));
+  assert_string_equal(canonical_key, "fire_tv_stick_4k_dv_all_sub_convert_audio_conform");
+  assert_string_equal(relative_path,
+                      "fire-tv-stick-4k-dv-all-sub-convert-audio-conform/vfo_config.preset.conf");
+}
+
 void test_ih_stock_preset_resolution_supports_aggressive_vmaf_pack(void **state) {
   char canonical_key[256];
   char relative_path[256];

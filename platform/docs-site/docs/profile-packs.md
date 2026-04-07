@@ -3,7 +3,12 @@
 Current stock packs in vfo:
 
 - `balanced_open_audio`
-- `device_targets_open_audio`
+- `roku_family_all_sub_convert_audio_conform`
+- `fire_tv_family_all_sub_convert_audio_conform`
+- `chromecast_google_tv_family_all_sub_convert_audio_conform`
+- `apple_tv_family_all_sub_convert_audio_conform`
+- `fire_tv_stick_4k_dv_all_sub_convert_audio_conform`
+- `device_targets_open_audio` (legacy compatibility)
 - `craigstreamy_hevc_all_sub_audio_conform`
 - `craigstreamy_hevc_all_sub_preserve`
 - `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf`
@@ -53,6 +58,81 @@ Today that means:
 - both aggressive packs keep audio policy unchanged and only push video harder
 
 Further pack evolution is documented in [Profile Pack Strategy](profile-pack-strategy.md).
+
+## Roku Family All Sub Convert Audio Conform
+
+Pack id: `roku_family_all_sub_convert_audio_conform`
+
+Focus:
+
+- Roku-shaped HD and 4K output envelopes inside one explicit family pack
+- H.264 for HD, HEVC for UHD
+- HD lane currently maps to Roku Express 1080-class devices
+- 4K lane currently maps to Roku 4K-class devices
+- subtitle policy: `all_sub_preserve` + `subtitle_convert`
+- preserve AAC and Dolby-family audio where already acceptable
+- conform DTS-family and PCM-family audio when needed
+- prefer fragmented MP4, but fall back to MKV when subtitle/audio safety requires it
+- details + flow: [Roku Family All Sub Convert Audio Conform Pack](profiles/packs/roku-family-all-sub-convert-audio-conform.md)
+
+## Fire TV Family All Sub Convert Audio Conform
+
+Pack id: `fire_tv_family_all_sub_convert_audio_conform`
+
+Focus:
+
+- shared Fire TV HD and 4K output envelopes
+- H.264 for HD, HEVC for UHD
+- HD lane currently maps to Fire TV Stick Lite
+- 4K lane currently maps to Fire TV Stick 4K and Fire TV Stick 4K Max
+- subtitle policy: `all_sub_preserve` + `subtitle_convert`
+- audio policy: `audio_conform`
+- `aggressive_vmaf` stays optional and video-only
+- details + flow: [Fire TV Family All Sub Convert Audio Conform Pack](profiles/packs/fire-tv-family-all-sub-convert-audio-conform.md)
+
+## Chromecast Google TV Family All Sub Convert Audio Conform
+
+Pack id: `chromecast_google_tv_family_all_sub_convert_audio_conform`
+
+Focus:
+
+- shared Chromecast with Google TV HD and 4K output envelopes
+- H.264 for HD, HEVC for UHD
+- HD lane currently maps to Chromecast with Google TV HD
+- 4K lane currently maps to Chromecast with Google TV 4K
+- subtitle policy: `all_sub_preserve` + `subtitle_convert`
+- audio policy: `audio_conform`
+- prefer fragmented MP4 while still preserving subtitles/audio safely
+- details + flow: [Chromecast Google TV Family All Sub Convert Audio Conform Pack](profiles/packs/chromecast-google-tv-family-all-sub-convert-audio-conform.md)
+
+## Apple TV Family All Sub Convert Audio Conform
+
+Pack id: `apple_tv_family_all_sub_convert_audio_conform`
+
+Focus:
+
+- shared Apple TV HD and 4K output envelopes
+- H.264 for HD, HEVC for UHD
+- HD lane currently maps to Apple TV HD
+- 4K lane currently maps to Apple TV 4K
+- subtitle policy: `all_sub_preserve` + `subtitle_convert`
+- audio policy: `audio_conform`
+- keep fragmented MP4 as the preferred delivery target
+- details + flow: [Apple TV Family All Sub Convert Audio Conform Pack](profiles/packs/apple-tv-family-all-sub-convert-audio-conform.md)
+
+## Fire TV Stick 4K DV All Sub Convert Audio Conform
+
+Pack id: `fire_tv_stick_4k_dv_all_sub_convert_audio_conform`
+
+Focus:
+
+- explicit Dolby Vision-capable Fire TV Stick 4K lane
+- HEVC 4K with DV retention when possible
+- maps to the Fire TV Stick 4K DV-oriented device lane rather than the generic 4K family baseline
+- subtitle policy: `all_sub_preserve` + `subtitle_convert`
+- audio policy: `audio_conform`
+- keep quality mode standard today so DV handling stays predictable
+- details + flow: [Fire TV Stick 4K DV All Sub Convert Audio Conform Pack](profiles/packs/fire-tv-stick-4k-dv-all-sub-convert-audio-conform.md)
 
 ## Craigstreamy HEVC All Sub Preserve
 
@@ -172,14 +252,16 @@ Included active profiles:
 
 ## Device Targets Open Audio
 
+Legacy compatibility pack.
+
 Pack id: `device_targets_open_audio`
 
 Focus:
 
-- device-shaped starter profiles
+- older umbrella of device-shaped starter profiles
 - compatibility-first output envelopes
 - open audio stream preservation strategy where possible
-- optimize for broad playback success across popular streaming devices
+- superseded for day-to-day use by the explicit family/device packs above
 - details + flow: [Device Targets Open Audio Pack](profiles/packs/device-targets-open-audio.md)
 
 ## Balanced Open Audio
@@ -188,7 +270,7 @@ Pack id: `balanced_open_audio`
 
 Focus:
 
-- simple balanced 4K and 1080 lanes
+- simple balanced 4K, 1080p, and legacy sub-HD lanes
 - easy starting point before device-specific tuning
 - strong baseline when you want predictable outputs with minimal profile complexity
 - details + flow: [Balanced Open Audio Pack](profiles/packs/balanced-open-audio.md)

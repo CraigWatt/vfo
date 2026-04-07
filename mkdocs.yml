@@ -66,7 +66,27 @@ nav:
           - Pack Overview: profiles/packs/balanced-open-audio.md
           - 4K Balanced Open Audio: profiles/generated/balanced-4k-open-audio.md
           - 1080p Balanced Open Audio: profiles/generated/balanced-1080-open-audio.md
-      - Device Targets Open Audio:
+          - Legacy Sub-HD Balanced Open Audio: profiles/generated/balanced-legacy-subhd-open-audio.md
+      - Roku Family All Sub Convert Audio Conform:
+          - Pack Overview: profiles/packs/roku-family-all-sub-convert-audio-conform.md
+          - HD Roku Family All Sub Convert Audio Conform: profiles/generated/roku-family-hd-all-sub-convert-audio-conform.md
+          - 4K Roku Family All Sub Convert Audio Conform: profiles/generated/roku-family-4k-all-sub-convert-audio-conform.md
+      - Fire TV Family All Sub Convert Audio Conform:
+          - Pack Overview: profiles/packs/fire-tv-family-all-sub-convert-audio-conform.md
+          - HD Fire TV Family All Sub Convert Audio Conform: profiles/generated/fire-tv-family-hd-all-sub-convert-audio-conform.md
+          - 4K Fire TV Family All Sub Convert Audio Conform: profiles/generated/fire-tv-family-4k-all-sub-convert-audio-conform.md
+      - Chromecast Google TV Family All Sub Convert Audio Conform:
+          - Pack Overview: profiles/packs/chromecast-google-tv-family-all-sub-convert-audio-conform.md
+          - HD Chromecast Google TV Family All Sub Convert Audio Conform: profiles/generated/chromecast-google-tv-family-hd-all-sub-convert-audio-conform.md
+          - 4K Chromecast Google TV Family All Sub Convert Audio Conform: profiles/generated/chromecast-google-tv-family-4k-all-sub-convert-audio-conform.md
+      - Apple TV Family All Sub Convert Audio Conform:
+          - Pack Overview: profiles/packs/apple-tv-family-all-sub-convert-audio-conform.md
+          - HD Apple TV Family All Sub Convert Audio Conform: profiles/generated/apple-tv-family-hd-all-sub-convert-audio-conform.md
+          - 4K Apple TV Family All Sub Convert Audio Conform: profiles/generated/apple-tv-family-4k-all-sub-convert-audio-conform.md
+      - Fire TV Stick 4K DV All Sub Convert Audio Conform:
+          - Pack Overview: profiles/packs/fire-tv-stick-4k-dv-all-sub-convert-audio-conform.md
+          - Fire TV Stick 4K DV All Sub Convert Audio Conform: profiles/generated/fire-tv-stick-4k-dv-all-sub-convert-audio-conform.md
+      - Device Targets Open Audio (Legacy):
           - Pack Overview: profiles/packs/device-targets-open-audio.md
           - Roku Express 1080 Open Audio: profiles/generated/roku-express-1080-open-audio.md
           - Roku 4K Open Audio: profiles/generated/roku-4k-open-audio.md

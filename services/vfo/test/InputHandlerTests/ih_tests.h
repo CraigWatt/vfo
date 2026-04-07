@@ -66,6 +66,11 @@ void test_ih_stock_preset_resolution_supports_video_only_aggressive_vmaf_pack(vo
 void test_ih_stock_preset_resolution_supports_all_sub_preserve_pack(void **state);
 void test_ih_stock_preset_resolution_supports_all_sub_audio_conform_pack(void **state);
 void test_ih_stock_preset_resolution_supports_audio_conform_pack(void **state);
+void test_ih_stock_preset_resolution_supports_roku_family_pack(void **state);
+void test_ih_stock_preset_resolution_supports_fire_tv_family_pack(void **state);
+void test_ih_stock_preset_resolution_supports_chromecast_family_pack(void **state);
+void test_ih_stock_preset_resolution_supports_apple_tv_family_pack(void **state);
+void test_ih_stock_preset_resolution_supports_fire_tv_dv_pack(void **state);
 void test_ih_stock_preset_resolution_supports_subtitle_convert_pack(void **state);
 void test_ih_stock_preset_resolution_supports_subtitle_convert_audio_conform_pack(void **state);
 

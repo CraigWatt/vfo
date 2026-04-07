@@ -10,6 +10,7 @@
 
 - `balanced_4k_open_audio`
 - `balanced_1080_open_audio`
+- `balanced_legacy_subhd_open_audio`
 
 ## Encoder behavior
 
@@ -22,8 +23,13 @@ See:
 
 - `transcode_hevc_4k_profile.sh`
 - `transcode_hevc_1080_profile.sh`
+- `transcode_hevc_legacy_all_sub_preserve_profile.sh`
 
 These command names work out of the box after `.pkg` install or `make install`.
+
+The new legacy sub-HD lane keeps the same easy-start posture, but uses the
+safer legacy HEVC action so smaller catalog titles still preserve subtitle
+streams where possible instead of falling off the pack entirely.
 
 ## File
 

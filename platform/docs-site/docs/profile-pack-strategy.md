@@ -61,6 +61,7 @@ That includes:
 - audio preserve vs audio conform
 - codec-family changes
 - delivery family changes
+- materially different device-spec envelopes inside a family
 
 Examples:
 
@@ -68,8 +69,18 @@ Examples:
 - `preserve` vs `subtitle_convert`
 - `audio_preserve` vs `audio_conform`
 - `hevc` vs future `av1_dv_safe`
+- generic starter pack vs explicit device-family delivery pack
 
 These are the kinds of choices users actually think in.
+
+For device-target packs, the right shape is:
+
+- keep one pack per shared family when the underlying playback envelope is truly shared
+- list the concrete covered devices inside that pack
+- split into another profile or pack when a device diverges in a meaningful way
+
+So a family pack is still device-specific in intent; it is just allowed to group
+multiple retail products when their practical baseline spec is the same.
 
 ## What Should Not Be A Pack First?
 
@@ -96,7 +107,12 @@ Those should start as quality modes layered on existing packs.
 Current stock packs in the repository are:
 
 - `balanced_open_audio`
-- `device_targets_open_audio`
+- `roku_family_all_sub_convert_audio_conform`
+- `fire_tv_family_all_sub_convert_audio_conform`
+- `chromecast_google_tv_family_all_sub_convert_audio_conform`
+- `apple_tv_family_all_sub_convert_audio_conform`
+- `fire_tv_stick_4k_dv_all_sub_convert_audio_conform`
+- `device_targets_open_audio` (legacy compatibility)
 - `craigstreamy_hevc_selected_english_subtitle_preserve`
 - `craigstreamy_hevc_all_sub_preserve`
 - `craigstreamy_hevc_smart_eng_sub_audio_conform`
@@ -119,6 +135,16 @@ Conceptually, the current `craigstreamy` packs map like this:
 | `craigstreamy_hevc_smart_eng_sub_aggressive_vmaf` | `smart_eng_sub + preserve` | preserve | `aggressive_vmaf` |
 | `craigstreamy_hevc_smart_eng_sub_audio_conform_aggressive_vmaf` | `smart_eng_sub + preserve` | `audio_conform` | `aggressive_vmaf` |
 
+The newer device-family packs map like this:
+
+| Pack | Delivery family | Subtitle policy | Audio policy | Quality mode |
+| --- | --- | --- | --- | --- |
+| `roku_family_all_sub_convert_audio_conform` | Roku HD + 4K | `all_sub_preserve + subtitle_convert` | `audio_conform` | `standard` or video-only `aggressive_vmaf` |
+| `fire_tv_family_all_sub_convert_audio_conform` | Fire TV HD + 4K | `all_sub_preserve + subtitle_convert` | `audio_conform` | `standard` or video-only `aggressive_vmaf` |
+| `chromecast_google_tv_family_all_sub_convert_audio_conform` | Chromecast Google TV HD + 4K | `all_sub_preserve + subtitle_convert` | `audio_conform` | `standard` or video-only `aggressive_vmaf` |
+| `apple_tv_family_all_sub_convert_audio_conform` | Apple TV HD + 4K | `all_sub_preserve + subtitle_convert` | `audio_conform` | `standard` or video-only `aggressive_vmaf` |
+| `fire_tv_stick_4k_dv_all_sub_convert_audio_conform` | Fire TV Stick 4K DV | `all_sub_preserve + subtitle_convert` | `audio_conform` | `standard` |
+
 ## Current Explicit Pack Surface
 
 To give users a meaningful but still manageable pack choice surface, the current shipped craigstreamy set now reads as:
@@ -136,6 +162,7 @@ Why this shape:
 - they reuse the now-defined audio policy split cleanly
 - they expose video-only aggressive VMAF separately from audio-conform aggressive VMAF
 - they keep the mental model obvious without exposing internal knobs as the primary UX
+- the device-family packs turn vague umbrella targets into explicit playback families without multiplying one pack per retail SKU
 
 ## Recommended Pack Matrix
 
