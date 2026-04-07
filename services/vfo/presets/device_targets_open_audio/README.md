@@ -1,12 +1,15 @@
 # device_targets_open_audio
 
-`device_targets_open_audio` is a stock preset pack for practical streaming-device targets.
+`device_targets_open_audio` is the older stock preset umbrella for practical
+streaming-device targets.
 
 Design goals:
 
 - conservative playback compatibility baselines for common OTT sticks/boxes
 - preserve audio/subtitle streams when possible (`-c:a copy -c:s copy`)
 - keep profile blocks simple and action-script-driven
+- remain available for compatibility while the newer explicit family/device
+  packs take over as the clearer default
 
 Included profiles:
 
@@ -24,6 +27,13 @@ Included profiles:
 Important:
 
 - These are conservative baseline profiles, not a guarantee for every firmware/model revision.
+- Prefer the newer explicit device packs when you want fixed subtitle/audio
+  policy in the pack name:
+  - `roku_family_all_sub_convert_audio_conform`
+  - `fire_tv_family_all_sub_convert_audio_conform`
+  - `chromecast_google_tv_family_all_sub_convert_audio_conform`
+  - `apple_tv_family_all_sub_convert_audio_conform`
+  - `fire_tv_stick_4k_dv_all_sub_convert_audio_conform`
 - 1080 SDR-target profiles use explicit HDR->SDR conversion action:
   - `transcode_h264_1080_hdr_to_sdr_profile.sh`
   - when the runner lacks the full HDR tonemap filters, that action now falls back to an SDR-signaled compatibility transcode rather than failing PQ/HLG inputs outright

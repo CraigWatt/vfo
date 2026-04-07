@@ -1,12 +1,15 @@
 # Device Targets Open Audio Pack
 
-This pack provides compatibility-shaped profiles for common streaming device families.
+Legacy compatibility pack.
+
+This pack provides the older compatibility-shaped profiles for common streaming devices.
 
 ## Outcome Target
 
 - maximize practical playback success on mainstream devices
 - keep output envelopes explicit per device family
 - preserve audio flexibility while remaining compatibility-first
+- remain available for compatibility while the newer explicit family packs take over as the clearer default
 
 ## Focus
 
@@ -14,6 +17,12 @@ This pack provides compatibility-shaped profiles for common streaming device fam
 - compatibility-first packaging approach
 - open audio stream strategy where possible
 - explicit SDR-target fallback on the 1080 H.264 lane when PQ/HLG inputs arrive without the full HDR tonemap filter stack
+- superseded by:
+  - `roku_family_all_sub_convert_audio_conform`
+  - `fire_tv_family_all_sub_convert_audio_conform`
+  - `chromecast_google_tv_family_all_sub_convert_audio_conform`
+  - `apple_tv_family_all_sub_convert_audio_conform`
+  - `fire_tv_stick_4k_dv_all_sub_convert_audio_conform`
 
 ## Included Profiles
 

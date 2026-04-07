@@ -14,10 +14,9 @@ CLIP_DURATION="${VFO_E2E_CLIP_DURATION:-2}"
 MAX_SEEDS="${VFO_E2E_MAX_SEEDS:-1}"
 KEEP_TMP="${VFO_E2E_KEEP_TMP:-0}"
 
-ACTION_HEVC_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_profile.sh"
-ACTION_HEVC_1080="${ROOT_DIR}/services/vfo/actions/transcode_hevc_1080_profile.sh"
+ACTION_HEVC_4K="${ROOT_DIR}/services/vfo/actions/transcode_hevc_4k_all_sub_convert_audio_conform_profile.sh"
 # Explicit conversion lane for SDR-target checks.
-ACTION_H264_1080_HDR_TO_SDR="${ROOT_DIR}/services/vfo/actions/transcode_h264_1080_hdr_to_sdr_profile.sh"
+ACTION_H264_1080_HDR_TO_SDR="${ROOT_DIR}/services/vfo/actions/transcode_h264_1080_all_sub_convert_audio_conform_profile.sh"
 VALIDATOR="${ROOT_DIR}/tests/e2e/validate_device_conformance.sh"
 
 log() {
@@ -146,9 +145,8 @@ run_seed_suite() {
   local seed_index="$1"
   local seed_input="$2"
   local in_2160="${FIXTURES_DIR}/seed_${seed_index}_input_2160.mkv"
-  local out_hevc_4k="${OUTPUTS_DIR}/seed_${seed_index}_hevc_4k.mkv"
-  local out_hevc_1080="${OUTPUTS_DIR}/seed_${seed_index}_hevc_1080.mkv"
-  local out_h264_1080_sdr="${OUTPUTS_DIR}/seed_${seed_index}_h264_1080_sdr.mkv"
+  local out_hevc_4k="${OUTPUTS_DIR}/seed_${seed_index}_device_family_4k.mkv"
+  local out_h264_1080_sdr="${OUTPUTS_DIR}/seed_${seed_index}_device_family_hd.mkv"
 
   WEB_APP_SELECTED_ASSET="$(basename "$seed_input")"
   WEB_APP_ASSET_STATUS="Complete"
@@ -156,9 +154,8 @@ run_seed_suite() {
   log "Building fixture for seed #${seed_index}: ${seed_input}"
   create_fixture_from_input "$seed_input" 3840 2160 "$in_2160"
 
-  log "Running profile actions for seed #${seed_index}"
+  log "Running device-family profile actions for seed #${seed_index}"
   run_action "$ACTION_HEVC_4K" "$in_2160" "$out_hevc_4k"
-  run_action "$ACTION_HEVC_1080" "$in_2160" "$out_hevc_1080"
   run_action "$ACTION_H264_1080_HDR_TO_SDR" "$in_2160" "$out_h264_1080_sdr"
 
   log "Validating device conformance for seed #${seed_index}"
@@ -223,7 +220,6 @@ main() {
     "run_device_conformance_e2e" \
     ffmpeg ffprobe
   [ -x "$ACTION_HEVC_4K" ] || fail "Missing action script: $ACTION_HEVC_4K"
-  [ -x "$ACTION_HEVC_1080" ] || fail "Missing action script: $ACTION_HEVC_1080"
   [ -x "$ACTION_H264_1080_HDR_TO_SDR" ] || fail "Missing action script: $ACTION_H264_1080_HDR_TO_SDR"
   [ -x "$VALIDATOR" ] || fail "Missing conformance validator: $VALIDATOR"
 

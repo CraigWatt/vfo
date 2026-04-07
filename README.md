@@ -311,7 +311,12 @@ Wizard behavior highlights:
 - safe config writes (temporary file + atomic replace + timestamped backup)
 - stock preset multi-select across the current shipped packs, including:
   - `balanced_open_audio`
-  - `device_targets_open_audio`
+  - `roku_family_all_sub_convert_audio_conform`
+  - `fire_tv_family_all_sub_convert_audio_conform`
+  - `chromecast_google_tv_family_all_sub_convert_audio_conform`
+  - `apple_tv_family_all_sub_convert_audio_conform`
+  - `fire_tv_stick_4k_dv_all_sub_convert_audio_conform`
+  - `device_targets_open_audio` (legacy compatibility)
   - `craigstreamy_hevc_selected_english_subtitle_preserve`
   - `craigstreamy_hevc_all_sub_preserve`
   - `craigstreamy_hevc_smart_eng_sub_audio_conform`

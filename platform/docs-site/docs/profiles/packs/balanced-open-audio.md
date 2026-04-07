@@ -11,6 +11,7 @@ This pack provides simple baseline lanes for broad usage before device-specific 
 ## Focus
 
 - easy 4K and 1080p starter targets
+- new legacy sub-HD lane for smaller catalog material
 - open audio stream strategy where possible
 - straightforward criteria envelopes for quick setup
 
@@ -18,6 +19,7 @@ This pack provides simple baseline lanes for broad usage before device-specific 
 
 - [balanced_4k_open_audio](../generated/balanced-4k-open-audio.md)
 - [balanced_1080_open_audio](../generated/balanced-1080-open-audio.md)
+- [balanced_legacy_subhd_open_audio](../generated/balanced-legacy-subhd-open-audio.md)
 
 ## Pack Flow
 
@@ -31,7 +33,10 @@ flowchart TD
   B -->|Yes| C[balanced_4k_open_audio]:::stage
   B -->|No| D{Matches 1080p balanced envelope?}:::gate
   D -->|Yes| E[balanced_1080_open_audio]:::stage
-  D -->|No| F[Handled by other profile or skipped]:::stage
-  C --> G[Profile output written]:::output
-  E --> H[Profile output written]:::output
+  D -->|No| F{Matches legacy sub-HD envelope?}:::gate
+  F -->|Yes| G[balanced_legacy_subhd_open_audio]:::stage
+  F -->|No| H[Handled by other profile or skipped]:::stage
+  C --> I[Profile output written]:::output
+  E --> J[Profile output written]:::output
+  G --> K[Profile output written]:::output
 ```

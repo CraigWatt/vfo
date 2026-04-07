@@ -34,6 +34,7 @@ Today, `vfo` supports:
 - optional strict threshold gating
 - optional VMAF scoring when `ffmpeg` exposes `libvmaf`
 - bounded aggressive-VMAF retries on the HEVC subtitle-intent family
+- video-only aggressive-VMAF retries on the device-family HD/4K actions where transfer behavior stays compatible
 
 Today, `vfo` still does **not** yet support:
 
@@ -68,7 +69,7 @@ The intent is:
 - make video encoding more aggressive **only until** the VMAF floor would be missed
 
 This is the active aggressive quality mode for `craigstreamy`.
-It is currently implemented on the shipped aggressive craigstreamy packs while keeping audio and subtitle policy fixed.
+It is currently implemented on the shipped aggressive craigstreamy packs and on the new device-family actions while keeping audio and subtitle policy fixed.
 
 ## What `aggressive_vmaf` Means
 
@@ -217,6 +218,12 @@ Recommended first target:
 - leave subtitle policy untouched
 - bounded retry loop
 - user-overridable VMAF floor
+
+Current device-family note:
+
+- the HD H.264 device-family lane now supports the same bounded video-only search
+- the 4K HEVC device-family lane inherits the HEVC aggressive-VMAF behavior
+- the explicit DV family lane stays standard today so DV handling remains predictable
 
 The current shipped aggressive aliases are:
 

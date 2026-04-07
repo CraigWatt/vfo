@@ -45,4 +45,10 @@ Conformance checks provide a fast "will this likely play?" signal by validating 
 
 - validator: `tests/e2e/validate_device_conformance.sh`
 - e2e harness: `tests/e2e/run_device_conformance_e2e.sh`
-- stock presets: `services/vfo/presets/device_targets_open_audio/`
+- stock presets:
+  - `services/vfo/presets/roku-family-all-sub-convert-audio-conform/`
+  - `services/vfo/presets/fire-tv-family-all-sub-convert-audio-conform/`
+  - `services/vfo/presets/chromecast-google-tv-family-all-sub-convert-audio-conform/`
+  - `services/vfo/presets/apple-tv-family-all-sub-convert-audio-conform/`
+  - `services/vfo/presets/fire-tv-stick-4k-dv-all-sub-convert-audio-conform/`
+  - `services/vfo/presets/device_targets_open_audio/` (legacy compatibility)

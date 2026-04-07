@@ -12,9 +12,18 @@ bash infra/scripts/generate-profile-docs.sh
 
 ## Profiles
 
+## Apple TV Family All Sub Convert Audio Conform
+- [Apple TV Family HD All Subtitle Convert Audio Conform](generated/apple-tv-family-hd-all-sub-convert-audio-conform.md)
+- [Apple TV Family 4K All Subtitle Convert Audio Conform](generated/apple-tv-family-4k-all-sub-convert-audio-conform.md)
+
 ## Balanced Open Audio
 - [Balanced 4K Open Audio](generated/balanced-4k-open-audio.md)
 - [Balanced 1080 Open Audio](generated/balanced-1080-open-audio.md)
+- [Balanced Legacy Sub-HD Open Audio](generated/balanced-legacy-subhd-open-audio.md)
+
+## Chromecast Google TV Family All Sub Convert Audio Conform
+- [Chromecast Google TV Family HD All Subtitle Convert Audio Conform](generated/chromecast-google-tv-family-hd-all-sub-convert-audio-conform.md)
+- [Chromecast Google TV Family 4K All Subtitle Convert Audio Conform](generated/chromecast-google-tv-family-4k-all-sub-convert-audio-conform.md)
 
 ## Craigstreamy HEVC All Sub Audio Conform
 - [Craigstreamy HEVC All Subtitles Audio Conform 4K](generated/craigstreamy-hevc-all-sub-audio-conform-4k.md)
@@ -56,7 +65,7 @@ bash infra/scripts/generate-profile-docs.sh
 - [Craigstreamy HEVC Smart English Subtitle Convert 1080p](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-1080p.md)
 - [Craigstreamy HEVC Smart English Subtitle Convert Legacy Sub-HD](generated/craigstreamy-hevc-smart-eng-sub-subtitle-convert-legacy-subhd.md)
 
-## Device Targets Open Audio
+## Device Targets Open Audio (Legacy)
 - [Roku Express 1080 Open Audio](generated/roku-express-1080-open-audio.md)
 - [Roku 4K Open Audio](generated/roku-4k-open-audio.md)
 - [Fire TV Stick Lite 1080 Open Audio](generated/fire-tv-stick-lite-1080-open-audio.md)
@@ -67,3 +76,14 @@ bash infra/scripts/generate-profile-docs.sh
 - [Apple TV HD Open Audio](generated/apple-tv-hd-open-audio.md)
 - [Apple TV 4K Open Audio](generated/apple-tv-4k-open-audio.md)
 - [Fire TV Stick 4K DV Open Audio](generated/fire-tv-stick-4k-dv-open-audio.md)
+
+## Fire TV Family All Sub Convert Audio Conform
+- [Fire TV Family HD All Subtitle Convert Audio Conform](generated/fire-tv-family-hd-all-sub-convert-audio-conform.md)
+- [Fire TV Family 4K All Subtitle Convert Audio Conform](generated/fire-tv-family-4k-all-sub-convert-audio-conform.md)
+
+## Fire TV Stick 4K DV All Sub Convert Audio Conform
+- [Fire TV Stick 4K DV All Subtitle Convert Audio Conform](generated/fire-tv-stick-4k-dv-all-sub-convert-audio-conform.md)
+
+## Roku Family All Sub Convert Audio Conform
+- [Roku Family HD All Subtitle Convert Audio Conform](generated/roku-family-hd-all-sub-convert-audio-conform.md)
+- [Roku Family 4K All Subtitle Convert Audio Conform](generated/roku-family-4k-all-sub-convert-audio-conform.md)
