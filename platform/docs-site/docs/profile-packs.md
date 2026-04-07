@@ -67,6 +67,8 @@ Focus:
 
 - Roku-shaped HD and 4K output envelopes inside one explicit family pack
 - H.264 for HD, HEVC for UHD
+- HD lane currently maps to Roku Express 1080-class devices
+- 4K lane currently maps to Roku 4K-class devices
 - subtitle policy: `all_sub_preserve` + `subtitle_convert`
 - preserve AAC and Dolby-family audio where already acceptable
 - conform DTS-family and PCM-family audio when needed
@@ -81,6 +83,8 @@ Focus:
 
 - shared Fire TV HD and 4K output envelopes
 - H.264 for HD, HEVC for UHD
+- HD lane currently maps to Fire TV Stick Lite
+- 4K lane currently maps to Fire TV Stick 4K and Fire TV Stick 4K Max
 - subtitle policy: `all_sub_preserve` + `subtitle_convert`
 - audio policy: `audio_conform`
 - `aggressive_vmaf` stays optional and video-only
@@ -94,6 +98,8 @@ Focus:
 
 - shared Chromecast with Google TV HD and 4K output envelopes
 - H.264 for HD, HEVC for UHD
+- HD lane currently maps to Chromecast with Google TV HD
+- 4K lane currently maps to Chromecast with Google TV 4K
 - subtitle policy: `all_sub_preserve` + `subtitle_convert`
 - audio policy: `audio_conform`
 - prefer fragmented MP4 while still preserving subtitles/audio safely
@@ -107,6 +113,8 @@ Focus:
 
 - shared Apple TV HD and 4K output envelopes
 - H.264 for HD, HEVC for UHD
+- HD lane currently maps to Apple TV HD
+- 4K lane currently maps to Apple TV 4K
 - subtitle policy: `all_sub_preserve` + `subtitle_convert`
 - audio policy: `audio_conform`
 - keep fragmented MP4 as the preferred delivery target
@@ -120,6 +128,7 @@ Focus:
 
 - explicit Dolby Vision-capable Fire TV Stick 4K lane
 - HEVC 4K with DV retention when possible
+- maps to the Fire TV Stick 4K DV-oriented device lane rather than the generic 4K family baseline
 - subtitle policy: `all_sub_preserve` + `subtitle_convert`
 - audio policy: `audio_conform`
 - keep quality mode standard today so DV handling stays predictable

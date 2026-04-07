@@ -17,6 +17,17 @@ delivery behavior.
 - `audio_conform` for DTS-family and PCM-family sources
 - optional video-only `aggressive_vmaf`
 
+## Covered Device Baselines
+
+| Profile | Current device baseline | Notes |
+| --- | --- | --- |
+| `fire_tv_family_hd_all_sub_convert_audio_conform` | Fire TV Stick Lite | Conservative HD Fire TV baseline |
+| `fire_tv_family_4k_all_sub_convert_audio_conform` | Fire TV Stick 4K and Fire TV Stick 4K Max | Shared conservative UHD baseline; no AV1-specialized path yet |
+
+This pack is family-scoped, but the baselines inside it are still device-driven.
+If Fire TV 4K Max or a later Fire TV line needs a materially different spec, it
+should get its own profile or pack.
+
 ## Included Profiles
 
 - [fire_tv_family_hd_all_sub_convert_audio_conform](../generated/fire-tv-family-hd-all-sub-convert-audio-conform.md)

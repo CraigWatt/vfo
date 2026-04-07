@@ -17,3 +17,7 @@ It is designed to:
 Included profiles:
 
 - `fire_tv_stick_4k_dv_all_sub_convert_audio_conform`
+
+Current covered device:
+
+- `fire_tv_stick_4k_dv_all_sub_convert_audio_conform`: Fire TV Stick 4K Dolby Vision-capable lane

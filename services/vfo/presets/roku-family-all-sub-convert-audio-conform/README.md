@@ -18,3 +18,8 @@ Included profiles:
 
 - `roku_family_hd_all_sub_convert_audio_conform`
 - `roku_family_4k_all_sub_convert_audio_conform`
+
+Current covered devices:
+
+- `roku_family_hd_all_sub_convert_audio_conform`: Roku Express 1080-class devices
+- `roku_family_4k_all_sub_convert_audio_conform`: Roku 4K-class devices

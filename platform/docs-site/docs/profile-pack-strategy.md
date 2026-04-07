@@ -61,6 +61,7 @@ That includes:
 - audio preserve vs audio conform
 - codec-family changes
 - delivery family changes
+- materially different device-spec envelopes inside a family
 
 Examples:
 
@@ -71,6 +72,15 @@ Examples:
 - generic starter pack vs explicit device-family delivery pack
 
 These are the kinds of choices users actually think in.
+
+For device-target packs, the right shape is:
+
+- keep one pack per shared family when the underlying playback envelope is truly shared
+- list the concrete covered devices inside that pack
+- split into another profile or pack when a device diverges in a meaningful way
+
+So a family pack is still device-specific in intent; it is just allowed to group
+multiple retail products when their practical baseline spec is the same.
 
 ## What Should Not Be A Pack First?
 

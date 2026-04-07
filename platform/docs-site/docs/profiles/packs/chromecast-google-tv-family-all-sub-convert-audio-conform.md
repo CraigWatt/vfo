@@ -16,6 +16,13 @@ This pack provides shared Chromecast with Google TV HD and 4K delivery lanes.
 - `audio_conform` for DTS-family and PCM-family sources
 - optional video-only `aggressive_vmaf`
 
+## Covered Device Baselines
+
+| Profile | Current device baseline | Notes |
+| --- | --- | --- |
+| `chromecast_google_tv_family_hd_all_sub_convert_audio_conform` | Chromecast with Google TV HD | Conservative HD baseline |
+| `chromecast_google_tv_family_4k_all_sub_convert_audio_conform` | Chromecast with Google TV 4K | Conservative UHD baseline |
+
 ## Included Profiles
 
 - [chromecast_google_tv_family_hd_all_sub_convert_audio_conform](../generated/chromecast-google-tv-family-hd-all-sub-convert-audio-conform.md)

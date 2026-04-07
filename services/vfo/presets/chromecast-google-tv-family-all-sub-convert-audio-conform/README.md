@@ -18,3 +18,8 @@ Included profiles:
 
 - `chromecast_google_tv_family_hd_all_sub_convert_audio_conform`
 - `chromecast_google_tv_family_4k_all_sub_convert_audio_conform`
+
+Current covered devices:
+
+- `chromecast_google_tv_family_hd_all_sub_convert_audio_conform`: Chromecast with Google TV HD
+- `chromecast_google_tv_family_4k_all_sub_convert_audio_conform`: Chromecast with Google TV 4K

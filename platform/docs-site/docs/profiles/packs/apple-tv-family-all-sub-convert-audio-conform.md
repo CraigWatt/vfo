@@ -17,6 +17,13 @@ subtitle/audio handling.
 - `audio_conform` for DTS-family and PCM-family sources
 - optional video-only `aggressive_vmaf`
 
+## Covered Device Baselines
+
+| Profile | Current device baseline | Notes |
+| --- | --- | --- |
+| `apple_tv_family_hd_all_sub_convert_audio_conform` | Apple TV HD | Conservative HD baseline |
+| `apple_tv_family_4k_all_sub_convert_audio_conform` | Apple TV 4K | Conservative UHD baseline |
+
 ## Included Profiles
 
 - [apple_tv_family_hd_all_sub_convert_audio_conform](../generated/apple-tv-family-hd-all-sub-convert-audio-conform.md)

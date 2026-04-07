@@ -18,3 +18,8 @@ Included profiles:
 
 - `fire_tv_family_hd_all_sub_convert_audio_conform`
 - `fire_tv_family_4k_all_sub_convert_audio_conform`
+
+Current covered devices:
+
+- `fire_tv_family_hd_all_sub_convert_audio_conform`: Fire TV Stick Lite
+- `fire_tv_family_4k_all_sub_convert_audio_conform`: Fire TV Stick 4K and Fire TV Stick 4K Max

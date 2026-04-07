@@ -18,3 +18,8 @@ Included profiles:
 
 - `apple_tv_family_hd_all_sub_convert_audio_conform`
 - `apple_tv_family_4k_all_sub_convert_audio_conform`
+
+Current covered devices:
+
+- `apple_tv_family_hd_all_sub_convert_audio_conform`: Apple TV HD
+- `apple_tv_family_4k_all_sub_convert_audio_conform`: Apple TV 4K

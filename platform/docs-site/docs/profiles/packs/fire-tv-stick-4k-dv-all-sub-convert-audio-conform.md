@@ -16,6 +16,12 @@ This pack provides the explicit Dolby Vision-capable Fire TV Stick 4K lane.
 - `audio_conform` for DTS-family and PCM-family sources
 - standard quality mode today so DV handling remains predictable
 
+## Covered Device Baseline
+
+| Profile | Current device baseline | Notes |
+| --- | --- | --- |
+| `fire_tv_stick_4k_dv_all_sub_convert_audio_conform` | Fire TV Stick 4K Dolby Vision-capable lane | Explicit DV-oriented device lane, kept separate from the broader Fire TV family pack |
+
 ## Included Profiles
 
 - [fire_tv_stick_4k_dv_all_sub_convert_audio_conform](../generated/fire-tv-stick-4k-dv-all-sub-convert-audio-conform.md)

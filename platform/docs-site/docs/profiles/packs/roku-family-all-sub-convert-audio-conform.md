@@ -17,6 +17,16 @@ delivery-friendly subtitle/audio handling.
 - `audio_conform` for DTS-family and PCM-family sources
 - optional video-only `aggressive_vmaf`
 
+## Covered Device Baselines
+
+| Profile | Current device baseline | Notes |
+| --- | --- | --- |
+| `roku_family_hd_all_sub_convert_audio_conform` | Roku Express 1080-class devices | Conservative HD Roku baseline |
+| `roku_family_4k_all_sub_convert_audio_conform` | Roku 4K-class devices | Conservative UHD Roku baseline |
+
+If more Roku models diverge materially later, we should split them into another
+profile rather than pretending one shared envelope fits everything forever.
+
 ## Included Profiles
 
 - [roku_family_hd_all_sub_convert_audio_conform](../generated/roku-family-hd-all-sub-convert-audio-conform.md)
