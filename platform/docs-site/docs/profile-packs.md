@@ -8,6 +8,9 @@ Current stock packs in vfo:
 
 Each pack is an outcome preset family. Use packs to choose the behavior you want first, then tune criteria/actions if needed.
 
+If you want to see how these stock packs could be expressed declaratively, read
+[Profile Pack YAML Examples](profile-pack-yaml-examples.md).
+
 ## craigstreamy_hevc_selected_english_subtitle_preserve
 
 Focus:

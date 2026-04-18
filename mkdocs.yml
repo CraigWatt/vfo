@@ -13,6 +13,7 @@ nav:
   - Flow Levels: flow-levels.md
   - Profile Visual Standard: profile-visual-standard.md
   - Profile Packs: profile-packs.md
+  - Profile Pack YAML Examples: profile-pack-yaml-examples.md
   - Capability Matrix: profile-capability-matrix.md
   - Latest E2E Toolchain: e2e-toolchain-latest.md
   - Observability Contract: observability-contract.md
