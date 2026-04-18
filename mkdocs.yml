@@ -16,6 +16,7 @@ nav:
   - Profile Pack Strategy: profile-pack-strategy.md
   - Subtitle Policy: subtitle-policy-taxonomy.md
   - Quality Modes: quality-mode-taxonomy.md
+  - Profile Pack YAML Examples: profile-pack-yaml-examples.md
   - Capability Matrix: profile-capability-matrix.md
   - Latest E2E Toolchain: e2e-toolchain-latest.md
   - Observability Contract: observability-contract.md
