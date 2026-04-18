@@ -43,6 +43,9 @@ Quality behavior is also orthogonal to pack names:
 
 Read [Quality Modes](quality-mode-taxonomy.md) for the quality-mode model and the current implementation boundary.
 
+If you want to see how these stock packs could be expressed declaratively, read
+[Profile Pack YAML Examples](profile-pack-yaml-examples.md).
+
 ## Selection Model
 
 Use this shorthand:
@@ -221,12 +224,9 @@ Pack id: `craigstreamy_hevc_smart_eng_sub_subtitle_convert_audio_conform`
 
 Focus:
 
-- practical HEVC bitrate reduction approach
 - subtitle policy: `smart_eng_sub` + `subtitle_convert`
-- preserve AAC and Dolby-family audio when already acceptable
-- conform DTS-family and PCM-family audio when needed
-- convert selected text subtitles into delivery-friendly text when MP4 remains viable
-- preserve selected subtitles in MKV rather than pretending conversion succeeded when another constraint forces MKV
+- audio policy: `audio_conform`
+- keep subtitle conversion intent while bringing audio into a delivery-conform shape when needed
 - details + flow: [Craigstreamy HEVC Smart Eng Sub Subtitle Convert Audio Conform Pack](profiles/packs/craigstreamy-hevc-smart-eng-sub-subtitle-convert-audio-conform.md)
 
 ## Craigstreamy HEVC Selected English Subtitle Preserve
@@ -237,40 +237,14 @@ Focus:
 
 - practical HEVC bitrate reduction approach
 - preserve audio streams
-- subtitle policy: `smart_eng_sub` + `preserve`
+- preserve one selected English subtitle when it appears intent-oriented
 - emit MKV when subtitle intent applies, otherwise stream-ready MP4 (fragmented + init/moov at start by default)
 - prioritize viewing-experience intent over single-container uniformity
 - guardrails: 1080 lane is SDR-only (`bt709`) in 1280x720..1920x1080, 4K lane accepts SDR/HDR in 1920x1080..3840x2160, legacy sub-HD lane is 320x240..1279x719 with broad codec/color intake
 
 Included active profiles:
 
-- `Craigstreamy HEVC Selected English Subtitle Preserve 4K`
-- `Craigstreamy HEVC Selected English Subtitle Preserve 1080p`
-- `Craigstreamy HEVC Selected English Subtitle Preserve Legacy Sub-HD`
-- these map to legacy internal profile ids for compatibility, but the docs surface stays canonical `craigstreamy`
+- `netflixy_preserve_audio_main_subtitle_intent_4k`
+- `netflixy_preserve_audio_main_subtitle_intent_1080p`
+- `netflixy_preserve_audio_main_subtitle_intent_legacy_subhd`
 - details + flow: [Craigstreamy HEVC Selected English Subtitle Preserve Pack](profiles/packs/craigstreamy-hevc-selected-english-subtitle-preserve.md)
-
-## Device Targets Open Audio
-
-Legacy compatibility pack.
-
-Pack id: `device_targets_open_audio`
-
-Focus:
-
-- older umbrella of device-shaped starter profiles
-- compatibility-first output envelopes
-- open audio stream preservation strategy where possible
-- superseded for day-to-day use by the explicit family/device packs above
-- details + flow: [Device Targets Open Audio Pack](profiles/packs/device-targets-open-audio.md)
-
-## Balanced Open Audio
-
-Pack id: `balanced_open_audio`
-
-Focus:
-
-- simple balanced 4K, 1080p, and legacy sub-HD lanes
-- easy starting point before device-specific tuning
-- strong baseline when you want predictable outputs with minimal profile complexity
-- details + flow: [Balanced Open Audio Pack](profiles/packs/balanced-open-audio.md)
