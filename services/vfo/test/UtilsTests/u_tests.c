@@ -95,3 +95,32 @@ void test_utils_create_folder_creates_accessible_directory(void **state) {
   assert_int_equal(rmdir(parent), 0);
   free(child);
 }
+
+void test_utils_is_file_extension_ts(void **state) {
+  (void)state;
+  assert_true(utils_is_file_extension_ts("example.ts"));
+  assert_false(utils_is_file_extension_ts("example.m2ts"));
+  assert_false(utils_is_file_extension_ts("example.mkv"));
+}
+
+void test_utils_is_file_extension_valid_supports_ts_original(void **state) {
+  (void)state;
+  assert_true(utils_is_file_extension_valid("example.ts", "ts_original"));
+  assert_true(utils_is_file_extension_valid("example.m2ts", "m2ts_original"));
+  assert_false(utils_is_file_extension_valid("example.mp4", "ts_original"));
+}
+
+void test_utils_is_file_extension_valid_supports_extended_mezzanine_inputs(void **state) {
+  (void)state;
+  assert_true(utils_is_file_extension_valid("example.webm", "mkv_original"));
+  assert_true(utils_is_file_extension_valid("example.mov", "mp4_original"));
+  assert_true(utils_is_file_extension_valid("example.avi", "mp4_original"));
+  assert_true(utils_is_file_extension_valid("example.mxf", "mp4_original"));
+  assert_true(utils_is_file_extension_valid("example.mts", "m2ts_original"));
+  assert_true(utils_is_file_extension_valid("example.mpg", "ts_original"));
+  assert_true(utils_is_file_extension_valid("example.mpeg", "ts_original"));
+  assert_true(utils_is_file_extension_valid("example.vob", "ts_original"));
+  assert_true(utils_is_file_extension_valid("example.webm", "start"));
+  assert_true(utils_is_file_extension_valid("example.mov", "mp4_mezzanine"));
+  assert_false(utils_is_file_extension_valid("example.txt", "start"));
+}

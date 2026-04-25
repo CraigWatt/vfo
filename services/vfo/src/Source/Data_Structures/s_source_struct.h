@@ -51,6 +51,7 @@ struct source {
   char *original_mkv_original;
   char *original_mp4_original;
   char *original_m2ts_original;
+  char *original_ts_original;
 
   bool source_test;
   char *source_test_start;
@@ -66,5 +67,6 @@ char* s_create_unable_to_process(char *source_root);
 char* s_get_mkv_original_if_it_exists(char *original_root);
 char* s_get_mp4_original_if_it_exists(char *original_root);
 char* s_get_m2ts_original_if_it_exists(char *original_root);
+char* s_get_ts_original_if_it_exists(char *original_root);
 
 #endif // S_SOURCE_STRUCT_H

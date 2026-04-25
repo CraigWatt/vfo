@@ -36,10 +36,20 @@ void m_mezzanine(original_t *original) {
   /* move actions */
   // move all mkv content from start to mkv_original  
   o_move_from_start_to_mkv_original(original);
+  o_move_from_start_to_mkv_original_webm(original);
   // move all mp4 content from start to mp4_original  
   o_move_from_start_to_mp4_original(original);
+  o_move_from_start_to_mp4_original_mov(original);
+  o_move_from_start_to_mp4_original_avi(original);
+  o_move_from_start_to_mp4_original_mxf(original);
   // move all m2ts content from start to m2ts_original
   o_move_from_start_to_m2ts_original(original);
+  o_move_from_start_to_m2ts_original_mts(original);
+  // move all ts content from start to ts_original
+  o_move_from_start_to_ts_original(original);
+  o_move_from_start_to_ts_original_mpg(original);
+  o_move_from_start_to_ts_original_mpeg(original);
+  o_move_from_start_to_ts_original_vob(original);
   
   /* post move checks */
   //might need to add to here in future
@@ -53,10 +63,20 @@ void m_revert_to_mezzanine(original_t *original) {
   utils_wish_to_continue("'pre-move checks'", "'revert-to-start'");
   // move all mkv content from mkv_original to start
   o_move_from_mkv_original_to_start(original);
+  o_move_from_mkv_original_webm_to_start(original);
   // move all mp4 content from mp4_original to start
   o_move_from_mp4_original_to_start(original);
+  o_move_from_mp4_original_mov_to_start(original);
+  o_move_from_mp4_original_avi_to_start(original);
+  o_move_from_mp4_original_mxf_to_start(original);
   // move all m2ts content from m2ts_original to start
   o_move_from_m2ts_original_to_start(original);
+  o_move_from_m2ts_original_mts_to_start(original);
+  // move all ts content from ts_original to start
+  o_move_from_ts_original_to_start(original);
+  o_move_from_ts_original_mpg_to_start(original);
+  o_move_from_ts_original_mpeg_to_start(original);
+  o_move_from_ts_original_vob_to_start(original);
 
   /* post move checks */
   //might need to add to here in future
@@ -104,6 +124,9 @@ void o_pre_move_checks(original_t *original) {
   //is m2ts_original missing any custom folders
   printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/m2ts_original to see if it is missing any custom folders.\n");
   utils_is_folder_missing_custom_folders(original->m2ts_original, original->cf_head);
+  //is ts_original missing any custom folders
+  printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/ts_original to see if it is missing any custom folders.\n");
+  utils_is_folder_missing_custom_folders(original->ts_original, original->cf_head);
   /*in future I would like to be able to SAY what folders are missing*/
   /*now we know all necessary folders contain necessary custom_folders*/
 
@@ -122,6 +145,9 @@ void o_pre_move_checks(original_t *original) {
   //are the m2ts_original folder folder custom_folders adhering to their types?
   printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/m2ts_original to see if it is compliant with custom folder rules.\n");
   utils_are_custom_folders_type_compliant(original->m2ts_original, "m2ts_original", original->cf_head);
+  //are the ts_original folder custom_folders adhering to their types?
+  printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/ts_original to see if it is compliant with custom folder rules.\n");
+  utils_are_custom_folders_type_compliant(original->ts_original, "ts_original", original->cf_head);
   /*now we know every file & folder location within all relevant original folders are adhering to their custom_folder type rules*/
 
   /*let's now check for duplicates*/
@@ -131,12 +157,33 @@ void o_pre_move_checks(original_t *original) {
   //does active workspace contain video folders that match the folders in mp4_original?
   printf("MEZZANINE ALERT: 'pre-move check': scanning %s VERSUS mezzanine/mp4_original in an attempt to detect duplicates\n", workspace_label);
   o_detect_duplicates_start_versus_mp4_original(original);
+  //does active workspace contain video folders that match the folders in ts_original?
+  printf("MEZZANINE ALERT: 'pre-move check': scanning %s VERSUS mezzanine/ts_original in an attempt to detect duplicates\n", workspace_label);
+  o_detect_duplicates_start_versus_ts_original(original);
   //does mkv_original contain video folders that match the folders in mp4_original?
   printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/mkv_original VERSUS mezzanine/mp4_original in an attempt to detect duplicates\n");
   o_detect_duplicates_mkv_original_versus_mp4_original(original);
   //does mp4_original contain video folders that match the folders in mkv_original?
   printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/mp4_original VERSUS mezzanine/mkv_original in an attempt to detect duplicates\n");
   o_detect_duplicates_mp4_original_versus_mkv_original(original);
+  //does mkv_original contain video folders that match the folders in ts_original?
+  printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/mkv_original VERSUS mezzanine/ts_original in an attempt to detect duplicates\n");
+  o_detect_duplicates_mkv_original_versus_ts_original(original);
+  //does mp4_original contain video folders that match the folders in ts_original?
+  printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/mp4_original VERSUS mezzanine/ts_original in an attempt to detect duplicates\n");
+  o_detect_duplicates_mp4_original_versus_ts_original(original);
+  //does m2ts_original contain video folders that match the folders in ts_original?
+  printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/m2ts_original VERSUS mezzanine/ts_original in an attempt to detect duplicates\n");
+  o_detect_duplicates_m2ts_original_versus_ts_original(original);
+  //does ts_original contain video folders that match the folders in mkv_original?
+  printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/ts_original VERSUS mezzanine/mkv_original in an attempt to detect duplicates\n");
+  o_detect_duplicates_ts_original_versus_mkv_original(original);
+  //does ts_original contain video folders that match the folders in mp4_original?
+  printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/ts_original VERSUS mezzanine/mp4_original in an attempt to detect duplicates\n");
+  o_detect_duplicates_ts_original_versus_mp4_original(original);
+  //does ts_original contain video folders that match the folders in m2ts_original?
+  printf("MEZZANINE ALERT: 'pre-move check': scanning mezzanine/ts_original VERSUS mezzanine/m2ts_original in an attempt to detect duplicates\n");
+  o_detect_duplicates_ts_original_versus_m2ts_original(original);
   printf("MEZZANINE ALERT: 'pre-move checks' completed successfully.\n");
 }
 
@@ -144,24 +191,96 @@ void o_move_from_start_to_mkv_original(original_t *original) {
   o_move(original->start, original->mkv_original, original->cf_head, original->mkv_extension);
 }
 
+void o_move_from_start_to_mkv_original_webm(original_t *original) {
+  o_move(original->start, original->mkv_original, original->cf_head, ".webm");
+}
+
 void o_move_from_start_to_mp4_original(original_t *original) {
   o_move(original->start, original->mp4_original, original->cf_head, original->mp4_extension);
+}
+
+void o_move_from_start_to_mp4_original_mov(original_t *original) {
+  o_move(original->start, original->mp4_original, original->cf_head, ".mov");
+}
+
+void o_move_from_start_to_mp4_original_avi(original_t *original) {
+  o_move(original->start, original->mp4_original, original->cf_head, ".avi");
+}
+
+void o_move_from_start_to_mp4_original_mxf(original_t *original) {
+  o_move(original->start, original->mp4_original, original->cf_head, ".mxf");
 }
 
 void o_move_from_start_to_m2ts_original(original_t *original) {
   o_move(original->start, original->m2ts_original, original->cf_head, original->m2ts_extension);
 }
 
+void o_move_from_start_to_m2ts_original_mts(original_t *original) {
+  o_move(original->start, original->m2ts_original, original->cf_head, ".mts");
+}
+
+void o_move_from_start_to_ts_original(original_t *original) {
+  o_move(original->start, original->ts_original, original->cf_head, original->ts_extension);
+}
+
+void o_move_from_start_to_ts_original_mpg(original_t *original) {
+  o_move(original->start, original->ts_original, original->cf_head, ".mpg");
+}
+
+void o_move_from_start_to_ts_original_mpeg(original_t *original) {
+  o_move(original->start, original->ts_original, original->cf_head, ".mpeg");
+}
+
+void o_move_from_start_to_ts_original_vob(original_t *original) {
+  o_move(original->start, original->ts_original, original->cf_head, ".vob");
+}
+
 void o_move_from_mkv_original_to_start(original_t *original) {
   o_move(original->mkv_original, original->start, original->cf_head, original->mkv_extension);
+}
+
+void o_move_from_mkv_original_webm_to_start(original_t *original) {
+  o_move(original->mkv_original, original->start, original->cf_head, ".webm");
 }
 
 void o_move_from_mp4_original_to_start(original_t *original) {
   o_move(original->mp4_original, original->start, original->cf_head, original->mp4_extension);
 }
 
+void o_move_from_mp4_original_mov_to_start(original_t *original) {
+  o_move(original->mp4_original, original->start, original->cf_head, ".mov");
+}
+
+void o_move_from_mp4_original_avi_to_start(original_t *original) {
+  o_move(original->mp4_original, original->start, original->cf_head, ".avi");
+}
+
+void o_move_from_mp4_original_mxf_to_start(original_t *original) {
+  o_move(original->mp4_original, original->start, original->cf_head, ".mxf");
+}
+
 void o_move_from_m2ts_original_to_start(original_t *original) {
   o_move(original->m2ts_original, original->start, original->cf_head, original->m2ts_extension);
+}
+
+void o_move_from_m2ts_original_mts_to_start(original_t *original) {
+  o_move(original->m2ts_original, original->start, original->cf_head, ".mts");
+}
+
+void o_move_from_ts_original_to_start(original_t *original) {
+  o_move(original->ts_original, original->start, original->cf_head, original->ts_extension);
+}
+
+void o_move_from_ts_original_mpg_to_start(original_t *original) {
+  o_move(original->ts_original, original->start, original->cf_head, ".mpg");
+}
+
+void o_move_from_ts_original_mpeg_to_start(original_t *original) {
+  o_move(original->ts_original, original->start, original->cf_head, ".mpeg");
+}
+
+void o_move_from_ts_original_vob_to_start(original_t *original) {
+  o_move(original->ts_original, original->start, original->cf_head, ".vob");
 }
 /*
  * This function is responsible for moving anything within the original folder workspace
@@ -270,12 +389,40 @@ void o_detect_duplicates_start_versus_m2ts_original(original_t *original) {
   o_detect_duplicates(original->start, original->m2ts_original, original->cf_head);
 }
 
+void o_detect_duplicates_start_versus_ts_original(original_t *original) {
+  o_detect_duplicates(original->start, original->ts_original, original->cf_head);
+}
+
 void o_detect_duplicates_mkv_original_versus_mp4_original(original_t *original) {
   o_detect_duplicates(original->mkv_original, original->mp4_original, original->cf_head);
 }
 
 void o_detect_duplicates_mp4_original_versus_mkv_original(original_t *original) {
   o_detect_duplicates(original->mp4_original, original->mkv_original, original->cf_head);
+}
+
+void o_detect_duplicates_mkv_original_versus_ts_original(original_t *original) {
+  o_detect_duplicates(original->mkv_original, original->ts_original, original->cf_head);
+}
+
+void o_detect_duplicates_mp4_original_versus_ts_original(original_t *original) {
+  o_detect_duplicates(original->mp4_original, original->ts_original, original->cf_head);
+}
+
+void o_detect_duplicates_m2ts_original_versus_ts_original(original_t *original) {
+  o_detect_duplicates(original->m2ts_original, original->ts_original, original->cf_head);
+}
+
+void o_detect_duplicates_ts_original_versus_mkv_original(original_t *original) {
+  o_detect_duplicates(original->ts_original, original->mkv_original, original->cf_head);
+}
+
+void o_detect_duplicates_ts_original_versus_mp4_original(original_t *original) {
+  o_detect_duplicates(original->ts_original, original->mp4_original, original->cf_head);
+}
+
+void o_detect_duplicates_ts_original_versus_m2ts_original(original_t *original) {
+  o_detect_duplicates(original->ts_original, original->m2ts_original, original->cf_head);
 }
 
 void o_detect_duplicates(char *from_cf_parent_folder, char *to_cf_parent_folder, cf_node_t *cf_head) {

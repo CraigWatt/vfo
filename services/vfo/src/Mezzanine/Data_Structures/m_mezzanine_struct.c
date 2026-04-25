@@ -87,10 +87,12 @@ original_t* original_create_new_struct(config_t *config) {
   result->mkv_extension = ".mkv";
   result->mp4_extension = ".mp4";
   result->m2ts_extension = ".m2ts";
+  result->ts_extension = ".ts";
   //ensure mezzanine extension workspaces exist and are custom-folder ready
   result->mkv_original = o_get_mkv_original_if_it_exists(result->root, result->cf_head);
   result->mp4_original = o_get_mp4_original_if_it_exists(result->root, result->cf_head);
   result->m2ts_original = o_get_m2ts_original_if_it_exists(result->root, result->cf_head);
+  result->ts_original = o_get_ts_original_if_it_exists(result->root, result->cf_head);
   return result;
 }
 
@@ -135,4 +137,8 @@ char* o_get_mp4_original_if_it_exists(char *original_root, cf_node_t *cf_head) {
 
 char* o_get_m2ts_original_if_it_exists(char *original_root, cf_node_t *cf_head) {
   return o_get_or_create_original_workspace(original_root, "m2ts_original", cf_head);
+}
+
+char* o_get_ts_original_if_it_exists(char *original_root, cf_node_t *cf_head) {
+  return o_get_or_create_original_workspace(original_root, "ts_original", cf_head);
 }

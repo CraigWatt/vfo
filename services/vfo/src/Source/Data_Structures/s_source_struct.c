@@ -54,6 +54,8 @@ source_t* source_create_new_struct(config_t *config) {
   result->original_mp4_original = s_get_mp4_original_if_it_exists(config->svc->original_location);
   //VERIFIED
   result->original_m2ts_original = s_get_m2ts_original_if_it_exists(config->svc->original_location);
+  //VERIFIED
+  result->original_ts_original = s_get_ts_original_if_it_exists(config->svc->original_location);
 
   //VERIFIED
   result->source_test = config->svc->source_test;
@@ -147,6 +149,21 @@ char* s_get_m2ts_original_if_it_exists(char *original_root) {
   else {
     printf("DEV: tmp_source_m2ts_original: %s\n", tmp_source_m2ts_original);
     printf("SOURCE ALERT: mezzanine /m2ts_original does not exist, m2ts to source encoding will not occur.\n");
+  }
+  return "";
+}
+
+char* s_get_ts_original_if_it_exists(char *original_root) {
+  char *tmp_source_ts_original = malloc(BUFSIZ);
+  strcpy(tmp_source_ts_original, original_root);
+  strcat(tmp_source_ts_original, "/ts_original");
+  if(utils_does_folder_exist(tmp_source_ts_original)) {
+    printf("SOURCE ALERT: mezzanine /ts_original detected.\n");
+    return tmp_source_ts_original;
+  } 
+  else {
+    printf("DEV: tmp_source_ts_original: %s\n", tmp_source_ts_original);
+    printf("SOURCE ALERT: mezzanine /ts_original does not exist, ts to source encoding will not occur.\n");
   }
   return "";
 }

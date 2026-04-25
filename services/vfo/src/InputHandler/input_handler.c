@@ -282,6 +282,20 @@ static bool ih_command_exists(const char *command_name) {
   return system(shell_command) == 0;
 }
 
+static bool ih_library_exists(const char *library_name) {
+  char shell_command[512];
+
+  if(library_name == NULL || library_name[0] == '\0')
+    return false;
+
+  snprintf(shell_command,
+           sizeof(shell_command),
+           "pkg-config --exists %s >/dev/null 2>&1 || pkgconf --exists %s >/dev/null 2>&1",
+           library_name,
+           library_name);
+  return system(shell_command) == 0;
+}
+
 static const char* ih_command_install_hint(const char *command_name) {
   if(strcmp(command_name, "ffmpeg") == 0 || strcmp(command_name, "ffprobe") == 0)
     return "macOS install hint: brew install ffmpeg";
@@ -291,6 +305,13 @@ static const char* ih_command_install_hint(const char *command_name) {
 
   if(strcmp(command_name, "dovi_tool") == 0)
     return "macOS install hint: brew install dovi_tool";
+
+  return NULL;
+}
+
+static const char* ih_library_install_hint(const char *library_name) {
+  if(strcmp(library_name, "libplacebo") == 0)
+    return "macOS install hint: brew install libplacebo";
 
   return NULL;
 }
@@ -312,6 +333,28 @@ static bool ih_check_command(const char *context, const char *command_name, bool
   }
 
   printf("%s WARN: optional command missing: %s\n", context, command_name);
+  if(hint != NULL)
+    printf("%s INFO: %s\n", context, hint);
+  return true;
+}
+
+static bool ih_check_library(const char *context, const char *library_name, bool required) {
+  bool exists = ih_library_exists(library_name);
+  const char *hint = ih_library_install_hint(library_name);
+
+  if(exists) {
+    printf("%s OK: library available: %s\n", context, library_name);
+    return true;
+  }
+
+  if(required) {
+    printf("%s ERROR: required library missing: %s\n", context, library_name);
+    if(hint != NULL)
+      printf("%s INFO: %s\n", context, hint);
+    return false;
+  }
+
+  printf("%s WARN: optional library missing: %s\n", context, library_name);
   if(hint != NULL)
     printf("%s INFO: %s\n", context, hint);
   return true;
@@ -486,10 +529,18 @@ bool ih_resolve_stock_preset_for_test(const char *token,
 
   return true;
 }
+
+const char* ih_library_install_hint_for_test(const char *library_name) {
+  return ih_library_install_hint(library_name);
+}
 #endif
 
 static bool ih_doctor_check_command(const char *command_name, bool required) {
   return ih_check_command("DOCTOR", command_name, required);
+}
+
+static bool ih_doctor_check_library(const char *library_name, bool required) {
+  return ih_check_library("DOCTOR", library_name, required);
 }
 
 static bool ih_doctor_check_path(const char *label, const char *path, bool required) {
@@ -558,6 +609,7 @@ static bool ih_run_doctor(config_t *config, const char *config_dir) {
   healthy = ih_doctor_check_command("ffprobe", true) && healthy;
   healthy = ih_doctor_check_command("mkvmerge", true) && healthy;
   healthy = ih_doctor_check_command("dovi_tool", false) && healthy;
+  healthy = ih_doctor_check_library("libplacebo", false) && healthy;
 
   healthy = ih_doctor_check_path("config directory", config_dir, true) && healthy;
   healthy = ih_doctor_check_location_list("MEZZANINE_LOCATIONS", config->svc->original_locations) && healthy;
@@ -1114,6 +1166,7 @@ static bool ih_collect_status_snapshot(config_t *config, const char *config_dir,
   bool ffprobe_available = false;
   bool mkvmerge_available = false;
   bool dovi_tool_available = false;
+  bool libplacebo_available = false;
   bool libvmaf_available = false;
   status_state_t tier_base_state = STATUS_STATE_PENDING;
   status_state_t tier_dv_state = STATUS_STATE_PENDING;
@@ -1169,11 +1222,23 @@ static bool ih_collect_status_snapshot(config_t *config, const char *config_dir,
     ffprobe_available = ih_command_exists("ffprobe");
     mkvmerge_available = ih_command_exists("mkvmerge");
     dovi_tool_available = ih_command_exists("dovi_tool");
+    libplacebo_available = ih_library_exists("libplacebo");
 
     healthy = ih_status_check_command(report, "ffmpeg", true) && healthy;
     healthy = ih_status_check_command(report, "ffprobe", true) && healthy;
     healthy = ih_status_check_command(report, "mkvmerge", true) && healthy;
     healthy = ih_status_check_command(report, "dovi_tool", false) && healthy;
+    if(libplacebo_available) {
+      status_report_update(report,
+                           "dependency.libplacebo",
+                           STATUS_STATE_COMPLETE,
+                           "libplacebo library available");
+    } else {
+      status_report_update(report,
+                           "dependency.libplacebo",
+                           STATUS_STATE_SKIPPED,
+                           "libplacebo library missing (optional, future profiles only)");
+    }
     if(config->svc->quality_check_enabled && config->svc->quality_check_include_vmaf) {
       libvmaf_available = ih_ffmpeg_filter_available("libvmaf");
       if(libvmaf_available) {
@@ -1211,6 +1276,10 @@ static bool ih_collect_status_snapshot(config_t *config, const char *config_dir,
                                       "dovi_tool",
                                       false,
                                       "toolchain mode is not usable");
+    status_report_update(report,
+                         "dependency.libplacebo",
+                         STATUS_STATE_SKIPPED,
+                         "libplacebo check blocked because toolchain mode is not usable");
     status_report_update(report,
                          "dependency.libvmaf",
                          STATUS_STATE_SKIPPED,

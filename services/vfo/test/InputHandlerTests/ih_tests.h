@@ -42,6 +42,7 @@ void ih_evaluate_tier_states_for_test(bool ffmpeg_available,
                                       status_state_t *base_state_out,
                                       status_state_t *dv_state_out,
                                       status_state_t *quality_state_out);
+const char* ih_library_install_hint_for_test(const char *library_name);
 bool ih_resolve_stock_preset_for_test(const char *token,
                                       char *canonical_key_out,
                                       size_t canonical_key_out_size,
@@ -60,6 +61,7 @@ void test_quality_reference_mode_parser_rejects_invalid_values(void **state);
 void test_ih_resolve_config_dir_prefers_env_override(void **state);
 void test_ih_resolve_config_dir_uses_user_dir_for_wizard(void **state);
 void test_ih_tier_state_evaluation(void **state);
+void test_ih_library_install_hint_supports_libplacebo(void **state);
 void test_ih_stock_preset_alias_resolution_supports_craigstreamy_and_legacy_name(void **state);
 void test_ih_stock_preset_resolution_supports_aggressive_vmaf_pack(void **state);
 void test_ih_stock_preset_resolution_supports_video_only_aggressive_vmaf_pack(void **state);

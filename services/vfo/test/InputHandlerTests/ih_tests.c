@@ -207,6 +207,15 @@ void test_ih_tier_state_evaluation(void **state) {
   assert_int_equal(quality_state, STATUS_STATE_COMPLETE);
 }
 
+void test_ih_library_install_hint_supports_libplacebo(void **state) {
+  (void)state;
+
+  assert_non_null(ih_library_install_hint_for_test("libplacebo"));
+  assert_string_equal(ih_library_install_hint_for_test("libplacebo"),
+                      "macOS install hint: brew install libplacebo");
+  assert_null(ih_library_install_hint_for_test("unknown-library"));
+}
+
 void test_ih_stock_preset_alias_resolution_supports_craigstreamy_and_legacy_name(void **state) {
   char canonical_key[256];
   char relative_path[256];

@@ -51,6 +51,8 @@ struct alias {
   char *original_root;
   char *original_mkv_original;
   char *original_mp4_original;
+  char *original_m2ts_original;
+  char *original_ts_original;
   /*------------------------------------*/
 
   char *source_root;
@@ -82,6 +84,8 @@ char* a_create_content(char *alias_root);
 char* a_create_unable_to_process(char *alias_root);
 char* a_get_mkv_original_if_it_exists(char *original_root);
 char* a_get_mp4_original_if_it_exists(char *original_root);
+char* a_get_m2ts_original_if_it_exists(char *original_root);
+char* a_get_ts_original_if_it_exists(char *original_root);
 char* a_create_source_content(char *source_root);
 
 char* a_verify_alias_location(char *alias_location);

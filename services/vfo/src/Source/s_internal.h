@@ -48,11 +48,13 @@ void s_highlight_encode_candidates_to_user(source_t *source);
 void s_highlight_encode_candidates_from_mkv_original(source_t *source);
 void s_highlight_encode_candidates_from_mp4_original(source_t *source);
 void s_highlight_encode_candidates_from_m2ts_original(source_t *source);
+void s_highlight_encode_candidates_from_ts_original(source_t *source);
 
 void s_encode_original_to_source(source_t *source);
 void s_encode_from_mkv_original_to_source(source_t *source);
 void s_encode_from_mp4_original_to_source(source_t *source);
 void s_encode_from_m2ts_original_to_source(source_t *source);
+void s_encode_from_ts_original_to_source(source_t *source);
 void s_encode_shared_code(active_cf_node_t *active_cf, source_t *source);
 
 char* s_generate_ffmpeg_command(char *original_from, char *source_to);

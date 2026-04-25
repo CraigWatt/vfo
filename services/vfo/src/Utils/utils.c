@@ -348,8 +348,35 @@ bool utils_does_folder_contain_file_with_extension(char *folder, char *extension
       else if(strcmp(extension, ".mp4") == 0) {
         extension_found = utils_is_file_extension_mp4(entry->d_name);     
       }
+      else if(strcmp(extension, ".mov") == 0) {
+        extension_found = utils_is_file_extension_mov(entry->d_name);
+      }
+      else if(strcmp(extension, ".avi") == 0) {
+        extension_found = utils_is_file_extension_avi(entry->d_name);
+      }
+      else if(strcmp(extension, ".mxf") == 0) {
+        extension_found = utils_is_file_extension_mxf(entry->d_name);
+      }
+      else if(strcmp(extension, ".webm") == 0) {
+        extension_found = utils_is_file_extension_webm(entry->d_name);
+      }
       else if(strcmp(extension, ".m2ts") == 0) {
         extension_found = utils_is_file_extension_m2ts(entry->d_name);
+      }
+      else if(strcmp(extension, ".mts") == 0) {
+        extension_found = utils_is_file_extension_mts(entry->d_name);
+      }
+      else if(strcmp(extension, ".ts") == 0) {
+        extension_found = utils_is_file_extension_ts(entry->d_name);
+      }
+      else if(strcmp(extension, ".mpg") == 0) {
+        extension_found = utils_is_file_extension_mpg(entry->d_name);
+      }
+      else if(strcmp(extension, ".mpeg") == 0) {
+        extension_found = utils_is_file_extension_mpeg(entry->d_name);
+      }
+      else if(strcmp(extension, ".vob") == 0) {
+        extension_found = utils_is_file_extension_vob(entry->d_name);
       }
       if(extension_found == true) break;
     } 
@@ -377,8 +404,18 @@ bool utils_does_folder_contain_file_with_valid_video_extension(char *folder) {
     if(entry->d_type == DT_REG && !(utils_file_is_macos_hidden_files(entry->d_name))) {
       bool is_file_mkv = utils_is_file_extension_mkv(entry->d_name);
       bool is_file_mp4 = utils_is_file_extension_mp4(entry->d_name);
+      bool is_file_mov = utils_is_file_extension_mov(entry->d_name);
+      bool is_file_avi = utils_is_file_extension_avi(entry->d_name);
+      bool is_file_mxf = utils_is_file_extension_mxf(entry->d_name);
+      bool is_file_webm = utils_is_file_extension_webm(entry->d_name);
       bool is_file_m2ts = utils_is_file_extension_m2ts(entry->d_name);    
-      if(is_file_mkv || is_file_mp4) {
+      bool is_file_mts = utils_is_file_extension_mts(entry->d_name);
+      bool is_file_ts = utils_is_file_extension_ts(entry->d_name);
+      bool is_file_mpg = utils_is_file_extension_mpg(entry->d_name);
+      bool is_file_mpeg = utils_is_file_extension_mpeg(entry->d_name);
+      bool is_file_vob = utils_is_file_extension_vob(entry->d_name);
+      if(is_file_mkv || is_file_mp4 || is_file_mov || is_file_avi || is_file_mxf || is_file_webm ||
+         is_file_m2ts || is_file_mts || is_file_ts || is_file_mpg || is_file_mpeg || is_file_vob) {
         valid_extension_detected = true;
         break;
       }
@@ -504,7 +541,7 @@ char *utils_fetch_single_file_name(char *folder) {
 
 /*
  * This function fetches a single valid movie file from a folder
- * In it's current form, the function only fetches files that are mkv or mp4
+ * In it's current form, the function only fetches files that are mkv, mp4, m2ts, or ts
  * The function will fail if a matching file is not present in the param folder
  */
 char* utils_fetch_single_file(char *folder) {
@@ -520,7 +557,18 @@ char* utils_fetch_single_file(char *folder) {
   bool file_found = false;
   while((entry=readdir(directory)) != NULL) {  
     if(entry->d_type == DT_REG && !(utils_file_is_macos_hidden_files(entry->d_name))) {
-      if(utils_is_file_extension_mkv(entry->d_name) || utils_is_file_extension_mp4(entry->d_name)) {
+      if(utils_is_file_extension_mkv(entry->d_name) ||
+         utils_is_file_extension_mp4(entry->d_name) ||
+         utils_is_file_extension_mov(entry->d_name) ||
+         utils_is_file_extension_avi(entry->d_name) ||
+         utils_is_file_extension_mxf(entry->d_name) ||
+         utils_is_file_extension_webm(entry->d_name) ||
+         utils_is_file_extension_m2ts(entry->d_name) ||
+         utils_is_file_extension_mts(entry->d_name) ||
+         utils_is_file_extension_ts(entry->d_name) ||
+         utils_is_file_extension_mpg(entry->d_name) ||
+         utils_is_file_extension_mpeg(entry->d_name) ||
+         utils_is_file_extension_vob(entry->d_name)) {
         file_found = true;
         tmp_file_name = entry->d_name;
         break;
@@ -568,6 +616,46 @@ bool utils_is_file_extension_mp4(char *file_name) {
   return false;
 }
 
+bool utils_is_file_extension_mov(char *file_name) {
+  char *point = file_name + strlen(file_name);
+  if((point = strrchr(file_name,'.')) != NULL) {
+    if (strcmp(point, ".mov") == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool utils_is_file_extension_avi(char *file_name) {
+  char *point = file_name + strlen(file_name);
+  if((point = strrchr(file_name,'.')) != NULL) {
+    if (strcmp(point, ".avi") == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool utils_is_file_extension_mxf(char *file_name) {
+  char *point = file_name + strlen(file_name);
+  if((point = strrchr(file_name,'.')) != NULL) {
+    if (strcmp(point, ".mxf") == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool utils_is_file_extension_webm(char *file_name) {
+  char *point = file_name + strlen(file_name);
+  if((point = strrchr(file_name,'.')) != NULL) {
+    if (strcmp(point, ".webm") == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /*
  * This function takes param string file_name
  * returns true if end of file_name string is ".m2ts"
@@ -582,13 +670,69 @@ bool utils_is_file_extension_m2ts(char *file_name) {
   return false;
 }
 
+bool utils_is_file_extension_mts(char *file_name) {
+  char *point = file_name + strlen(file_name);
+  if((point = strrchr(file_name,'.')) != NULL) {
+    if (strcmp(point, ".mts") == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+ * This function takes param string file_name
+ * returns true if end of file_name string is ".ts"
+ */
+bool utils_is_file_extension_ts(char *file_name) {
+  char *point = file_name + strlen(file_name);
+  if((point = strrchr(file_name,'.')) != NULL) {
+    if (strcmp(point, ".ts") == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool utils_is_file_extension_mpg(char *file_name) {
+  char *point = file_name + strlen(file_name);
+  if((point = strrchr(file_name,'.')) != NULL) {
+    if (strcmp(point, ".mpg") == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool utils_is_file_extension_mpeg(char *file_name) {
+  char *point = file_name + strlen(file_name);
+  if((point = strrchr(file_name,'.')) != NULL) {
+    if (strcmp(point, ".mpeg") == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool utils_is_file_extension_vob(char *file_name) {
+  char *point = file_name + strlen(file_name);
+  if((point = strrchr(file_name,'.')) != NULL) {
+    if (strcmp(point, ".vob") == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /*
  * This function returns true if:
  * 1. param file_name ends in : .srt, .sup, .sub, .ssa, .smi, .vtt, .txt, .rtf
  * 2. depending on param rf_rules, will return true if end of file matches rf_rules logic
- * rf_rules "start" returns true if file_name ends in .mkv OR .mp4
- * rf_rules "mkv_original" returns true if file_name ends in .mkv
- * rf_rules "mp4_original" returns true if file_name ends in .mp4
+ * rf_rules "start" and "mp4_mezzanine" return true if file_name ends in a supported mezzanine extension
+ * rf_rules "mkv_original" returns true if file_name ends in .mkv or .webm
+ * rf_rules "mp4_original" returns true if file_name ends in .mp4, .mov, .avi, or .mxf
+ * rf_rules "m2ts_original" returns true if file_name ends in .m2ts or .mts
+ * rf_rules "ts_original" returns true if file_name ends in .ts, .mpg, .mpeg, or .vob
  *The function will fail if it is impossible to determine any sort of file extension from file_name param
  */
 bool utils_is_file_extension_valid(char *file_name, char* rf_rules) {
@@ -600,18 +744,35 @@ bool utils_is_file_extension_valid(char *file_name, char* rf_rules) {
       //ends with srt || ends with sup || ends with sub || ends with ssa || ends with smi || ends with vtt || ends with txt || ends with rtf
       return false;
     }
-    else if(strcmp(rf_rules, "start") == 0) {
-      if(strcmp(point,".mkv") == 0 || strcmp(point, ".mp4") == 0) {
+    else if(strcmp(rf_rules, "start") == 0 || strcmp(rf_rules, "mp4_mezzanine") == 0) {
+      if(strcmp(point,".mkv") == 0 || strcmp(point, ".webm") == 0 ||
+         strcmp(point, ".mp4") == 0 || strcmp(point, ".mov") == 0 ||
+         strcmp(point, ".avi") == 0 || strcmp(point, ".mxf") == 0 ||
+         strcmp(point, ".m2ts") == 0 || strcmp(point, ".mts") == 0 ||
+         strcmp(point, ".ts") == 0 || strcmp(point, ".mpg") == 0 ||
+         strcmp(point, ".mpeg") == 0 || strcmp(point, ".vob") == 0) {
         return true;
       }
     }
     else if (strcmp(rf_rules, "mkv_original") == 0) {
-      if(strcmp(point,".mkv") == 0) {
+      if(strcmp(point,".mkv") == 0 || strcmp(point, ".webm") == 0) {
         return true;
       }
     }
     else if (strcmp(rf_rules, "mp4_original") == 0) {
-      if(strcmp(point,".mp4") == 0) {
+      if(strcmp(point,".mp4") == 0 || strcmp(point, ".mov") == 0 ||
+         strcmp(point, ".avi") == 0 || strcmp(point, ".mxf") == 0) {
+        return true;
+      }
+    }
+    else if (strcmp(rf_rules, "m2ts_original") == 0) {
+      if(strcmp(point,".m2ts") == 0 || strcmp(point, ".mts") == 0) {
+        return true;
+      }
+    }
+    else if (strcmp(rf_rules, "ts_original") == 0) {
+      if(strcmp(point,".ts") == 0 || strcmp(point, ".mpg") == 0 ||
+         strcmp(point, ".mpeg") == 0 || strcmp(point, ".vob") == 0) {
         return true;
       }
     }
@@ -1540,7 +1701,18 @@ unsigned long long utils_fetch_single_file_size_bytes(char *folder) {
     if(entry->d_type == DT_REG && utils_file_is_macos_hidden_files(entry->d_name) == false) {
       bool valid_ext = utils_is_file_extension_mkv(entry->d_name) ||
                        utils_is_file_extension_mp4(entry->d_name) ||
-                       utils_is_file_extension_m2ts(entry->d_name);
+                       utils_is_file_extension_mov(entry->d_name) ||
+                       utils_is_file_extension_avi(entry->d_name) ||
+                       utils_is_file_extension_mxf(entry->d_name) ||
+                       utils_is_file_extension_webm(entry->d_name) ||
+                       utils_is_file_extension_m2ts(entry->d_name) ||
+                       utils_is_file_extension_mts(entry->d_name) ||
+                       utils_is_file_extension_ts(entry->d_name);
+      if(valid_ext == false) {
+        valid_ext = utils_is_file_extension_mpg(entry->d_name) ||
+                    utils_is_file_extension_mpeg(entry->d_name) ||
+                    utils_is_file_extension_vob(entry->d_name);
+      }
       if(valid_ext) {
         char *full_path = utils_combine_to_full_path(folder, entry->d_name);
         size_bytes = utils_get_single_file_size_bytes(full_path);

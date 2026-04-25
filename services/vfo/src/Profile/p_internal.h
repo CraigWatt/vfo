@@ -47,12 +47,16 @@
 #include "../utils.h"
 
 void a_source_to_alias(aliases_t *alias);
+void a_original_to_alias(aliases_t *alias);
 
 void a_pre_encode_checks(aliases_t *alias);
 void a_highlight_encode_candidates_to_user(aliases_t *alias);
 void a_highlight_encode_candidates_from_source_content(aliases_t *alias);
+void a_highlight_encode_candidates_from_original_content(aliases_t *alias);
 void a_encode_source_to_an_alias(aliases_t *alias);
+void a_encode_original_to_an_alias(aliases_t *alias);
 void s_encode_from_source_to_alias(aliases_t *alias);
+void s_encode_from_original_to_alias(aliases_t *alias);
 bool a_execute_ffmpeg_command(char *from, char *to, aliases_t *alias);
 char* a_generate_ffmpeg_command(char *from, char *to, aliases_t *alias);
 char* a_generate_alias_file_name(char *from, char *to, char *alias_name);

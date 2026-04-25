@@ -43,10 +43,12 @@ struct original {
   char *mkv_extension;
   char *mp4_extension;
   char *m2ts_extension;
+  char *ts_extension;
 
   char *mkv_original;
   char *mp4_original;
   char *m2ts_original;
+  char *ts_original;
 
   struct cf_node *cf_head;
 };
@@ -58,5 +60,6 @@ char* o_create_unable_to_process(char *original_root);
 char* o_get_mkv_original_if_it_exists(char *original_root, cf_node_t *cf_head);
 char* o_get_mp4_original_if_it_exists(char *original_root, cf_node_t *cf_head);
 char* o_get_m2ts_original_if_it_exists(char *original_root, cf_node_t *cf_head);
+char* o_get_ts_original_if_it_exists(char *original_root, cf_node_t *cf_head);
 
 #endif // M_MEZZANINE_STRUCT_H

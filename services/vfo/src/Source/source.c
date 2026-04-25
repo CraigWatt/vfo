@@ -109,6 +109,34 @@ static bool s_encode_candidate_with_retry(source_t *source,
   return false;
 }
 
+static char* s_strip_supported_video_extension(char *file_name) {
+  if(utils_is_file_extension_mkv(file_name))
+    return utils_replace_characters(file_name, ".mkv", "");
+  if(utils_is_file_extension_webm(file_name))
+    return utils_replace_characters(file_name, ".webm", "");
+  if(utils_is_file_extension_mp4(file_name))
+    return utils_replace_characters(file_name, ".mp4", "");
+  if(utils_is_file_extension_mov(file_name))
+    return utils_replace_characters(file_name, ".mov", "");
+  if(utils_is_file_extension_avi(file_name))
+    return utils_replace_characters(file_name, ".avi", "");
+  if(utils_is_file_extension_mxf(file_name))
+    return utils_replace_characters(file_name, ".mxf", "");
+  if(utils_is_file_extension_m2ts(file_name))
+    return utils_replace_characters(file_name, ".m2ts", "");
+  if(utils_is_file_extension_mts(file_name))
+    return utils_replace_characters(file_name, ".mts", "");
+  if(utils_is_file_extension_ts(file_name))
+    return utils_replace_characters(file_name, ".ts", "");
+  if(utils_is_file_extension_mpg(file_name))
+    return utils_replace_characters(file_name, ".mpg", "");
+  if(utils_is_file_extension_mpeg(file_name))
+    return utils_replace_characters(file_name, ".mpeg", "");
+  if(utils_is_file_extension_vob(file_name))
+    return utils_replace_characters(file_name, ".vob", "");
+  return file_name;
+}
+
 void s_mezzanine_to_source(source_t *source) {
   printf("SOURCE ALERT: initiating 'source'\n");
   /* pre-encode checks */
@@ -219,6 +247,8 @@ void s_encode_original_to_source(source_t *source) {
     s_encode_from_mp4_original_to_source(source);
   if(strcmp(source->original_m2ts_original, "") != 0)
     s_encode_from_m2ts_original_to_source(source);
+  if(strcmp(source->original_ts_original, "") != 0)
+    s_encode_from_ts_original_to_source(source);
 }
 
 void s_encode_from_mkv_original_to_source(source_t *source) {
@@ -233,6 +263,11 @@ void s_encode_from_mp4_original_to_source(source_t *source) {
 
 void s_encode_from_m2ts_original_to_source(source_t *source) {
   active_cf_node_t *active_cf = utils_generate_from_to_ll(source->cf_head, source->original_m2ts_original, source->content);
+  s_encode_shared_code(active_cf, source);
+}
+
+void s_encode_from_ts_original_to_source(source_t *source) {
+  active_cf_node_t *active_cf = utils_generate_from_to_ll(source->cf_head, source->original_ts_original, source->content);
   s_encode_shared_code(active_cf, source);
 }
 
@@ -344,12 +379,7 @@ char* s_generate_source_file_name(char *original_from, char *source_to) {
   char *tmp_name = utils_fetch_single_file(original_from);
   tmp_name = basename(tmp_name);
   /* temporarily remove file extension from filename */
-  if(utils_is_file_extension_mkv(tmp_name))
-    tmp_name = utils_replace_characters(tmp_name, ".mkv", "");
-  if(utils_is_file_extension_mp4(tmp_name))
-    tmp_name = utils_replace_characters(tmp_name, ".mp4", "");
-  if(utils_is_file_extension_m2ts(tmp_name))
-    tmp_name = utils_replace_characters(tmp_name, ".m2ts", "");
+  tmp_name = s_strip_supported_video_extension(tmp_name);
   /* append _source to end of filename */
   tmp_name = utils_combine_strings(tmp_name, "_source");
   /* add back .mp4 extension */
@@ -371,6 +401,10 @@ void s_highlight_encode_candidates_to_user(source_t *source) {
   if(strcmp(source->original_m2ts_original, "") != 0) {
     printf("SOURCE ALERT: found mezzanine/m2ts\n");
     s_highlight_encode_candidates_from_m2ts_original(source);
+  }
+  if(strcmp(source->original_ts_original, "") != 0) {
+    printf("SOURCE ALERT: found mezzanine/ts\n");
+    s_highlight_encode_candidates_from_ts_original(source);
   }
 }
 
@@ -528,6 +562,57 @@ void s_highlight_encode_candidates_from_m2ts_original(source_t *source) {
     }
   }
   printf("SOURCE ALERT: %i mezzanine/m2ts -> source candidates found.\n", m2ts_encode_candidates_counter);
+  printf("SOURCE ALERT: %i will be ignored as they already exist in source content.\n", already_present_in_source_counter);
+  free(active_cf);
+  active_cf = NULL;
+}
+
+void s_highlight_encode_candidates_from_ts_original(source_t *source) {
+  active_cf_node_t *active_cf = utils_generate_from_to_ll(source->cf_head, source->original_ts_original, source->content);
+  int ts_encode_candidates_counter = 0;
+  int already_present_in_source_counter = 0;
+  if(active_cf != NULL) {
+    while(active_cf != NULL) {
+      active_films_f_node_t *tmp_f = active_cf->active_films_f_head;
+      if(tmp_f != NULL) {
+        while(tmp_f != NULL) {
+          if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
+             s_destination_exists_anywhere(source, tmp_f->to_films_f_folder))
+            already_present_in_source_counter++;
+          else if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
+                  !(s_destination_exists_anywhere(source, tmp_f->to_films_f_folder)))
+            ts_encode_candidates_counter++;
+          tmp_f = tmp_f->next;
+        }
+      }
+      active_tv_f_node_t *tmp_tv1 = active_cf->active_tv_f_head;
+      if(tmp_tv1!= NULL) {
+        while(tmp_tv1 != NULL) {
+          active_tv_f_node_t *tmp_tv2 = tmp_tv1->active_tv_f_head;
+          if(tmp_tv2 != NULL) {
+            while(tmp_tv2 != NULL) {
+              active_tv_f_node_t *tmp_tv3 = tmp_tv2->active_tv_f_head;
+              if(tmp_tv3 != NULL) {
+                while(tmp_tv3 != NULL) {
+                  if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
+                     s_destination_exists_anywhere(source, tmp_tv3->to_tv_f_folder))
+                    already_present_in_source_counter++;
+                  else if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
+                          !(s_destination_exists_anywhere(source, tmp_tv3->to_tv_f_folder)))
+                    ts_encode_candidates_counter++;
+                  tmp_tv3 = tmp_tv3->next;
+                }
+              }
+              tmp_tv2 = tmp_tv2->next;
+            }
+          }
+          tmp_tv1 = tmp_tv1->next;
+        }
+      }
+      active_cf = active_cf->next;
+    }
+  }
+  printf("SOURCE ALERT: %i mezzanine/ts -> source candidates found.\n", ts_encode_candidates_counter);
   printf("SOURCE ALERT: %i will be ignored as they already exist in source content.\n", already_present_in_source_counter);
   free(active_cf);
   active_cf = NULL;

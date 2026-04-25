@@ -112,7 +112,38 @@ static bool a_encode_candidate_with_retry(aliases_t *alias,
   return false;
 }
 
+static char* a_strip_supported_video_extension(char *file_name) {
+  if(utils_is_file_extension_mkv(file_name))
+    return utils_replace_characters(file_name, ".mkv", "");
+  if(utils_is_file_extension_webm(file_name))
+    return utils_replace_characters(file_name, ".webm", "");
+  if(utils_is_file_extension_mp4(file_name))
+    return utils_replace_characters(file_name, ".mp4", "");
+  if(utils_is_file_extension_mov(file_name))
+    return utils_replace_characters(file_name, ".mov", "");
+  if(utils_is_file_extension_avi(file_name))
+    return utils_replace_characters(file_name, ".avi", "");
+  if(utils_is_file_extension_mxf(file_name))
+    return utils_replace_characters(file_name, ".mxf", "");
+  if(utils_is_file_extension_m2ts(file_name))
+    return utils_replace_characters(file_name, ".m2ts", "");
+  if(utils_is_file_extension_mts(file_name))
+    return utils_replace_characters(file_name, ".mts", "");
+  if(utils_is_file_extension_ts(file_name))
+    return utils_replace_characters(file_name, ".ts", "");
+  if(utils_is_file_extension_mpg(file_name))
+    return utils_replace_characters(file_name, ".mpg", "");
+  if(utils_is_file_extension_mpeg(file_name))
+    return utils_replace_characters(file_name, ".mpeg", "");
+  if(utils_is_file_extension_vob(file_name))
+    return utils_replace_characters(file_name, ".vob", "");
+  return file_name;
+}
+
 static void p_source_to_profile(aliases_t *alias);
+static void p_mezzanine_to_profile(aliases_t *alias);
+static void a_highlight_encode_candidates_from_original_lane(aliases_t *alias, char *original_content, char *lane_label);
+static void s_encode_from_original_lane_to_alias(aliases_t *alias, char *original_content);
 
 /* Source to Profiles Work */
 
@@ -244,6 +275,121 @@ void a_encode_source_to_an_alias(aliases_t *alias) {
 
 void s_encode_from_source_to_alias(aliases_t *alias) {
   active_cf_node_t *active_cf = utils_generate_from_to_ll(alias->cf_head, alias->source_content, alias->content);
+  if(active_cf != NULL) {
+    while(active_cf != NULL) {
+      active_films_f_node_t *tmp_f = active_cf->active_films_f_head;
+      if(tmp_f != NULL) {
+        while(tmp_f != NULL) {
+          bool destination_exists = a_destination_exists_anywhere(alias, tmp_f->to_films_f_folder);
+          if(!destination_exists) {
+            if(a_encode_candidate_with_retry(alias,
+                                             tmp_f->from_films_f_folder,
+                                             tmp_f->to_films_f_folder,
+                                             NULL,
+                                             NULL) == false) {
+              printf("PROFILE %s WARNING: all destination locations were exhausted for %s\n", alias->name, tmp_f->from_films_f_folder);
+              utils_create_error_encoding_file(alias->unable_to_process, tmp_f->from_films_f_folder);
+            }
+          }
+          tmp_f = tmp_f->next;
+        }
+      }
+      active_tv_f_node_t *tmp_tv1 = active_cf->active_tv_f_head;
+      if(tmp_tv1!= NULL) {
+        while(tmp_tv1 != NULL) {
+          active_tv_f_node_t *tmp_tv2 = tmp_tv1->active_tv_f_head;
+          if(tmp_tv2 != NULL) {
+            while(tmp_tv2 != NULL) {
+              active_tv_f_node_t *tmp_tv3 = tmp_tv2->active_tv_f_head;
+              if(tmp_tv3 != NULL) {
+                while(tmp_tv3 != NULL) {
+                  bool destination_exists = a_destination_exists_anywhere(alias, tmp_tv3->to_tv_f_folder);
+                  if(!destination_exists) {
+                    if(a_encode_candidate_with_retry(alias,
+                                                     tmp_tv3->from_tv_f_folder,
+                                                     tmp_tv3->to_tv_f_folder,
+                                                     tmp_tv1->to_tv_f_folder,
+                                                     tmp_tv2->to_tv_f_folder) == false) {
+                      printf("PROFILE %s WARNING: all destination locations were exhausted for %s\n", alias->name, tmp_tv3->from_tv_f_folder);
+                      utils_create_error_encoding_file(alias->unable_to_process, tmp_tv3->from_tv_f_folder);
+                    }
+                  }
+                  tmp_tv3 = tmp_tv3->next;
+                }
+              }
+              tmp_tv2 = tmp_tv2->next;
+            }
+          }
+          tmp_tv1 = tmp_tv1->next;
+        }
+      }
+      active_cf = active_cf->next;
+    }
+  }
+  free(active_cf);
+  active_cf = NULL;
+}
+
+static void a_highlight_encode_candidates_from_original_lane(aliases_t *alias,
+                                                            char *original_content,
+                                                            char *lane_label) {
+  active_cf_node_t *active_cf = utils_generate_from_to_ll(alias->cf_head, original_content, alias->content);
+  int profile_encode_candidates_counter = 0;
+  int already_present_in_profile_counter = 0;
+  if(active_cf != NULL) {
+    while(active_cf != NULL) {
+      active_films_f_node_t *tmp_f = active_cf->active_films_f_head;
+      if(tmp_f != NULL) {
+        while(tmp_f != NULL) {
+          if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
+             a_destination_exists_anywhere(alias, tmp_f->to_films_f_folder))
+            already_present_in_profile_counter++;
+          else if(utils_does_folder_exist(tmp_f->from_films_f_folder) &&
+                  !(a_destination_exists_anywhere(alias, tmp_f->to_films_f_folder)))
+            profile_encode_candidates_counter++;
+          tmp_f = tmp_f->next;
+        }
+      }
+      active_tv_f_node_t *tmp_tv1 = active_cf->active_tv_f_head;
+      if(tmp_tv1!= NULL) {
+        while(tmp_tv1 != NULL) {
+          active_tv_f_node_t *tmp_tv2 = tmp_tv1->active_tv_f_head;
+          if(tmp_tv2 != NULL) {
+            while(tmp_tv2 != NULL) {
+              active_tv_f_node_t *tmp_tv3 = tmp_tv2->active_tv_f_head;
+              if(tmp_tv3 != NULL) {
+                while(tmp_tv3 != NULL) {
+                  if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
+                     a_destination_exists_anywhere(alias, tmp_tv3->to_tv_f_folder))
+                    already_present_in_profile_counter++;
+                  else if(utils_does_folder_exist(tmp_tv3->from_tv_f_folder) &&
+                          !(a_destination_exists_anywhere(alias, tmp_tv3->to_tv_f_folder)))
+                    profile_encode_candidates_counter++;
+                  tmp_tv3 = tmp_tv3->next;
+                }
+              }
+              tmp_tv2 = tmp_tv2->next;
+            }
+          }
+          tmp_tv1 = tmp_tv1->next;
+        }
+      }
+      active_cf = active_cf->next;
+    }
+  }
+  printf("PROFILE %s ALERT: %i mezzanine/%s -> profile candidates found.\n",
+         alias->name,
+         profile_encode_candidates_counter,
+         lane_label);
+  printf("PROFILE %s ALERT: %i will be ignored as they already exist in profile content.\n",
+         alias->name,
+         already_present_in_profile_counter);
+  free(active_cf);
+  active_cf = NULL;
+}
+
+static void s_encode_from_original_lane_to_alias(aliases_t *alias, char *original_content) {
+  active_cf_node_t *active_cf = utils_generate_from_to_ll(alias->cf_head, original_content, alias->content);
   if(active_cf != NULL) {
     while(active_cf != NULL) {
       active_films_f_node_t *tmp_f = active_cf->active_films_f_head;
@@ -905,12 +1051,7 @@ char* a_generate_alias_file_name(char *from, char *to, char *alias_name) {
   char *tmp_name = utils_fetch_single_file(from);
   tmp_name = basename(tmp_name);
   /* temporarily remove file extension from filename */
-  if(utils_is_file_extension_mkv(tmp_name))
-    tmp_name = utils_replace_characters(tmp_name, ".mkv", "");
-  if(utils_is_file_extension_mp4(tmp_name))
-    tmp_name = utils_replace_characters(tmp_name, ".mp4", "");
-  if(utils_is_file_extension_m2ts(tmp_name))
-    tmp_name = utils_replace_characters(tmp_name, ".m2ts", "");
+  tmp_name = a_strip_supported_video_extension(tmp_name);
   /* append _alias_name to end of filename */
   tmp_name = utils_combine_strings(tmp_name, "_");
   tmp_name = utils_combine_strings(tmp_name, alias_name);
@@ -925,14 +1066,60 @@ char* a_generate_alias_file_name(char *from, char *to, char *alias_name) {
 
 /* Mezzanine-to-profile(s) work (legacy function names retained for compatibility). */
 
+static void p_mezzanine_to_profile(aliases_t *alias) {
+  printf("PROFILE %s ALERT: initiating 'mezzanine to profile'\n", alias->name);
+  a_pre_encode_checks(alias);
+  a_highlight_encode_candidates_from_original_content(alias);
+  utils_wish_to_continue("'find a profile's candidates'", "'encode profile candidates to profile'");
+  printf("PROFILE %s ALERT: initiating encoding.\n", alias->name);
+  a_encode_original_to_an_alias(alias);
+  printf("PROFILE %s ALERT: a profile completed successfully\n", alias->name);
+}
+
 void p_mezzanine_to_profiles(aliases_t *aliases) {
   printf("PROFILES ALERT: initiating 'mezzanine_to_profiles'\n");
-  //create a ?? object and point it to relevant data in config
-    //for every file in original
-      //original_file_to_source();
-      //for every alias node
-        //encode_source_to_profile();
-      //wipe_source();
+  if(aliases != NULL) {
+    aliases_t *tmp = aliases;
+    while(tmp != NULL) {
+      p_mezzanine_to_profile(tmp);
+      tmp = tmp->next;
+    }
+  }
+  printf("PROFILES ALERT: profiles completed successfully\n");
+}
+
+void a_highlight_encode_candidates_from_original_content(aliases_t *alias) {
+  if(strcmp(alias->original_mkv_original, "") != 0) {
+    printf("PROFILE %s ALERT: found mezzanine/mkv\n", alias->name);
+    a_highlight_encode_candidates_from_original_lane(alias, alias->original_mkv_original, "mkv_original");
+  }
+  if(strcmp(alias->original_mp4_original, "") != 0) {
+    printf("PROFILE %s ALERT: found mezzanine/mp4\n", alias->name);
+    a_highlight_encode_candidates_from_original_lane(alias, alias->original_mp4_original, "mp4_original");
+  }
+  if(strcmp(alias->original_m2ts_original, "") != 0) {
+    printf("PROFILE %s ALERT: found mezzanine/m2ts\n", alias->name);
+    a_highlight_encode_candidates_from_original_lane(alias, alias->original_m2ts_original, "m2ts_original");
+  }
+  if(strcmp(alias->original_ts_original, "") != 0) {
+    printf("PROFILE %s ALERT: found mezzanine/ts\n", alias->name);
+    a_highlight_encode_candidates_from_original_lane(alias, alias->original_ts_original, "ts_original");
+  }
+}
+
+void a_encode_original_to_an_alias(aliases_t *alias) {
+  if(strcmp(alias->original_mkv_original, "") != 0)
+    s_encode_from_original_lane_to_alias(alias, alias->original_mkv_original);
+  if(strcmp(alias->original_mp4_original, "") != 0)
+    s_encode_from_original_lane_to_alias(alias, alias->original_mp4_original);
+  if(strcmp(alias->original_m2ts_original, "") != 0)
+    s_encode_from_original_lane_to_alias(alias, alias->original_m2ts_original);
+  if(strcmp(alias->original_ts_original, "") != 0)
+    s_encode_from_original_lane_to_alias(alias, alias->original_ts_original);
+}
+
+void s_encode_from_original_to_alias(aliases_t *alias) {
+  a_encode_original_to_an_alias(alias);
 }
 
 void a_source_to_aliases(aliases_t *aliases) {
@@ -943,8 +1130,10 @@ void a_original_to_aliases(aliases_t *aliases) {
   p_mezzanine_to_profiles(aliases);
 }
 
-void a_original_to_alias() {
-  printf("PROFILE ALERT: initiating 'mezzanine_to_profile'\n");
+void a_original_to_alias(aliases_t *alias) {
+  if(alias == NULL)
+    return;
+  p_mezzanine_to_profile(alias);
 }
 
 /* Wipe Aliases Work */

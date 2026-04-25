@@ -59,6 +59,10 @@ aliases_t* alias_create_new_struct(config_t *config, ca_node_t *ca_node) {
   result->original_mkv_original = a_get_mkv_original_if_it_exists(result->original_root);
   //VERIFIED
   result->original_mp4_original = a_get_mp4_original_if_it_exists(result->original_root);
+  //VERIFIED
+  result->original_m2ts_original = a_get_m2ts_original_if_it_exists(result->original_root);
+  //VERIFIED
+  result->original_ts_original = a_get_ts_original_if_it_exists(result->original_root);
 
   result->source_location_pool = utils_location_pool_create(config->svc->source_location,
                                                             config->svc->source_locations,
@@ -156,7 +160,7 @@ char* a_get_mkv_original_if_it_exists(char *original_root) {
   //create
   char *tmp_alias_mkv_original = malloc(BUFSIZ);
   strcpy(tmp_alias_mkv_original, original_root);
-  strcpy(tmp_alias_mkv_original, "/mkv_original");
+  strcat(tmp_alias_mkv_original, "/mkv_original");
   //verify
   if(utils_does_folder_exist(tmp_alias_mkv_original)) {
     printf("PROFILE ALERT: mezzanine /mkv_original detected. if KEEP_SOURCE=FALSE, encoding CAN occur from mkv_original to this profile.\n");
@@ -171,13 +175,37 @@ char* a_get_mp4_original_if_it_exists(char *original_root) {
   //create
   char *tmp_alias_mp4_original = malloc(BUFSIZ);
   strcpy(tmp_alias_mp4_original, original_root);
-  strcpy(tmp_alias_mp4_original, "/mp4_original");
+  strcat(tmp_alias_mp4_original, "/mp4_original");
   //verify
   if(utils_does_folder_exist(tmp_alias_mp4_original)) {
     printf("PROFILE ALERT: mezzanine /mp4_original detected. if KEEP_SOURCE=FALSE, encoding CAN occur from mp4_original to this profile.\n");
     return tmp_alias_mp4_original;
   } else
     printf("PROFILE ALERT: mezzanine /mp4_original does not exist, if KEEP_SOURCE=FALSE, no encoding will occur from mp4_original to this profile.\n");
+  return "";
+}
+
+char* a_get_m2ts_original_if_it_exists(char *original_root) {
+  char *tmp_alias_m2ts_original = malloc(BUFSIZ);
+  strcpy(tmp_alias_m2ts_original, original_root);
+  strcat(tmp_alias_m2ts_original, "/m2ts_original");
+  if(utils_does_folder_exist(tmp_alias_m2ts_original)) {
+    printf("PROFILE ALERT: mezzanine /m2ts_original detected. if KEEP_SOURCE=FALSE, encoding CAN occur from m2ts_original to this profile.\n");
+    return tmp_alias_m2ts_original;
+  }
+  printf("PROFILE ALERT: mezzanine /m2ts_original does not exist, if KEEP_SOURCE=FALSE, no encoding will occur from m2ts_original to this profile.\n");
+  return "";
+}
+
+char* a_get_ts_original_if_it_exists(char *original_root) {
+  char *tmp_alias_ts_original = malloc(BUFSIZ);
+  strcpy(tmp_alias_ts_original, original_root);
+  strcat(tmp_alias_ts_original, "/ts_original");
+  if(utils_does_folder_exist(tmp_alias_ts_original)) {
+    printf("PROFILE ALERT: mezzanine /ts_original detected. if KEEP_SOURCE=FALSE, encoding CAN occur from ts_original to this profile.\n");
+    return tmp_alias_ts_original;
+  }
+  printf("PROFILE ALERT: mezzanine /ts_original does not exist, if KEEP_SOURCE=FALSE, no encoding will occur from ts_original to this profile.\n");
   return "";
 }
 

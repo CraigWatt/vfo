@@ -43,18 +43,43 @@
 void o_pre_move_checks(original_t *original);
 
 void o_move_from_start_to_mkv_original(original_t *original);
+void o_move_from_start_to_mkv_original_webm(original_t *original);
 void o_move_from_start_to_mp4_original(original_t *original);
+void o_move_from_start_to_mp4_original_mov(original_t *original);
+void o_move_from_start_to_mp4_original_avi(original_t *original);
+void o_move_from_start_to_mp4_original_mxf(original_t *original);
 void o_move_from_start_to_m2ts_original(original_t *original);
+void o_move_from_start_to_m2ts_original_mts(original_t *original);
+void o_move_from_start_to_ts_original(original_t *original);
+void o_move_from_start_to_ts_original_mpg(original_t *original);
+void o_move_from_start_to_ts_original_mpeg(original_t *original);
+void o_move_from_start_to_ts_original_vob(original_t *original);
 void o_move_from_mkv_original_to_start(original_t *original);
+void o_move_from_mkv_original_webm_to_start(original_t *original);
 void o_move_from_mp4_original_to_start(original_t *original);
+void o_move_from_mp4_original_mov_to_start(original_t *original);
+void o_move_from_mp4_original_avi_to_start(original_t *original);
+void o_move_from_mp4_original_mxf_to_start(original_t *original);
 void o_move_from_m2ts_original_to_start(original_t *original);
+void o_move_from_m2ts_original_mts_to_start(original_t *original);
+void o_move_from_ts_original_to_start(original_t *original);
+void o_move_from_ts_original_mpg_to_start(original_t *original);
+void o_move_from_ts_original_mpeg_to_start(original_t *original);
+void o_move_from_ts_original_vob_to_start(original_t *original);
 void o_move(char *from_cf_parent_folder, char *to_cf_parent_folder, cf_node_t *cf_head, char *from_valid_extension_string);
 
 void o_detect_duplicates_start_versus_mkv_original(original_t *original);
 void o_detect_duplicates_start_versus_mp4_original(original_t *original);
 void o_detect_duplicates_start_versus_m2ts_original(original_t *original);
+void o_detect_duplicates_start_versus_ts_original(original_t *original);
 void o_detect_duplicates_mkv_original_versus_mp4_original(original_t *original);
 void o_detect_duplicates_mp4_original_versus_mkv_original(original_t *original);
+void o_detect_duplicates_mkv_original_versus_ts_original(original_t *original);
+void o_detect_duplicates_mp4_original_versus_ts_original(original_t *original);
+void o_detect_duplicates_m2ts_original_versus_ts_original(original_t *original);
+void o_detect_duplicates_ts_original_versus_mkv_original(original_t *original);
+void o_detect_duplicates_ts_original_versus_mp4_original(original_t *original);
+void o_detect_duplicates_ts_original_versus_m2ts_original(original_t *original);
 void o_detect_duplicates(char *from_cf_parent_folder, char *to_cf_parent_folder, cf_node_t *cf_head);
 
 /* o_messages */

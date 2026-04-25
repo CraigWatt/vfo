@@ -55,6 +55,7 @@ int main(void) {
         cmocka_unit_test(test_ih_resolve_config_dir_prefers_env_override),
         cmocka_unit_test(test_ih_resolve_config_dir_uses_user_dir_for_wizard),
         cmocka_unit_test(test_ih_tier_state_evaluation),
+        cmocka_unit_test(test_ih_library_install_hint_supports_libplacebo),
         cmocka_unit_test(test_ih_stock_preset_alias_resolution_supports_craigstreamy_and_legacy_name),
         cmocka_unit_test(test_ih_stock_preset_resolution_supports_aggressive_vmaf_pack),
         cmocka_unit_test(test_ih_stock_preset_resolution_supports_video_only_aggressive_vmaf_pack),
@@ -77,6 +78,9 @@ int main(void) {
         cmocka_unit_test(test_utils_split_semicolon_list_trims_and_counts),
         cmocka_unit_test(test_utils_location_pool_create_and_map_path),
         cmocka_unit_test(test_utils_create_folder_creates_accessible_directory),
+        cmocka_unit_test(test_utils_is_file_extension_ts),
+        cmocka_unit_test(test_utils_is_file_extension_valid_supports_ts_original),
+        cmocka_unit_test(test_utils_is_file_extension_valid_supports_extended_mezzanine_inputs),
         /* Config */
         cmocka_unit_test(test_con_init_config_dir_null_ptr),
         cmocka_unit_test(test_con_init_config_dir_empty_str),
