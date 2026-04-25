@@ -56,6 +56,25 @@ Under `services/vfo/src/` and `services/vfo/test/`, CamelCase directory names re
 
 This is functionally fine, but still differs from the lowercase style used in newer top-level repository layout (`infra/`, `platform/`, `services/`).
 
+Current legacy inventory:
+
+- `services/vfo/src/Config/`
+- `services/vfo/src/InputHandler/`
+- `services/vfo/src/Mezzanine/`
+- `services/vfo/src/Mezzanine_Clean/`
+- `services/vfo/src/Profile/`
+- `services/vfo/src/Source/`
+- `services/vfo/src/Source_AS/`
+- `services/vfo/src/Utils/`
+- `services/vfo/test/ConfigTests/`
+- `services/vfo/test/InputHandlerTests/`
+- `services/vfo/test/MezzanineTests/`
+- `services/vfo/test/ProfileTests/`
+- `services/vfo/test/SourceTests/`
+- `services/vfo/test/UtilsTests/`
+
+These are the only known CamelCase directory families that remain intentionally tracked.
+
 ### 4) Mixed command naming patterns
 
 Current commands combine styles:
@@ -68,10 +87,57 @@ This is workable but should be governed by an explicit canonical/legacy mapping.
 
 Note: stale help placeholders (`joker`, `custom_alias`) were removed during this audit pass to align help text with actual supported command patterns.
 
+Current compatibility terminology hotspots:
+
+- user-facing legacy stage words still present in compatibility paths: `original`, `alias`
+- internal compatibility command families: `all_aliases`, `do_it_all`
+- legacy file/path names that should not be copied into new code: the CamelCase directory families listed above
+
 ### 5) Config naming is internally consistent but legacy-first
 
 Config keys are consistently `UPPER_SNAKE_CASE`, which is good.
 However key families are still centered around legacy terms (`ORIGINAL_*`, `ALIAS=*`), while docs increasingly describe canonical terms.
+
+### 6) Terminology is already cleaner at the docs boundary than in the C internals
+
+The repo's user-facing docs and policy files mostly use canonical language now:
+
+- `AGENTS.md` is the canonical policy file.
+- README and docs pages center `mezzanine`, `source`, and `profile`.
+- the docs site and task packet guidance use the modern lane vocabulary.
+
+The internal C tree still carries a very large compatibility surface:
+
+- `original` and `alias` remain embedded in function names, structs, comments, and config parsing paths.
+- `all_aliases` and `do_it_all` still exist as internal command families and parser branches.
+- the legacy names are mostly internal compatibility debt rather than active docs leakage, but they are widespread enough that automated edits should treat them carefully.
+
+Practical takeaway:
+
+- new docs should stay canonical
+- new code should avoid adding more legacy names
+- broad renames should remain staged, because the compatibility surface is still large
+
+### 7) CLI help already speaks the canonical language
+
+The current help/usage strings are already aligned with the modern vocabulary:
+
+- `mezzanine-clean`
+- `mezzanine`
+- `source`
+- `profiles`
+- `status`
+- `status-json`
+
+The parser still accepts legacy aliases for compatibility, but those names are no longer presented in the help surface. That means the visible UX is cleaner than the internal detection logic.
+
+Compatibility-only parser aliases currently retained:
+
+- `original` for `mezzanine`
+- `all_aliases` for `profiles`
+- `do_it_all` as an internal legacy command family
+- `mezzanine_clean` as the underscore variant of `mezzanine-clean`
+- `status_json` as the underscore variant of `status-json`
 
 ## Recommendations
 

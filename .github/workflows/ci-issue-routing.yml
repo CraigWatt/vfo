@@ -1,0 +1,95 @@
+name: 🤖 AI issue routing
+
+on:
+  issues:
+    types:
+      - opened
+      - reopened
+      - labeled
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to classify"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ai-issue-routing-${{ github.event.issue.number || inputs.issue_number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  route-issue:
+    name: Classify issue and recommend Codex lane
+    if: vars.VFO_AI_ROUTING_ENABLED != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: ⬇️ Checkout repo
+        uses: actions/checkout@v6
+
+      - name: 🧾 Resolve issue payload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            gh api "repos/${{ github.repository }}/issues/${{ inputs.issue_number }}" > /tmp/issue.json
+          else
+            jq '.issue' "$GITHUB_EVENT_PATH" > /tmp/issue.json
+          fi
+
+      - name: 🚦 Guard against pull-request wrapper issues
+        id: guard
+        run: |
+          set -euo pipefail
+
+          if jq -e '.pull_request' /tmp/issue.json >/dev/null; then
+            echo "should_comment=false" >> "$GITHUB_OUTPUT"
+            echo "reason=Issue payload is a pull request wrapper." >> "$GITHUB_OUTPUT"
+          else
+            echo "should_comment=true" >> "$GITHUB_OUTPUT"
+            echo "reason=ok" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 🧠 Classify issue against repo policy
+        if: steps.guard.outputs.should_comment == 'true'
+        run: |
+          set -euo pipefail
+          python3 infra/scripts/classify_issue.py \
+            --issue-json /tmp/issue.json \
+            --repo-root "$GITHUB_WORKSPACE" \
+            --output-json /tmp/issue-routing.json \
+            --output-markdown /tmp/issue-routing-comment.md
+
+      - name: 💬 Upsert routing comment
+        if: steps.guard.outputs.should_comment == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          issue_number="$(jq -r '.number' /tmp/issue.json)"
+          marker='<!-- vfo-ai-routing -->'
+          existing_comment_id="$(gh api "repos/${{ github.repository }}/issues/${issue_number}/comments?per_page=100" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\") | select(.body | contains(\"${marker}\")) | .id" \
+            | head -n 1 || true)"
+
+          if [ -n "${existing_comment_id}" ]; then
+            jq -n --rawfile body /tmp/issue-routing-comment.md '{body: $body}' > /tmp/issue-routing-patch.json
+            gh api "repos/${{ github.repository }}/issues/comments/${existing_comment_id}" \
+              --method PATCH \
+              --input /tmp/issue-routing-patch.json
+          else
+            gh issue comment "${issue_number}" --body-file /tmp/issue-routing-comment.md
+          fi
+
+      - name: ⏭️ Skip routing comment
+        if: steps.guard.outputs.should_comment != 'true'
+        run: |
+          echo "Skipping AI routing comment: ${{ steps.guard.outputs.reason }}"

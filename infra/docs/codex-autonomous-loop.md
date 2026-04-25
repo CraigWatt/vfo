@@ -1,13 +1,27 @@
 # Codex Autonomous Repo Loop (v1)
 
-This repository ships a small, bounded automation loop powered by the official Codex GitHub Action.
+This repository ships a small, bounded premium automation loop powered by the official Codex GitHub Action.
+
+Codex is not the default first pass. The intended order is:
+
+1. issue routing and scoping
+2. Qwen Cloud first when the task is bounded
+3. Codex only when maintainers intentionally escalate
 
 ## Goals Covered
 
-- scheduled proactive sweep
-- issue trigger via `agent-ready`
-- bounded CI autofix for Codex-owned PRs
+- premium proactive sweep when explicitly enabled
+- premium issue trigger via `agent-ready`
+- bounded premium CI autofix for Codex-owned PRs
 - explicit guardrails and easy-disable controls
+
+## Related Routing Workflow
+
+Initial issue classification now lives in:
+
+- `.github/workflows/ci-issue-routing.yml`
+
+That workflow reads the repo policy files and comments with a `Qwen Cloud first` or `Codex now` recommendation before maintainers promote work into these premium lanes.
 
 ## Workflows
 
@@ -49,6 +63,7 @@ Behavior:
 - No release workflow mutation from autofix lane.
 - Fork PRs are excluded from autofix push behavior.
 - Missing `OPENAI_API_KEY` safely skips Codex execution.
+- Premium lanes stay off unless repository variables explicitly enable them.
 
 ## Required Setup
 
@@ -58,17 +73,20 @@ Behavior:
    - `agent-ready`
 3. (Optional) Add PR label:
    - `codex-owned` (if you want autofix on non-`codex/*` branches)
+4. Explicitly enable premium lanes with repository variables:
+   - `VFO_AUTONOMOUS_LOOP_ENABLED=true`
+   - `VFO_CODEX_SWEEP_ENABLED=true`
+   - `VFO_CODEX_ISSUE_ENABLED=true`
+   - `VFO_CODEX_AUTOFIX_ENABLED=true`
 
-## Easy Disable Switches
+## Enable Switches
 
-Set repository variables to `false` to disable lanes without deleting workflows:
+Set repository variables to `true` to enable lanes. Leaving them unset keeps premium Codex automation off by default.
 
 - `VFO_AUTONOMOUS_LOOP_ENABLED` (master switch)
 - `VFO_CODEX_SWEEP_ENABLED` (scheduled sweep lane)
 - `VFO_CODEX_ISSUE_ENABLED` (issue label lane)
 - `VFO_CODEX_AUTOFIX_ENABLED` (bounded PR autofix lane)
-
-Unset variables default to enabled behavior.
 
 ## Operational Notes
 

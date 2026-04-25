@@ -1,0 +1,50 @@
+name: Bug report
+description: Report a reproducible bug with routing and verification context.
+title: "[bug] "
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the incorrect behavior clearly.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: List the smallest reliable reproduction steps.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: likely_subsystem
+    attributes:
+      label: Likely subsystem
+      description: If known, name the likely subsystem or file area.
+      placeholder: profile routing, source stage, workflow, docs site
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification bar
+      description: What evidence should a fix satisfy?
+      placeholder: |
+        make tests
+        make e2e
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk level guess
+      options:
+        - low
+        - medium
+        - high
+    validations:
+      required: true

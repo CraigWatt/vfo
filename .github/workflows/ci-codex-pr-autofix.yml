@@ -24,8 +24,8 @@ jobs:
       ${{
         github.event.workflow_run.conclusion == 'failure' &&
         github.event.workflow_run.event == 'pull_request' &&
-        vars.VFO_AUTONOMOUS_LOOP_ENABLED != 'false' &&
-        vars.VFO_CODEX_AUTOFIX_ENABLED != 'false'
+        vars.VFO_AUTONOMOUS_LOOP_ENABLED == 'true' &&
+        vars.VFO_CODEX_AUTOFIX_ENABLED == 'true'
       }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -130,6 +130,14 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           prompt: |
             You are running a bounded CI autofix for PR #${{ steps.context.outputs.pr_number }}.
+
+            This is a premium Codex escalation lane. Read these repository policy files first:
+            - AGENTS.md
+            - objectives.md
+            - architecture.md
+            - subsystems.md
+            - testing.md
+            - escalation.md
 
             Context:
             - Failed workflow run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}

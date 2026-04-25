@@ -1,0 +1,63 @@
+name: Codex task packet
+description: Create a small, scoped packet for Codex repo work.
+title: "[task] "
+labels:
+  - triage
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: Describe the exact change or outcome needed.
+      placeholder: Fix incorrect bitrate selection for the HEVC device-target path.
+    validations:
+      required: true
+  - type: textarea
+    id: subsystem
+    attributes:
+      label: Subsystem
+      description: Name the primary subsystem or area.
+      placeholder: profile routing
+    validations:
+      required: true
+  - type: textarea
+    id: likely_files
+    attributes:
+      label: Likely files
+      description: Keep this short and specific.
+      placeholder: |
+        services/vfo/src/Profile/
+        services/vfo/presets/
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Name behavior-preservation rules, non-goals, or compatibility requirements.
+      placeholder: Preserve existing correct device-target behavior and avoid config-key renames.
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: State the expected evidence bar before merge.
+      placeholder: |
+        make tests
+        make e2e
+    validations:
+      required: true
+  - type: dropdown
+    id: route
+    attributes:
+      label: Default route
+      options:
+        - GPT-5.4 mini first
+        - GPT-5.4 high now
+    validations:
+      required: true
+  - type: textarea
+    id: escalation_trigger
+    attributes:
+      label: Escalation trigger
+      description: When should this move from mini/low reasoning to high reasoning?
+      placeholder: Escalate if the fix crosses into source stage or fails targeted verification.
