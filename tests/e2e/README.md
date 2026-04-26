@@ -109,3 +109,44 @@ Notes:
 - The optional DV metadata test is non-blocking by default unless a DV fixture path is provided.
 - If no DV fixture is configured, the DV test lane exits with a skip message and success.
 - CI uploads `tests/e2e/.reports/latest/` as an artifact so docs and reviews can reference exact toolchain versions used by that run.
+
+## VFO Practice Validation Loop
+
+Use this local runner when testing the real practice bed:
+
+```bash
+tests/e2e/run_vfo_practice_validation_loop.sh --once
+```
+
+By default it uses:
+
+- practice root: `/Volumes/Mitchum/vfo_practice`
+- VFO binary: `vfo` from `PATH`
+- command sequence: `vfo doctor`, `vfo status`, then `vfo run`
+- smoke trim: `SOURCE_TEST_ACTIVE=true` and `SOURCE_TEST_TRIM_DURATION=00:02:00`
+- reports: `tests/e2e/.reports/vfo-practice/latest`
+
+The newest or selected asset is recorded as reproduction context. VFO still processes candidates visible to the active config, so isolate the practice bed when you want a single-asset run.
+
+To run the interactive profile path instead:
+
+```bash
+VFO_PRACTICE_PROFILE_COMMAND="yes y | vfo profiles" \
+tests/e2e/run_vfo_practice_validation_loop.sh --once
+```
+
+To create or update deduped GitHub issues for technical failures:
+
+```bash
+VFO_PRACTICE_CREATE_ISSUES=1 \
+tests/e2e/run_vfo_practice_validation_loop.sh --once
+```
+
+To force a specific installed or local binary:
+
+```bash
+VFO_PRACTICE_VFO_BIN="/usr/local/bin/vfo" \
+tests/e2e/run_vfo_practice_validation_loop.sh --once
+```
+
+The runner labels issue intake as `codex-candidate`. Promote only one scoped issue at a time with `agent-ready` when it is safe for the Codex issue workflow to attempt a branch and PR.
