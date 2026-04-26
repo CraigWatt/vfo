@@ -64,6 +64,8 @@ Core templates:
 - fall back to software (`libx265`) automatically
 - keep `aggressive_vmaf` scoped to video-only retry behavior when enabled
 - print live ffmpeg progress by default through the shared `live_encode_tools.sh` wrapper
+- write encode output back to the controlling terminal even if a caller redirects stdout/stderr, so long-running child work stays visible in the same session
+- set `VFO_LIVE_USE_SCRIPT=0` if you need to disable the pseudo-tty wrapper for debugging
 - adjust ffmpeg progress cadence with `VFO_FFMPEG_STATS_PERIOD` if you want slower or faster updates
 
 Device-target templates:
