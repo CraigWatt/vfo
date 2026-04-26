@@ -27,14 +27,15 @@ vfo_live_output_device() {
     return 0
   fi
 
-  printf '%s' /dev/stderr
+  printf '%s' stderr
 }
 
 vfo_live_print() {
-  local output_device=""
-
-  output_device="$(vfo_live_output_device)"
-  printf '%s\n' "$*" >"$output_device"
+  if [ "$(vfo_live_output_device)" = "/dev/tty" ]; then
+    printf '%s\n' "$*" >/dev/tty
+  else
+    printf '%s\n' "$*" >&2
+  fi
 }
 
 live_encode_has_passthrough_flag() {
@@ -69,8 +70,13 @@ vfo_live_run_command() {
 
   command_line="$(vfo_live_shell_quote "$@")"
   output_device="$(vfo_live_output_device)"
-  printf 'VFO LIVE START: %s\n' "$label" >"$output_device"
-  printf 'VFO LIVE COMMAND: %s\n' "$command_line" >"$output_device"
+  if [ "$output_device" = "/dev/tty" ]; then
+    printf 'VFO LIVE START: %s\n' "$label" >/dev/tty
+    printf 'VFO LIVE COMMAND: %s\n' "$command_line" >/dev/tty
+  else
+    printf 'VFO LIVE START: %s\n' "$label" >&2
+    printf 'VFO LIVE COMMAND: %s\n' "$command_line" >&2
+  fi
 
   if [ "$output_device" = "/dev/tty" ] \
     && command -v script >/dev/null 2>&1 \
@@ -79,17 +85,18 @@ vfo_live_run_command() {
   fi
 
   if [ "$use_script" -eq 1 ]; then
-    script -q -e /dev/null "$@" >"$output_device" 2>&1
-    exit_code=$?
-  elif command -v stdbuf >/dev/null 2>&1; then
-    env stdbuf -oL -eL "$@" >"$output_device" 2>&1
+    script -q -e /dev/null "$@" >/dev/tty 2>&1
     exit_code=$?
   else
-    "$@" >"$output_device" 2>&1
+    command "$@" >&2
     exit_code=$?
   fi
 
-  printf 'VFO LIVE END: %s (exit=%d)\n' "$label" "$exit_code" >"$output_device"
+  if [ "$output_device" = "/dev/tty" ]; then
+    printf 'VFO LIVE END: %s (exit=%d)\n' "$label" "$exit_code" >/dev/tty
+  else
+    printf 'VFO LIVE END: %s (exit=%d)\n' "$label" "$exit_code" >&2
+  fi
   return "$exit_code"
 }
 
