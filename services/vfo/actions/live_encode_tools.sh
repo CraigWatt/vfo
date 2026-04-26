@@ -65,13 +65,20 @@ vfo_live_run_command() {
   local command_line=""
   local exit_code=0
   local output_device=""
+  local use_script=0
 
   command_line="$(vfo_live_shell_quote "$@")"
   output_device="$(vfo_live_output_device)"
   printf 'VFO LIVE START: %s\n' "$label" >"$output_device"
   printf 'VFO LIVE COMMAND: %s\n' "$command_line" >"$output_device"
 
-  if command -v script >/dev/null 2>&1 && [ "${VFO_LIVE_USE_SCRIPT:-1}" = "1" ]; then
+  if [ "$output_device" = "/dev/tty" ] \
+    && command -v script >/dev/null 2>&1 \
+    && [ "${VFO_LIVE_USE_SCRIPT:-1}" = "1" ]; then
+    use_script=1
+  fi
+
+  if [ "$use_script" -eq 1 ]; then
     script -q -e /dev/null "$@" >"$output_device" 2>&1
     exit_code=$?
   elif command -v stdbuf >/dev/null 2>&1; then
