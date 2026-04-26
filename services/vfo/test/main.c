@@ -81,11 +81,13 @@ int main(void) {
         cmocka_unit_test(test_utils_is_file_extension_ts),
         cmocka_unit_test(test_utils_is_file_extension_valid_supports_ts_original),
         cmocka_unit_test(test_utils_is_file_extension_valid_supports_extended_mezzanine_inputs),
+        cmocka_unit_test(test_utils_are_custom_folders_type_compliant_accepts_mixed_library),
         /* Config */
         cmocka_unit_test(test_con_init_config_dir_null_ptr),
         cmocka_unit_test(test_con_init_config_dir_empty_str),
         cmocka_unit_test(test_con_word_count_ignores_partial_marker_matches),
         cmocka_unit_test(test_con_fetch_profile_marker_ignores_quality_suffix_marker),
+        cmocka_unit_test(test_con_extract_custom_folder_accepts_mixed_type),
         /* Mezzanine */
         cmocka_unit_test(test_m_mezzanine_null_ptr),
         cmocka_unit_test(test_mc_sanitize_title_uses_underscores),

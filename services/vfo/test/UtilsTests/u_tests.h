@@ -38,5 +38,6 @@ void test_utils_create_folder_creates_accessible_directory(void **state);
 void test_utils_is_file_extension_ts(void **state);
 void test_utils_is_file_extension_valid_supports_ts_original(void **state);
 void test_utils_is_file_extension_valid_supports_extended_mezzanine_inputs(void **state);
+void test_utils_are_custom_folders_type_compliant_accepts_mixed_library(void **state);
 
 #endif // U_TESTS_H

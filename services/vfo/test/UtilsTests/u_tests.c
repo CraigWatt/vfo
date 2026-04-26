@@ -26,6 +26,16 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdio.h>
+
+#include "../../src/Config/c_internal.h"
+
+static void u_write_file(const char *path) {
+  FILE *fp = fopen(path, "w");
+  assert_non_null(fp);
+  fputs("test", fp);
+  fclose(fp);
+}
 
 void test_utils_does_folder_exist_null_ptr(void **state) {
   (void)state;
@@ -123,4 +133,63 @@ void test_utils_is_file_extension_valid_supports_extended_mezzanine_inputs(void 
   assert_true(utils_is_file_extension_valid("example.webm", "start"));
   assert_true(utils_is_file_extension_valid("example.mov", "mp4_mezzanine"));
   assert_false(utils_is_file_extension_valid("example.txt", "start"));
+}
+
+void test_utils_are_custom_folders_type_compliant_accepts_mixed_library(void **state) {
+  char root_template[] = "/tmp/vfo-mixed-library-XXXXXX";
+  char *root = mkdtemp(root_template);
+  char *mixed_root = NULL;
+  char *movie_folder = NULL;
+  char *movie_file = NULL;
+  char *tv_show_folder = NULL;
+  char *tv_season_folder = NULL;
+  char *tv_episode_folder = NULL;
+  char *tv_episode_leaf_folder = NULL;
+  char *tv_episode_file = NULL;
+  char *allowed_types[] = {"films", "tv", "mixed"};
+  char conf[] = "CUSTOM_FOLDER=\"Movies_and_TV_Shows,mixed\"\n";
+  cf_node_t *cf_head = NULL;
+
+  (void)state;
+  assert_non_null(root);
+
+  mixed_root = utils_combine_to_full_path(root, "Movies_and_TV_Shows");
+  movie_folder = utils_combine_to_full_path(mixed_root, "MovieOne");
+  movie_file = utils_combine_to_full_path(movie_folder, "MovieOne.mkv");
+  tv_show_folder = utils_combine_to_full_path(mixed_root, "ShowOne");
+  tv_season_folder = utils_combine_to_full_path(tv_show_folder, "Season_01");
+  tv_episode_folder = utils_combine_to_full_path(tv_season_folder, "Episode_01");
+  tv_episode_leaf_folder = utils_combine_to_full_path(tv_episode_folder, "Part_01");
+  tv_episode_file = utils_combine_to_full_path(tv_episode_leaf_folder, "ShowOne_S01E01.mkv");
+
+  utils_create_folder(mixed_root);
+  utils_create_folder(movie_folder);
+  utils_create_folder(tv_show_folder);
+  utils_create_folder(tv_season_folder);
+  utils_create_folder(tv_episode_folder);
+  utils_create_folder(tv_episode_leaf_folder);
+  u_write_file(movie_file);
+  u_write_file(tv_episode_file);
+
+  cf_head = con_extract_to_cf_ll(conf, "CUSTOM_FOLDER=", allowed_types, 3, cf_head);
+  utils_are_custom_folders_type_compliant(root, "mkv_original", cf_head);
+
+  unlink(movie_file);
+  unlink(tv_episode_file);
+  rmdir(tv_episode_leaf_folder);
+  rmdir(tv_episode_folder);
+  rmdir(tv_season_folder);
+  rmdir(tv_show_folder);
+  rmdir(movie_folder);
+  rmdir(mixed_root);
+  rmdir(root);
+
+  free(movie_file);
+  free(tv_episode_file);
+  free(tv_episode_leaf_folder);
+  free(tv_episode_folder);
+  free(tv_season_folder);
+  free(tv_show_folder);
+  free(movie_folder);
+  free(mixed_root);
 }

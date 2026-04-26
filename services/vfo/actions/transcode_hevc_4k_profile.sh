@@ -11,6 +11,10 @@ set -euo pipefail
 # - Video path auto-selects Apple VideoToolbox when available unless overridden.
 # - Intended for profile-action workflows where vfo handles scenario routing.
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=live_encode_tools.sh
+. "$SCRIPT_DIR/live_encode_tools.sh"
+
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
   exit 1

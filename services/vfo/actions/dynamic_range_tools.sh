@@ -3,6 +3,10 @@
 # Shared helpers for dynamic-range metadata detection, repair defaults,
 # and output validation/reporting across profile action scripts.
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=live_encode_tools.sh
+. "$SCRIPT_DIR/live_encode_tools.sh"
+
 dr_lower_text() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
 }

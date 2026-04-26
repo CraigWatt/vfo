@@ -50,6 +50,7 @@ vfo provides these through scenario command placeholders:
 - `audio_conform_tools.sh`
 - `subtitle_policy_tools.sh`
 - `quality_mode_tools.sh`
+- `live_encode_tools.sh`
 - `transcode_h264_1080_profile.sh`
 - `transcode_h264_1080_hdr_to_sdr_profile.sh`
 - `transcode_hevc_4k_dv_profile.sh`
@@ -62,6 +63,8 @@ Core templates:
 - choose hardware encode (`hevc_videotoolbox`) when available by default
 - fall back to software (`libx265`) automatically
 - keep `aggressive_vmaf` scoped to video-only retry behavior when enabled
+- print live ffmpeg progress by default through the shared `live_encode_tools.sh` wrapper
+- adjust ffmpeg progress cadence with `VFO_FFMPEG_STATS_PERIOD` if you want slower or faster updates
 
 Device-target templates:
 

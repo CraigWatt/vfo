@@ -13,6 +13,10 @@ set -euo pipefail
 # - loudness normalization is only applied when a stream is transcoded
 # - if a preserved stream is not MP4-safe, callers should force MKV output
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=live_encode_tools.sh
+. "$SCRIPT_DIR/live_encode_tools.sh"
+
 AUDIO_CONFORM_WORK_FILE=""
 AUDIO_CONFORM_HAS_STREAMS=0
 AUDIO_CONFORM_FORCE_MKV=0

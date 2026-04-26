@@ -319,8 +319,8 @@ config_t* con_init(const char *config_dir, char **revised_argv, int revised_argc
   //custom folders ll - extract conf_string to cf ll
   //validate cf ll data - all must be valid
   char *cf_marker = "CUSTOM_FOLDER=";
-  char *pre_approved_vfo_cf_types[]= {"films", "tv"};
-  int cf_size = 2;
+  char *pre_approved_vfo_cf_types[]= {"films", "tv", "mixed"};
+  int cf_size = 3;
 
   config->cf_head = con_extract_to_cf_ll(conf_string, cf_marker, pre_approved_vfo_cf_types, cf_size, config->cf_head);
 

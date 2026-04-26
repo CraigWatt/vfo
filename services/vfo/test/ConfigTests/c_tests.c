@@ -78,3 +78,16 @@ void test_con_fetch_profile_marker_ignores_quality_suffix_marker(void **state) {
   assert_string_equal(value, "netflixy_preserve_audio_main_subtitle_intent_1080p");
   free(value);
 }
+
+void test_con_extract_custom_folder_accepts_mixed_type(void **state) {
+  char conf[] =
+    "CUSTOM_FOLDER=\"Movies_and_TV_Shows,mixed\"\n";
+  char *allowed_types[] = {"films", "tv", "mixed"};
+  cf_node_t *head = NULL;
+  (void)state;
+
+  head = con_extract_to_cf_ll(conf, "CUSTOM_FOLDER=", allowed_types, 3, head);
+  assert_non_null(head);
+  assert_int_equal(cf_get_count(head), 1);
+  assert_string_equal(cf_get_type_from_folder_name(head, "Movies_and_TV_Shows"), "mixed");
+}

@@ -3,6 +3,10 @@ set -euo pipefail
 
 # Shared quality-mode helpers for bounded aggressive-VMAF retries.
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=live_encode_tools.sh
+. "$SCRIPT_DIR/live_encode_tools.sh"
+
 QUALITY_MODE_NAME="${VFO_QUALITY_MODE:-standard}"
 QUALITY_MODE_VMAF_MIN="${VFO_QUALITY_VMAF_MIN:-94}"
 QUALITY_MODE_VMAF_MAX_PASSES="${VFO_QUALITY_VMAF_MAX_PASSES:-4}"

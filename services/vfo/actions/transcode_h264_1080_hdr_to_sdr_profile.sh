@@ -15,6 +15,10 @@ set -euo pipefail
 #   the full HDR tonemap filters, instead of failing on unsupported colorspace
 #   conversions for PQ/HLG inputs.
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=live_encode_tools.sh
+. "$SCRIPT_DIR/live_encode_tools.sh"
+
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
   exit 1

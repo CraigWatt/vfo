@@ -44,6 +44,113 @@ static bool utils_assume_yes_mode(void) {
   return false;
 }
 
+#define UTILS_MIXED_CHILD_EMPTY 0
+#define UTILS_MIXED_CHILD_FILM 1
+#define UTILS_MIXED_CHILD_TV 2
+#define UTILS_MIXED_CHILD_INVALID 3
+
+typedef struct utils_folder_entry_scan {
+  bool has_visible_file;
+  bool has_visible_dir;
+} utils_folder_entry_scan_t;
+
+static void utils_scan_visible_entries(char *folder, utils_folder_entry_scan_t *scan) {
+  DIR *directory = NULL;
+  struct dirent *entry = NULL;
+
+  if(scan == NULL)
+    return;
+
+  scan->has_visible_file = false;
+  scan->has_visible_dir = false;
+
+  directory = opendir(folder);
+  if(directory == NULL) {
+    printf("MAJOR ERROR: Could not open %s while scanning mixed custom-folder contents\n", folder);
+    exit(EXIT_FAILURE);
+  }
+
+  while((entry = readdir(directory)) != NULL) {
+    if(utils_directory_is_current_or_parent(entry->d_name) || utils_file_is_macos_hidden_files(entry->d_name))
+      continue;
+
+    if(entry->d_type == DT_REG)
+      scan->has_visible_file = true;
+    else if(entry->d_type == DT_DIR)
+      scan->has_visible_dir = true;
+  }
+
+  if(closedir(directory) == -1) {
+    printf("Error closing directory.\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+static int utils_detect_mixed_child_type(char *folder) {
+  utils_folder_entry_scan_t scan;
+
+  utils_scan_visible_entries(folder, &scan);
+  if(scan.has_visible_file && !scan.has_visible_dir)
+    return UTILS_MIXED_CHILD_FILM;
+  if(scan.has_visible_dir && !scan.has_visible_file)
+    return UTILS_MIXED_CHILD_TV;
+  if(!scan.has_visible_file && !scan.has_visible_dir)
+    return UTILS_MIXED_CHILD_EMPTY;
+  return UTILS_MIXED_CHILD_INVALID;
+}
+
+static void utils_populate_active_tv_descendants(active_tv_f_node_t *top_level_tv_head) {
+  active_tv_f_node_t *tmp_active_tv_head = top_level_tv_head;
+
+  if(tmp_active_tv_head == NULL)
+    return;
+
+  while(tmp_active_tv_head != NULL) {
+    DIR *directory4;
+    struct dirent *entry4;
+    directory4 = opendir(tmp_active_tv_head->from_tv_f_folder);
+    if(directory4 == NULL)
+      printf("MAJOR ERROR: vfo could not open %s\n", tmp_active_tv_head->from_tv_f_folder);
+    while((entry4 = readdir(directory4)) != NULL) {
+      if(entry4->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry4->d_name))) {
+        char *from_tv_f_folder2 = utils_combine_to_full_path(tmp_active_tv_head->from_tv_f_folder, entry4->d_name);
+        char *to_tv_f_folder2 = utils_combine_to_full_path(tmp_active_tv_head->to_tv_f_folder, entry4->d_name);
+        int this_layer_is2 = 2;
+        active_tv_f_node_t *active_tv_f_node2 = active_tv_f_create_new_node(from_tv_f_folder2, to_tv_f_folder2, this_layer_is2);
+        active_tv_f_insert_at_head(&tmp_active_tv_head->active_tv_f_head, active_tv_f_node2);
+      }
+    }
+    if(closedir(directory4) == -1)
+      printf("MAJOR ERROR: vfo could not close this directory: %s\n", tmp_active_tv_head->from_tv_f_folder);
+
+    active_tv_f_node_t *tmp_SECOND_LEVEL_active_tv_head = tmp_active_tv_head->active_tv_f_head;
+    if(tmp_SECOND_LEVEL_active_tv_head != NULL) {
+      while(tmp_SECOND_LEVEL_active_tv_head != NULL) {
+        DIR *directory5;
+        struct dirent *entry5;
+        directory5 = opendir(tmp_SECOND_LEVEL_active_tv_head->from_tv_f_folder);
+        if(directory5 == NULL)
+          printf("MAJOR ERROR: vfo could not open %s\n", tmp_SECOND_LEVEL_active_tv_head->from_tv_f_folder);
+        while((entry5 = readdir(directory5)) != NULL) {
+          if(entry5->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry5->d_name))) {
+            char *from_tv_f_folder3 = utils_combine_to_full_path(tmp_SECOND_LEVEL_active_tv_head->from_tv_f_folder, entry5->d_name);
+            char *to_tv_f_folder3 = utils_combine_to_full_path(tmp_SECOND_LEVEL_active_tv_head->to_tv_f_folder, entry5->d_name);
+            int this_layer_is3 = 3;
+            active_tv_f_node_t *active_tv_f_node3 = active_tv_f_create_new_node(from_tv_f_folder3, to_tv_f_folder3, this_layer_is3);
+            active_tv_f_insert_at_head(&tmp_SECOND_LEVEL_active_tv_head->active_tv_f_head, active_tv_f_node3);
+          }
+        }
+        if(closedir(directory5) == -1)
+          printf("MAJOR ERROR: vfo could not close this directory: %s\n", tmp_SECOND_LEVEL_active_tv_head->from_tv_f_folder);
+
+        tmp_SECOND_LEVEL_active_tv_head = tmp_SECOND_LEVEL_active_tv_head->next;
+      }
+    }
+
+    tmp_active_tv_head = tmp_active_tv_head->next;
+  }
+}
+
 /**
  * Checks to see if param is a real directory on current machine
  * 
@@ -933,6 +1040,41 @@ void utils_are_custom_folders_type_compliant(char *root_folder, char* rf_rules, 
         char *tmp_layer = "layer1";
         utils_is_custom_folder_tv_type_compliant(tmp_cf_loc, rf_rules, tmp_layer);
       }
+      if (strcmp(ftype, "mixed") == 0) {
+        char *tmp_cf_loc = utils_combine_to_full_path(root_folder, entry->d_name);
+        DIR *mixed_directory;
+        struct dirent *mixed_entry;
+        mixed_directory = opendir(tmp_cf_loc);
+        if(mixed_directory == NULL) {
+          printf("MAJOR ERROR: vfo could not open %s\n", tmp_cf_loc);
+          exit(EXIT_FAILURE);
+        }
+        while((mixed_entry = readdir(mixed_directory)) != NULL) {
+          if(mixed_entry->d_type == DT_REG && !(utils_file_is_macos_hidden_files(mixed_entry->d_name))) {
+            utils_found_a_rogue_file(mixed_entry->d_name, tmp_cf_loc);
+            exit(EXIT_FAILURE);
+          }
+          if(mixed_entry->d_type == DT_DIR && !(utils_directory_is_current_or_parent(mixed_entry->d_name))) {
+            char *tmp_mixed_child = utils_combine_to_full_path(tmp_cf_loc, mixed_entry->d_name);
+            int mixed_child_type = utils_detect_mixed_child_type(tmp_mixed_child);
+            if(mixed_child_type == UTILS_MIXED_CHILD_FILM) {
+              utils_is_custom_folder_films_type_compliant(tmp_mixed_child, rf_rules, "layer2");
+            } else if(mixed_child_type == UTILS_MIXED_CHILD_TV) {
+              utils_is_custom_folder_tv_type_compliant(tmp_mixed_child, rf_rules, "layer1");
+            } else if(mixed_child_type == UTILS_MIXED_CHILD_EMPTY) {
+              printf("ERROR, %s is empty.  Please delete this folder\n", tmp_mixed_child);
+              exit(EXIT_FAILURE);
+            } else {
+              printf("woah lad, %s contains both film and tv-style content. please separate it or fix the folder layout\n", tmp_mixed_child);
+              exit(EXIT_FAILURE);
+            }
+          }
+        }
+        if (closedir(mixed_directory) == -1) {
+          printf("Error closing directory.\n");
+          exit(EXIT_FAILURE);
+        }
+      }
       printf("VALID: %s in %s\n", entry->d_name, root_folder);
     }
   }
@@ -1422,53 +1564,39 @@ active_cf_node_t* utils_generate_from_to_ll(cf_node_t *cf_head, char *from_cf_pa
         }
         if(closedir(directory3) == -1)
           printf("MAJOR ERROR: vfo could not close this directory: %s\n", tmp_active_cf->from_cf_folder);
-
-        active_tv_f_node_t *tmp_active_tv_head = tmp_active_cf->active_tv_f_head;
-        if(tmp_active_tv_head !=NULL) {
-          while(tmp_active_tv_head != NULL) {
-              DIR *directory4;
-              struct dirent *entry4;
-              directory4 = opendir(tmp_active_tv_head->from_tv_f_folder);
-              if(directory4 == NULL)
-                printf("MAJOR ERROR: vfo could not open %s\n", tmp_active_tv_head->from_tv_f_folder);
-              while((entry4 = readdir(directory4)) != NULL) {
-                if(entry4->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry4->d_name))) {
-                  char *from_tv_f_folder2 = utils_combine_to_full_path(tmp_active_tv_head->from_tv_f_folder, entry4->d_name);
-                  char *to_tv_f_folder2 = utils_combine_to_full_path(tmp_active_tv_head->to_tv_f_folder, entry4->d_name);
-                  int this_layer_is2 = 2;
-                  active_tv_f_node_t *active_tv_f_node2 = active_tv_f_create_new_node(from_tv_f_folder2, to_tv_f_folder2, this_layer_is2);
-                  active_tv_f_insert_at_head(&tmp_active_tv_head->active_tv_f_head, active_tv_f_node2);
-                }
-              }
-              if(closedir(directory4) == -1)
-                printf("MAJOR ERROR: vfo could not close this directory: %s\n", tmp_active_tv_head->from_tv_f_folder);
-              
-              active_tv_f_node_t *tmp_SECOND_LEVEL_active_tv_head = tmp_active_tv_head->active_tv_f_head;
-              if(tmp_SECOND_LEVEL_active_tv_head != NULL) {
-                while(tmp_SECOND_LEVEL_active_tv_head != NULL) {
-                  DIR *directory5;
-                  struct dirent *entry5;
-                  directory5 = opendir(tmp_SECOND_LEVEL_active_tv_head->from_tv_f_folder);
-                  if(directory5 == NULL)
-                    printf("MAJOR ERROR: vfo could not open %s\n", tmp_SECOND_LEVEL_active_tv_head->from_tv_f_folder);
-                  while((entry5 = readdir(directory5)) != NULL) {
-                    if(entry5->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry5->d_name))) {
-                      char *from_tv_f_folder3 = utils_combine_to_full_path(tmp_SECOND_LEVEL_active_tv_head->from_tv_f_folder, entry5->d_name);
-                      char *to_tv_f_folder3 = utils_combine_to_full_path(tmp_SECOND_LEVEL_active_tv_head->to_tv_f_folder, entry5->d_name);
-                      int this_layer_is3 = 3;
-                      active_tv_f_node_t *active_tv_f_node3 = active_tv_f_create_new_node(from_tv_f_folder3, to_tv_f_folder3, this_layer_is3);
-                      active_tv_f_insert_at_head(&tmp_SECOND_LEVEL_active_tv_head->active_tv_f_head, active_tv_f_node3);
-                    }
-                  }
-                  if(closedir(directory5) == -1)
-                    printf("MAJOR ERROR: vfo could not close this directory: %s\n", tmp_SECOND_LEVEL_active_tv_head->from_tv_f_folder);
-
-                  tmp_SECOND_LEVEL_active_tv_head = tmp_SECOND_LEVEL_active_tv_head->next;
-                }
-              }
-            tmp_active_tv_head = tmp_active_tv_head->next;
+        utils_populate_active_tv_descendants(tmp_active_cf->active_tv_f_head);
+      }
+      else if (strcmp(tmp_active_cf->type, "mixed") == 0) {
+        DIR *mixed_directory;
+        struct dirent *mixed_entry;
+        mixed_directory = opendir(tmp_active_cf->from_cf_folder);
+        if(mixed_directory == NULL)
+          printf("MAJOR ERROR: vfo could not open %s\n", tmp_active_cf->from_cf_folder);
+        while((mixed_entry = readdir(mixed_directory)) != NULL) {
+          if(mixed_entry->d_type == DT_DIR && !(utils_directory_is_current_or_parent(mixed_entry->d_name))) {
+            char *from_child_folder = utils_combine_to_full_path(tmp_active_cf->from_cf_folder, mixed_entry->d_name);
+            char *to_child_folder = utils_combine_to_full_path(tmp_active_cf->to_cf_folder, mixed_entry->d_name);
+            int child_type = utils_detect_mixed_child_type(from_child_folder);
+            if(child_type == UTILS_MIXED_CHILD_FILM) {
+              active_films_f_node_t *active_films_f_node = active_films_f_create_node(from_child_folder, to_child_folder);
+              active_films_f_insert_at_head(&tmp_active_cf->active_films_f_head, active_films_f_node);
+            } else if(child_type == UTILS_MIXED_CHILD_TV) {
+              int this_layer_is = 1;
+              active_tv_f_node_t *active_tv_f_node = active_tv_f_create_new_node(from_child_folder, to_child_folder, this_layer_is);
+              active_tv_f_insert_at_head(&tmp_active_cf->active_tv_f_head, active_tv_f_node);
+            } else if(child_type == UTILS_MIXED_CHILD_EMPTY) {
+              printf("MAJOR ERROR: %s is empty. Please delete this folder\n", from_child_folder);
+              exit(EXIT_FAILURE);
+            } else {
+              printf("MAJOR ERROR: %s contains both film and tv-style content. please separate it or fix the folder layout\n", from_child_folder);
+              exit(EXIT_FAILURE);
+            }
           }
         }
+        if(closedir(mixed_directory) == -1)
+          printf("MAJOR ERROR: vfo could not close this directory: %s\n", tmp_active_cf->from_cf_folder);
+
+        utils_populate_active_tv_descendants(tmp_active_cf->active_tv_f_head);
       }
       active_cf_node_t *finale_active_cf_node = active_cf_create_node(tmp_active_cf->from_cf_folder, tmp_active_cf->to_cf_folder, tmp_active_cf->type, tmp_active_cf->active_films_f_head, tmp_active_cf->active_tv_f_head);
       active_cf_insert_at_head(&final_active_cf_head, finale_active_cf_node);

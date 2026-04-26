@@ -11,6 +11,10 @@ set -euo pipefail
 # - Preserves all audio/subtitle streams with stream copy.
 # - Auto-selects Apple VideoToolbox (`h264_videotoolbox`) when available.
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=live_encode_tools.sh
+. "$SCRIPT_DIR/live_encode_tools.sh"
+
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
   exit 1

@@ -19,6 +19,10 @@ set -euo pipefail
 # - VFO_DV_P7_TO_81_MODE=2 : dovi_tool conversion mode for profile 7 -> 8.1 (2 or 5).
 # - VFO_DV_REQUIRE_P7_TO_81=1 : fail if source is profile 7 but conversion to 8.1 fails.
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=live_encode_tools.sh
+. "$SCRIPT_DIR/live_encode_tools.sh"
+
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
   exit 1

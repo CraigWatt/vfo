@@ -3,6 +3,10 @@ set -euo pipefail
 
 # Shared subtitle-policy helpers for craigstreamy subtitle-aware profile actions.
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=live_encode_tools.sh
+. "$SCRIPT_DIR/live_encode_tools.sh"
+
 SUBTITLE_POLICY_SELECTION_SCOPE="${VFO_SUBTITLE_SELECTION_SCOPE:-smart_eng_sub}"
 SUBTITLE_POLICY_MODE="${VFO_SUBTITLE_MODE:-preserve}"
 SUBTITLE_POLICY_CONVERT_BITMAP_POLICY="${VFO_SUBTITLE_CONVERT_BITMAP_POLICY:-fail}"

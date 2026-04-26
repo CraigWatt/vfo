@@ -32,6 +32,13 @@
 #include <time.h>
 #include <unistd.h>
 
+static bool ih_prompt_line(const char *prompt,
+                           const char *default_value,
+                           char *buffer,
+                           size_t buffer_size,
+                           bool required);
+static void ih_trim_spaces_in_place(char *value);
+
 #define IH_LEGACY_CONFIG_DIR "/usr/local/bin/vfo_conf_folder"
 #define IH_CONFIG_DIR_ENV "VFO_CONFIG_DIR"
 #define IH_CONFIG_FILENAME "vfo_config.conf"
@@ -1630,16 +1637,46 @@ static const char* ih_get_custom_folder_name_for_type(cf_node_t *cf_head,
                                                        const char *folder_type,
                                                        const char *fallback) {
   cf_node_t *current = cf_head;
+  const char *mixed_fallback = NULL;
   while(current != NULL) {
     if(current->folder_type != NULL
        && current->folder_name != NULL
-       && strcasecmp(current->folder_type, folder_type) == 0
        && utils_string_is_empty_or_spaces(current->folder_name) == false) {
-      return current->folder_name;
+      if(strcasecmp(current->folder_type, folder_type) == 0)
+        return current->folder_name;
+      if(strcasecmp(current->folder_type, "mixed") == 0 && mixed_fallback == NULL)
+        mixed_fallback = current->folder_name;
     }
     current = current->next;
   }
+  if(mixed_fallback != NULL)
+    return mixed_fallback;
   return fallback;
+}
+
+static bool ih_custom_folder_type_is_valid(const char *custom_folder_type) {
+  if(custom_folder_type == NULL)
+    return false;
+  return strcasecmp(custom_folder_type, "films") == 0
+      || strcasecmp(custom_folder_type, "tv") == 0
+      || strcasecmp(custom_folder_type, "mixed") == 0;
+}
+
+static void ih_wizard_print_custom_folder_type_help(void) {
+  printf("WIZARD INFO: folder type must be 'films', 'tv', or 'mixed'\n");
+}
+
+static bool ih_prompt_custom_folder_type(char *custom_folder_type, size_t custom_folder_type_size) {
+  while(true) {
+    if(!ih_prompt_line("First library folder type (films|tv|mixed)", "films", custom_folder_type, custom_folder_type_size, true))
+      return false;
+    ih_trim_spaces_in_place(custom_folder_type);
+    for(size_t i = 0; custom_folder_type[i] != '\0'; i++)
+      custom_folder_type[i] = (char)tolower((unsigned char)custom_folder_type[i]);
+    if(ih_custom_folder_type_is_valid(custom_folder_type))
+      return true;
+    ih_wizard_print_custom_folder_type_help();
+  }
 }
 
 static bool ih_execute_mezzanine_clean_for_all_roots(config_t *config,
@@ -3236,13 +3273,8 @@ static int ih_run_wizard(const char *config_dir) {
   if(!ih_prompt_line("First library folder name", "Movies", custom_folder_name, sizeof(custom_folder_name), true))
     return EXIT_FAILURE;
 
-  while(true) {
-    if(!ih_prompt_line("First library folder type (films|tv)", "films", custom_folder_type, sizeof(custom_folder_type), true))
-      return EXIT_FAILURE;
-    if(strcasecmp(custom_folder_type, "films") == 0 || strcasecmp(custom_folder_type, "tv") == 0)
-      break;
-    printf("WIZARD INFO: folder type must be 'films' or 'tv'\n");
-  }
+  if(!ih_prompt_custom_folder_type(custom_folder_type, sizeof(custom_folder_type)))
+    return EXIT_FAILURE;
 
   if(advanced_mode) {
     if(!ih_prompt_line("Profile setup mode (stock|custom)", "stock", profile_setup_mode, sizeof(profile_setup_mode), true))
