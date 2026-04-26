@@ -348,7 +348,7 @@ config_t* con_init(const char *config_dir, char **revised_argv, int revised_argc
   bool activate_uw_work = false;
   char *pre_approved_words[] = {"vfo", "mezzanine", "source", "revert", "wipe", "profiles", "run", "auto", "doctor", "wizard", "show", "status", "status-json", "visualize", "mezzanine-clean", "profile", "-o", "--open"};
   int pre_array_length = (sizeof pre_approved_words / sizeof(char*));
-  for(int i = 0; i < revised_argc; i++) {
+  for(int i = 1; i < revised_argc; i++) {
     bool pre_approved_word_found = false;
     for(int j = 0; j < pre_array_length; j++) {
       if (strcmp(revised_argv[i], pre_approved_words[j]) == 0) {

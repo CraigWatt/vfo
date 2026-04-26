@@ -54,6 +54,23 @@ typedef struct utils_folder_entry_scan {
   bool has_visible_dir;
 } utils_folder_entry_scan_t;
 
+static bool utils_directory_is_ignored_hidden_folder(char *folder_name) {
+  if(folder_name == NULL || folder_name[0] == '\0')
+    return true;
+
+  if(utils_directory_is_current_or_parent(folder_name))
+    return true;
+
+  return folder_name[0] == '.';
+}
+
+static bool utils_file_is_prepared_dv_p81_variant(char *file_name) {
+  if(file_name == NULL)
+    return false;
+
+  return strstr(file_name, ".dv_p8.1.") != NULL;
+}
+
 static void utils_scan_visible_entries(char *folder, utils_folder_entry_scan_t *scan) {
   DIR *directory = NULL;
   struct dirent *entry = NULL;
@@ -71,7 +88,8 @@ static void utils_scan_visible_entries(char *folder, utils_folder_entry_scan_t *
   }
 
   while((entry = readdir(directory)) != NULL) {
-    if(utils_directory_is_current_or_parent(entry->d_name) || utils_file_is_macos_hidden_files(entry->d_name))
+    if((entry->d_type == DT_DIR && utils_directory_is_ignored_hidden_folder(entry->d_name))
+       || (entry->d_type == DT_REG && utils_file_is_macos_hidden_files(entry->d_name)))
       continue;
 
     if(entry->d_type == DT_REG)
@@ -112,7 +130,7 @@ static void utils_populate_active_tv_descendants(active_tv_f_node_t *top_level_t
     if(directory4 == NULL)
       printf("MAJOR ERROR: vfo could not open %s\n", tmp_active_tv_head->from_tv_f_folder);
     while((entry4 = readdir(directory4)) != NULL) {
-      if(entry4->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry4->d_name))) {
+      if(entry4->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(entry4->d_name))) {
         char *from_tv_f_folder2 = utils_combine_to_full_path(tmp_active_tv_head->from_tv_f_folder, entry4->d_name);
         char *to_tv_f_folder2 = utils_combine_to_full_path(tmp_active_tv_head->to_tv_f_folder, entry4->d_name);
         int this_layer_is2 = 2;
@@ -132,7 +150,7 @@ static void utils_populate_active_tv_descendants(active_tv_f_node_t *top_level_t
         if(directory5 == NULL)
           printf("MAJOR ERROR: vfo could not open %s\n", tmp_SECOND_LEVEL_active_tv_head->from_tv_f_folder);
         while((entry5 = readdir(directory5)) != NULL) {
-          if(entry5->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry5->d_name))) {
+          if(entry5->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(entry5->d_name))) {
             char *from_tv_f_folder3 = utils_combine_to_full_path(tmp_SECOND_LEVEL_active_tv_head->from_tv_f_folder, entry5->d_name);
             char *to_tv_f_folder3 = utils_combine_to_full_path(tmp_SECOND_LEVEL_active_tv_head->to_tv_f_folder, entry5->d_name);
             int this_layer_is3 = 3;
@@ -623,21 +641,23 @@ char *utils_fetch_single_file_name(char *folder) {
     printf("Could not open directory to fetch single file name in: %s\n", folder);
     exit(EXIT_FAILURE);
   }
-  char *tmp_file_name;
-  char *for_return;
+  char tmp_file_name[BUFSIZ] = "";
+  char *for_return = NULL;
   bool file_found = false;
   while((entry=readdir(directory)) != NULL) {  
     if(entry->d_type == DT_REG && !(utils_file_is_macos_hidden_files(entry->d_name))) {
       file_found = true;
-      tmp_file_name = entry->d_name;
-      break;
+      strcpy(tmp_file_name, entry->d_name);
+      if(utils_file_is_prepared_dv_p81_variant(entry->d_name))
+        break;
     }
   }
   if(closedir(directory) == -1) {
     printf("Error closing directory: %s\n", folder);
   }
   if(file_found == true) {
-    for_return = tmp_file_name;
+    for_return = malloc(strlen(tmp_file_name) + 1);
+    strcpy(for_return, tmp_file_name);
     return for_return;
   } else if(file_found == false) {
     printf("bool false, could not fetch a file in %s to get get file name:\n", folder);
@@ -659,8 +679,8 @@ char* utils_fetch_single_file(char *folder) {
     printf("Could not open directory to find any file in: %s\n", folder);
     exit(EXIT_FAILURE);
   }
-  char *tmp_file_name;
-  char *for_return;
+  char tmp_file_name[BUFSIZ] = "";
+  char *for_return = NULL;
   bool file_found = false;
   while((entry=readdir(directory)) != NULL) {  
     if(entry->d_type == DT_REG && !(utils_file_is_macos_hidden_files(entry->d_name))) {
@@ -677,8 +697,9 @@ char* utils_fetch_single_file(char *folder) {
          utils_is_file_extension_mpeg(entry->d_name) ||
          utils_is_file_extension_vob(entry->d_name)) {
         file_found = true;
-        tmp_file_name = entry->d_name;
-        break;
+        strcpy(tmp_file_name, entry->d_name);
+        if(utils_file_is_prepared_dv_p81_variant(entry->d_name))
+          break;
       }
     }
   }
@@ -962,7 +983,7 @@ void utils_does_folder_contain_valid_custom_folders(char *folder, cf_node_t *cf_
       utils_found_a_rogue_file(entry->d_name, folder);
       exit(EXIT_FAILURE);
     } 
-    else if (entry->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry->d_name)) && !(cf_folder_name_exits(cf_head, entry->d_name))) {
+    else if (entry->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(entry->d_name)) && !(cf_folder_name_exits(cf_head, entry->d_name))) {
       printf("woah lad what's this\n");
       printf("%s is not a custom folder in %s\n", entry->d_name, folder);
       exit(EXIT_FAILURE);
@@ -996,7 +1017,7 @@ void utils_is_folder_missing_custom_folders(char *folder, cf_node_t *cf_ll_head)
       utils_found_a_rogue_file(entry->d_name, folder);
       exit(EXIT_FAILURE);
     } 
-    else if (entry->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry->d_name)) && cf_folder_name_exits(cf_ll_head, entry->d_name)) {
+    else if (entry->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(entry->d_name)) && cf_folder_name_exits(cf_ll_head, entry->d_name)) {
       counter++;
     }     
   }
@@ -1024,7 +1045,7 @@ void utils_are_custom_folders_type_compliant(char *root_folder, char* rf_rules, 
     exit(EXIT_FAILURE);
   }
   while ((entry = readdir(directory)) != NULL) {
-    if(entry->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry->d_name))) {
+    if(entry->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(entry->d_name))) {
       //for each custom_folder dir
       //get their type
       char *ftype = cf_get_type_from_folder_name(cf_ll_head, entry->d_name);
@@ -1054,7 +1075,7 @@ void utils_are_custom_folders_type_compliant(char *root_folder, char* rf_rules, 
             utils_found_a_rogue_file(mixed_entry->d_name, tmp_cf_loc);
             exit(EXIT_FAILURE);
           }
-          if(mixed_entry->d_type == DT_DIR && !(utils_directory_is_current_or_parent(mixed_entry->d_name))) {
+          if(mixed_entry->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(mixed_entry->d_name))) {
             char *tmp_mixed_child = utils_combine_to_full_path(tmp_cf_loc, mixed_entry->d_name);
             int mixed_child_type = utils_detect_mixed_child_type(tmp_mixed_child);
             if(mixed_child_type == UTILS_MIXED_CHILD_FILM) {
@@ -1093,13 +1114,14 @@ void utils_is_custom_folder_tv_type_compliant(char *custom_folder, char *rf_rule
     exit(EXIT_FAILURE);
   }
   int movie_file_count = 0;
+  int prepared_variant_count = 0;
   while ((entry = readdir(directory)) != NULL) {
     if(strcmp(layer, "layer1") == 0 || strcmp(layer, "layer2") == 0 ||  strcmp(layer, "layer3") == 0) {
       if(entry->d_type == DT_REG && !(utils_file_is_macos_hidden_files(entry->d_name))) {
         utils_found_a_rogue_file(entry->d_name, custom_folder);
         exit(EXIT_FAILURE);
       }
-      if(entry->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry->d_name))) {
+      if(entry->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(entry->d_name))) {
         char *tmp_cf_loc = utils_combine_to_full_path(custom_folder, entry->d_name);
         if (utils_is_folder_empty(tmp_cf_loc)) {
           printf("ERROR, %s is empty.  Please delete this folder\n", tmp_cf_loc);
@@ -1124,14 +1146,18 @@ void utils_is_custom_folder_tv_type_compliant(char *custom_folder, char *rf_rule
       if(entry->d_type == DT_REG && !(utils_file_is_macos_hidden_files(entry->d_name))) {
         utils_replace_spaces(entry->d_name , custom_folder);
         if (utils_is_file_extension_valid(entry->d_name, rf_rules)) {
-          movie_file_count++;
+          if(utils_file_is_prepared_dv_p81_variant(entry->d_name))
+            prepared_variant_count++;
+          else
+            movie_file_count++;
         }
       }
-      if(movie_file_count >= 2) {
+      int visible_movie_file_count = prepared_variant_count > 0 ? prepared_variant_count : movie_file_count;
+      if(visible_movie_file_count >= 2) {
         printf("looks like %s contains more than a single movie file!\n", custom_folder);
         exit(EXIT_FAILURE);
       }
-      if(entry->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry->d_name))) {
+      if(entry->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(entry->d_name))) {
         char *tmp_cf_loc = utils_combine_to_full_path(custom_folder, entry->d_name);
         printf("woah lad, no folders should be present here in %s\n", tmp_cf_loc);
         exit(EXIT_FAILURE);
@@ -1185,13 +1211,14 @@ void utils_is_custom_folder_films_type_compliant(char *custom_folder, char *rf_r
     exit(EXIT_FAILURE);
   }
   int movie_file_count = 0;
+  int prepared_variant_count = 0;
   while ((entry = readdir(directory)) != NULL) {
     if(strcmp(layer, "layer1") == 0) {
       if(entry->d_type == DT_REG && !(utils_file_is_macos_hidden_files(entry->d_name))) {
           utils_found_a_rogue_file(entry->d_name, custom_folder);
           exit(EXIT_FAILURE);
       }
-      if(entry->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry->d_name))) {
+      if(entry->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(entry->d_name))) {
         char *tmp_cf_loc = utils_combine_to_full_path(custom_folder, entry->d_name);
         if (utils_is_folder_empty(tmp_cf_loc)) {
           printf("ERROR, %s is empty.  Please delete this folder\n", tmp_cf_loc);
@@ -1205,10 +1232,13 @@ void utils_is_custom_folder_films_type_compliant(char *custom_folder, char *rf_r
       if(entry->d_type == DT_REG && !(utils_file_is_macos_hidden_files(entry->d_name))) {
         utils_replace_spaces(entry->d_name , custom_folder);
         if (utils_is_file_extension_valid(entry->d_name, rf_rules)) {
-            movie_file_count++;
+            if(utils_file_is_prepared_dv_p81_variant(entry->d_name))
+              prepared_variant_count++;
+            else
+              movie_file_count++;
         }
       }
-      if(entry->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry->d_name))) {
+      if(entry->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(entry->d_name))) {
         char *tmp_cf_loc = utils_combine_to_full_path(custom_folder, entry->d_name);
         if (utils_is_folder_empty(tmp_cf_loc)) {
           printf("ERROR, %s is empty.  Please delete this folder\n", tmp_cf_loc);
@@ -1218,11 +1248,12 @@ void utils_is_custom_folder_films_type_compliant(char *custom_folder, char *rf_r
           exit(EXIT_FAILURE);
         }
       }
-      if(movie_file_count >= 2) {
+      int visible_movie_file_count = prepared_variant_count > 0 ? prepared_variant_count : movie_file_count;
+      if(visible_movie_file_count >= 2) {
         printf("looks like %s contains more than a single movie file!\n", custom_folder);
         exit(EXIT_FAILURE);
       }
-      if(entry->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry->d_name))) {
+      if(entry->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(entry->d_name))) {
         char *tmp_cf_loc = utils_combine_to_full_path(custom_folder, entry->d_name);
         printf("woah lad, no folders should be present here in %s\n", tmp_cf_loc);
         exit(EXIT_FAILURE);
@@ -1510,7 +1541,7 @@ active_cf_node_t* utils_generate_from_to_ll(cf_node_t *cf_head, char *from_cf_pa
     printf("MAJOR ERROR: vfo could not open %s\n", from_cf_parent_folder);
   active_cf_node_t *active_cf_head = NULL;
   while((entry = readdir(directory)) != NULL) {
-    if(entry->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry->d_name))) {
+    if(entry->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(entry->d_name))) {
       char *tmp_current_custom_folder_type = cf_get_type_from_folder_name(cf_head, entry->d_name);
       char *from_cf_loc = utils_combine_to_full_path(from_cf_parent_folder, entry->d_name);
       char *to_cf_loc = utils_combine_to_full_path(to_cf_parent_folder, entry->d_name);
@@ -1535,7 +1566,7 @@ active_cf_node_t* utils_generate_from_to_ll(cf_node_t *cf_head, char *from_cf_pa
         if(directory2 == NULL)
           printf("MAJOR ERROR: vfo could not open %s\n", tmp_active_cf->from_cf_folder);
         while((entry2 = readdir(directory2)) != NULL) {
-          if(entry2->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry2->d_name))) {
+          if(entry2->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(entry2->d_name))) {
             char *from_films_f_folder = utils_combine_to_full_path(tmp_active_cf->from_cf_folder, entry2->d_name); 
             char *to_films_f_folder = utils_combine_to_full_path(tmp_active_cf->to_cf_folder, entry2->d_name);
             active_films_f_node_t *active_films_f_node = active_films_f_create_node(from_films_f_folder, to_films_f_folder);
@@ -1554,7 +1585,7 @@ active_cf_node_t* utils_generate_from_to_ll(cf_node_t *cf_head, char *from_cf_pa
         if(directory3 == NULL)
           printf("MAJOR ERROR: vfo could not open %s\n", tmp_active_cf->from_cf_folder);
         while((entry3 = readdir(directory3)) != NULL) {
-          if(entry3->d_type == DT_DIR && !(utils_directory_is_current_or_parent(entry3->d_name))) {
+          if(entry3->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(entry3->d_name))) {
             char *from_tv_f_folder = utils_combine_to_full_path(tmp_active_cf->from_cf_folder, entry3->d_name); 
             char *to_tv_f_folder = utils_combine_to_full_path(tmp_active_cf->to_cf_folder, entry3->d_name);
             int this_layer_is = 1;
@@ -1573,7 +1604,7 @@ active_cf_node_t* utils_generate_from_to_ll(cf_node_t *cf_head, char *from_cf_pa
         if(mixed_directory == NULL)
           printf("MAJOR ERROR: vfo could not open %s\n", tmp_active_cf->from_cf_folder);
         while((mixed_entry = readdir(mixed_directory)) != NULL) {
-          if(mixed_entry->d_type == DT_DIR && !(utils_directory_is_current_or_parent(mixed_entry->d_name))) {
+          if(mixed_entry->d_type == DT_DIR && !(utils_directory_is_ignored_hidden_folder(mixed_entry->d_name))) {
             char *from_child_folder = utils_combine_to_full_path(tmp_active_cf->from_cf_folder, mixed_entry->d_name);
             char *to_child_folder = utils_combine_to_full_path(tmp_active_cf->to_cf_folder, mixed_entry->d_name);
             int child_type = utils_detect_mixed_child_type(from_child_folder);
@@ -1820,6 +1851,7 @@ unsigned long long utils_fetch_single_file_size_bytes(char *folder) {
   DIR *directory = NULL;
   struct dirent *entry = NULL;
   unsigned long long size_bytes = 0ULL;
+  unsigned long long fallback_size_bytes = 0ULL;
 
   directory = opendir(folder);
   if(directory == NULL)
@@ -1843,14 +1875,21 @@ unsigned long long utils_fetch_single_file_size_bytes(char *folder) {
       }
       if(valid_ext) {
         char *full_path = utils_combine_to_full_path(folder, entry->d_name);
-        size_bytes = utils_get_single_file_size_bytes(full_path);
+        unsigned long long entry_size_bytes = utils_get_single_file_size_bytes(full_path);
         free(full_path);
-        break;
+        if(utils_file_is_prepared_dv_p81_variant(entry->d_name)) {
+          size_bytes = entry_size_bytes;
+          break;
+        }
+        if(fallback_size_bytes == 0ULL)
+          fallback_size_bytes = entry_size_bytes;
       }
     }
   }
 
   closedir(directory);
+  if(size_bytes == 0ULL)
+    size_bytes = fallback_size_bytes;
   return size_bytes;
 }
 

@@ -193,3 +193,91 @@ void test_utils_are_custom_folders_type_compliant_accepts_mixed_library(void **s
   free(movie_folder);
   free(mixed_root);
 }
+
+void test_utils_are_custom_folders_type_compliant_ignores_hidden_transient_dirs(void **state) {
+  char root_template[] = "/tmp/vfo-hidden-transient-XXXXXX";
+  char *root = mkdtemp(root_template);
+  char *movies_root = NULL;
+  char *movie_folder = NULL;
+  char *movie_file = NULL;
+  char *hidden_tmp = NULL;
+  char *hidden_tmp_file = NULL;
+  char *allowed_types[] = {"films", "tv", "mixed"};
+  char conf[] = "CUSTOM_FOLDER=\"Movies,films\"\n";
+  cf_node_t *cf_head = NULL;
+
+  (void)state;
+  assert_non_null(root);
+
+  movies_root = utils_combine_to_full_path(root, "Movies");
+  movie_folder = utils_combine_to_full_path(movies_root, "MovieOne");
+  movie_file = utils_combine_to_full_path(movie_folder, "MovieOne.mkv");
+  hidden_tmp = utils_combine_to_full_path(movie_folder, ".MovieOne.dvp81.tmp");
+  hidden_tmp_file = utils_combine_to_full_path(hidden_tmp, "scratch.hevc");
+
+  utils_create_folder(movies_root);
+  utils_create_folder(movie_folder);
+  utils_create_folder(hidden_tmp);
+  u_write_file(movie_file);
+  u_write_file(hidden_tmp_file);
+
+  cf_head = con_extract_to_cf_ll(conf, "CUSTOM_FOLDER=", allowed_types, 3, cf_head);
+  utils_are_custom_folders_type_compliant(root, "mkv_original", cf_head);
+
+  unlink(hidden_tmp_file);
+  unlink(movie_file);
+  rmdir(hidden_tmp);
+  rmdir(movie_folder);
+  rmdir(movies_root);
+  rmdir(root);
+
+  free(hidden_tmp_file);
+  free(hidden_tmp);
+  free(movie_file);
+  free(movie_folder);
+  free(movies_root);
+}
+
+void test_utils_prepared_dv_p81_variant_is_preferred_single_movie_file(void **state) {
+  char root_template[] = "/tmp/vfo-dv-p81-prepared-XXXXXX";
+  char *root = mkdtemp(root_template);
+  char *movies_root = NULL;
+  char *movie_folder = NULL;
+  char *movie_file = NULL;
+  char *prepared_file = NULL;
+  char *selected_file = NULL;
+  char *allowed_types[] = {"films", "tv", "mixed"};
+  char conf[] = "CUSTOM_FOLDER=\"Movies,films\"\n";
+  cf_node_t *cf_head = NULL;
+
+  (void)state;
+  assert_non_null(root);
+
+  movies_root = utils_combine_to_full_path(root, "Movies");
+  movie_folder = utils_combine_to_full_path(movies_root, "MovieOne");
+  movie_file = utils_combine_to_full_path(movie_folder, "MovieOne.mkv");
+  prepared_file = utils_combine_to_full_path(movie_folder, "MovieOne.dv_p8.1.mkv");
+
+  utils_create_folder(movies_root);
+  utils_create_folder(movie_folder);
+  u_write_file(movie_file);
+  u_write_file(prepared_file);
+
+  cf_head = con_extract_to_cf_ll(conf, "CUSTOM_FOLDER=", allowed_types, 3, cf_head);
+  utils_are_custom_folders_type_compliant(root, "mkv_original", cf_head);
+
+  selected_file = utils_fetch_single_file(movie_folder);
+  assert_non_null(strstr(selected_file, ".dv_p8.1.mkv"));
+
+  free(selected_file);
+  unlink(prepared_file);
+  unlink(movie_file);
+  rmdir(movie_folder);
+  rmdir(movies_root);
+  rmdir(root);
+
+  free(prepared_file);
+  free(movie_file);
+  free(movie_folder);
+  free(movies_root);
+}
