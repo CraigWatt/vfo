@@ -22,7 +22,7 @@ vfo_live_shell_quote() {
 }
 
 vfo_live_output_device() {
-  if [ -w /dev/tty ]; then
+  if tty -s >/dev/null 2>&1 && [ -w /dev/tty ] 2>/dev/null; then
     printf '%s' /dev/tty
     return 0
   fi
