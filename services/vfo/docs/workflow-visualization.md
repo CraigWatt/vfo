@@ -14,7 +14,7 @@ vfo visualize --open
 Each run writes a timestamped folder under:
 
 - `<config_dir>/visualizations/<run_id>/`
-- fallback: `/tmp/vfo-visualizations/<run_id>/` when config directory is not writable
+- fallback: `<current_working_directory>/visualizations/<run_id>/` when config directory is not writable
 
 Generated artifacts:
 

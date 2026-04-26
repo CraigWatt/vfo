@@ -1415,6 +1415,7 @@ static bool ih_run_visualize(config_t *config, const char *config_dir, bool open
   char generated_at[128];
   char run_id[64];
   char visualize_root[IH_INPUT_BUFFER_SIZE];
+  char fallback_root[IH_INPUT_BUFFER_SIZE];
   char run_dir[IH_INPUT_BUFFER_SIZE];
   char status_json_path[IH_INPUT_BUFFER_SIZE];
   char mermaid_path[IH_INPUT_BUFFER_SIZE];
@@ -1435,13 +1436,25 @@ static bool ih_run_visualize(config_t *config, const char *config_dir, bool open
 
   ih_build_visualize_run_id(run_id, sizeof(run_id));
 
-  if(config_dir != NULL && config_dir[0] != '\0')
+  if(config_dir != NULL && config_dir[0] != '\0') {
     snprintf(visualize_root, sizeof(visualize_root), "%s/%s", config_dir, IH_VISUALIZE_SUBDIR);
-  else
-    snprintf(visualize_root, sizeof(visualize_root), "/tmp/vfo-visualizations");
+  } else if(getcwd(fallback_root, sizeof(fallback_root)) != NULL) {
+    snprintf(visualize_root, sizeof(visualize_root), "%s/%s", fallback_root, IH_VISUALIZE_SUBDIR);
+  } else {
+    printf("VISUALIZE ERROR: could not determine a drive-backed output directory\n");
+    status_report_free(report);
+    return false;
+  }
 
   if(ih_ensure_directory_recursive(visualize_root) == false) {
-    snprintf(visualize_root, sizeof(visualize_root), "/tmp/vfo-visualizations");
+    if(getcwd(fallback_root, sizeof(fallback_root)) != NULL)
+      snprintf(visualize_root, sizeof(visualize_root), "%s/%s", fallback_root, IH_VISUALIZE_SUBDIR);
+    else {
+      printf("VISUALIZE ERROR: could not determine a drive-backed fallback output directory\n");
+      status_report_free(report);
+      return false;
+    }
+
     if(ih_ensure_directory_recursive(visualize_root) == false) {
       printf("VISUALIZE ERROR: could not create output directory: %s\n", visualize_root);
       status_report_free(report);

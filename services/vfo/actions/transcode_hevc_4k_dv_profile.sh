@@ -104,7 +104,7 @@ else
   VIDEO_ARGS=("${CPU_VIDEO_ARGS[@]}")
 fi
 
-workdir="$(mktemp -d "${TMPDIR:-/tmp}/vfo-dv-XXXXXX")"
+workdir="$(vfo_drive_backed_tmpdir "$OUTPUT")"
 trap 'rm -rf "$workdir"' EXIT
 
 enc_mp4="$workdir/enc_video.mp4"

@@ -366,7 +366,7 @@ if [ "$ENCODER_MODE" = "hw" ] || { [ "$ENCODER_MODE" = "auto" ] && has_videotool
   using_hw=1
 fi
 
-workdir="$(mktemp -d "${TMPDIR:-/tmp}/vfo-main-sub-legacy-XXXXXX")"
+workdir="$(vfo_drive_backed_tmpdir "$OUTPUT")"
 trap 'rm -rf "$workdir"' EXIT
 
 video_work_output="${workdir}/enc_video.mp4"

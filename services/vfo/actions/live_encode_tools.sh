@@ -38,6 +38,21 @@ vfo_live_print() {
   fi
 }
 
+vfo_drive_backed_tmpdir() {
+  local output_path="$1"
+  local temp_root="${VFO_TEMP_ROOT:-}"
+  local parent_dir=""
+
+  if [ -n "$temp_root" ]; then
+    parent_dir="$temp_root"
+  else
+    parent_dir="$(dirname "$output_path")"
+  fi
+
+  mkdir -p "$parent_dir/.vfo-tmp"
+  mktemp -d "${parent_dir%/}/.vfo-tmp/${VFO_TMP_PREFIX:-vfo}-XXXXXX"
+}
+
 live_encode_has_passthrough_flag() {
   local arg=""
 

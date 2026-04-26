@@ -126,7 +126,7 @@ else
   echo "Subtitle policy selected no streams; scope=${SUBTITLE_POLICY_SELECTION_SCOPE} mode=${SUBTITLE_POLICY_MODE}"
 fi
 
-workdir="$(mktemp -d "${TMPDIR:-/tmp}/vfo-dv-device-XXXXXX")"
+workdir="$(vfo_drive_backed_tmpdir "$OUTPUT")"
 trap 'rm -rf "$workdir"' EXIT
 
 enc_mp4="$workdir/enc_video.mp4"

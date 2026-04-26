@@ -24,6 +24,7 @@
 
 #include "../quality_scoring.h"
 
+#include <errno.h>
 #include <dirent.h>
 #include <limits.h>
 #include <stdarg.h>
@@ -225,8 +226,58 @@ static char* quality_read_text_file(const char *path) {
   return buffer;
 }
 
-static bool quality_run_command_capture(const char *command, char **output_out, int *exit_code_out) {
-  char tmp_template[] = "/tmp/vfo_quality_XXXXXX";
+static bool quality_prepare_directory(const char *path) {
+  if(path == NULL || path[0] == '\0')
+    return false;
+
+  if(mkdir(path, 0700) == 0)
+    return true;
+
+  if(errno == EEXIST)
+    return true;
+
+  return false;
+}
+
+static const char* quality_select_temp_root(const char *preferred_root,
+                                            char *buffer,
+                                            size_t buffer_size) {
+  const char *env_root = NULL;
+  char cwd[PATH_MAX];
+
+  if(buffer == NULL || buffer_size == 0)
+    return NULL;
+
+  env_root = getenv("VFO_QUALITY_TMPDIR");
+  if(env_root != NULL && env_root[0] != '\0' && quality_prepare_directory(env_root))
+    return env_root;
+
+  env_root = getenv("VFO_TEMP_ROOT");
+  if(env_root != NULL && env_root[0] != '\0' && quality_prepare_directory(env_root))
+    return env_root;
+
+  if(preferred_root != NULL && preferred_root[0] != '\0') {
+    if(snprintf(buffer, buffer_size, "%s/.vfo-tmp", preferred_root) >= 0
+       && quality_prepare_directory(buffer))
+      return buffer;
+  }
+
+  if(getcwd(cwd, sizeof(cwd)) != NULL) {
+    if(snprintf(buffer, buffer_size, "%s/.vfo-tmp", cwd) >= 0
+       && quality_prepare_directory(buffer))
+      return buffer;
+  }
+
+  return NULL;
+}
+
+static bool quality_run_command_capture(const char *command,
+                                        const char *preferred_root,
+                                        char **output_out,
+                                        int *exit_code_out) {
+  char temp_root[PATH_MAX];
+  const char *tmp_root = NULL;
+  char tmp_template[PATH_MAX];
   int fd = -1;
   char *tmp_path_quoted = NULL;
   char *command_with_redirect = NULL;
@@ -240,6 +291,14 @@ static bool quality_run_command_capture(const char *command, char **output_out, 
     *exit_code_out = 1;
 
   if(command == NULL)
+    return false;
+
+  tmp_root = quality_select_temp_root(preferred_root, temp_root, sizeof(temp_root));
+
+  if(tmp_root == NULL)
+    return false;
+
+  if(snprintf(tmp_template, sizeof(tmp_template), "%s/vfo_quality_XXXXXX", tmp_root) < 0)
     return false;
 
   fd = mkstemp(tmp_template);
@@ -322,10 +381,13 @@ static bool quality_parse_last_double_after_marker(const char *output,
   return true;
 }
 
-static bool quality_compute_metric_command(const char *command, const char *marker, double *score_out) {
+static bool quality_compute_metric_command(const char *command,
+                                           const char *marker,
+                                           const char *preferred_root,
+                                           double *score_out) {
   char *output = NULL;
   int exit_code = 1;
-  bool command_ok = quality_run_command_capture(command, &output, &exit_code);
+  bool command_ok = quality_run_command_capture(command, preferred_root, &output, &exit_code);
   bool parsed = false;
 
   if(command_ok == false) {
@@ -338,7 +400,10 @@ static bool quality_compute_metric_command(const char *command, const char *mark
   return parsed;
 }
 
-static bool quality_compute_psnr(const char *distorted_file, const char *reference_file, double *psnr_out) {
+static bool quality_compute_psnr(const char *distorted_file,
+                                 const char *reference_file,
+                                 const char *preferred_root,
+                                 double *psnr_out) {
   char *distorted_q = quality_shell_quote(distorted_file);
   char *reference_q = quality_shell_quote(reference_file);
   char *command = quality_format_string(
@@ -348,7 +413,7 @@ static bool quality_compute_psnr(const char *distorted_file, const char *referen
   bool ok = false;
 
   if(distorted_q != NULL && reference_q != NULL && command != NULL)
-    ok = quality_compute_metric_command(command, "average:", psnr_out);
+    ok = quality_compute_metric_command(command, "average:", preferred_root, psnr_out);
 
   free(distorted_q);
   free(reference_q);
@@ -356,7 +421,10 @@ static bool quality_compute_psnr(const char *distorted_file, const char *referen
   return ok;
 }
 
-static bool quality_compute_ssim(const char *distorted_file, const char *reference_file, double *ssim_out) {
+static bool quality_compute_ssim(const char *distorted_file,
+                                 const char *reference_file,
+                                 const char *preferred_root,
+                                 double *ssim_out) {
   char *distorted_q = quality_shell_quote(distorted_file);
   char *reference_q = quality_shell_quote(reference_file);
   char *command = quality_format_string(
@@ -366,7 +434,7 @@ static bool quality_compute_ssim(const char *distorted_file, const char *referen
   bool ok = false;
 
   if(distorted_q != NULL && reference_q != NULL && command != NULL)
-    ok = quality_compute_metric_command(command, "All:", ssim_out);
+    ok = quality_compute_metric_command(command, "All:", preferred_root, ssim_out);
 
   free(distorted_q);
   free(reference_q);
@@ -374,7 +442,10 @@ static bool quality_compute_ssim(const char *distorted_file, const char *referen
   return ok;
 }
 
-static bool quality_compute_vmaf(const char *distorted_file, const char *reference_file, double *vmaf_out) {
+static bool quality_compute_vmaf(const char *distorted_file,
+                                 const char *reference_file,
+                                 const char *preferred_root,
+                                 double *vmaf_out) {
   char *distorted_q = quality_shell_quote(distorted_file);
   char *reference_q = quality_shell_quote(reference_file);
   char *command = quality_format_string(
@@ -384,7 +455,7 @@ static bool quality_compute_vmaf(const char *distorted_file, const char *referen
   bool ok = false;
 
   if(distorted_q != NULL && reference_q != NULL && command != NULL)
-    ok = quality_compute_metric_command(command, "VMAF score:", vmaf_out);
+    ok = quality_compute_metric_command(command, "VMAF score:", preferred_root, vmaf_out);
 
   free(distorted_q);
   free(reference_q);
@@ -619,8 +690,8 @@ static void quality_process_profile_file(const char *file_path,
     context->report->warnings++;
   }
 
-  psnr_ok = quality_compute_psnr(file_path, reference_path, &psnr);
-  ssim_ok = quality_compute_ssim(file_path, reference_path, &ssim);
+  psnr_ok = quality_compute_psnr(file_path, reference_path, context->reference_root, &psnr);
+  ssim_ok = quality_compute_ssim(file_path, reference_path, context->reference_root, &ssim);
   if(psnr_ok == false || ssim_ok == false) {
     printf("QUALITY ERROR: profile=%s metric execution failed for %s\n",
            context->profile_name,
@@ -632,7 +703,7 @@ static void quality_process_profile_file(const char *file_path,
   }
 
   if(context->include_vmaf_effective) {
-    has_vmaf = quality_compute_vmaf(file_path, reference_path, &vmaf);
+    has_vmaf = quality_compute_vmaf(file_path, reference_path, context->reference_root, &vmaf);
     if(has_vmaf == false) {
       printf("QUALITY WARNING: profile=%s VMAF scoring failed for %s\n",
              context->profile_name,
@@ -855,7 +926,7 @@ bool quality_scoring_is_libvmaf_available(void) {
   char *output = NULL;
   bool available = false;
 
-  if(quality_run_command_capture("ffmpeg -hide_banner -filters", &output, NULL) == false) {
+  if(quality_run_command_capture("ffmpeg -hide_banner -filters", NULL, &output, NULL) == false) {
     free(output);
     return false;
   }
