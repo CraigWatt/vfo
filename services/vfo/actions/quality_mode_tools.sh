@@ -13,9 +13,59 @@ QUALITY_MODE_VMAF_MAX_PASSES="${VFO_QUALITY_VMAF_MAX_PASSES:-4}"
 QUALITY_MODE_VMAF_HW_REDUCTION_PCT="${VFO_QUALITY_VMAF_HW_REDUCTION_PCT:-12}"
 QUALITY_MODE_VMAF_CPU_CRF_STEP="${VFO_QUALITY_VMAF_CPU_CRF_STEP:-2}"
 QUALITY_MODE_VMAF_POOL="${VFO_QUALITY_VMAF_POOL:-harmonic_mean}"
+QUALITY_MODE_VMAF_SELECTED_PASS_INDEX="${VFO_QUALITY_VMAF_SELECTED_PASS_INDEX:-0}"
 
 quality_mode_is_aggressive_vmaf() {
   [ "$(printf '%s' "$QUALITY_MODE_NAME" | tr '[:upper:]' '[:lower:]')" = "aggressive_vmaf" ]
+}
+
+quality_mode_append_suffix_to_path() {
+  local path="$1"
+  local suffix="$2"
+  local path_dir=""
+  local path_base=""
+  local path_stem=""
+  local path_ext=""
+
+  path_base="$(basename "$path")"
+  case "$path_base" in
+    *_${suffix})
+      printf '%s\n' "$path"
+      return 0
+      ;;
+    *_${suffix}.*)
+      printf '%s\n' "$path"
+      return 0
+      ;;
+  esac
+
+  path_dir="$(dirname "$path")"
+  case "$path_base" in
+    *.*)
+      path_stem="${path_base%.*}"
+      path_ext=".${path_base##*.}"
+      ;;
+    *)
+      path_stem="$path_base"
+      path_ext=""
+      ;;
+  esac
+
+  if [ "$path_dir" = "." ]; then
+    printf '%s_%s%s\n' "$path_stem" "$suffix" "$path_ext"
+  else
+    printf '%s/%s_%s%s\n' "$path_dir" "$path_stem" "$suffix" "$path_ext"
+  fi
+}
+
+quality_mode_output_with_lowered_v_bitrate_suffix() {
+  local output="$1"
+
+  if [ "${QUALITY_MODE_VMAF_SELECTED_PASS_INDEX:-0}" -gt 0 ]; then
+    quality_mode_append_suffix_to_path "$output" "lowered_v_bitrate"
+  else
+    printf '%s\n' "$output"
+  fi
 }
 
 quality_mode_has_libvmaf() {

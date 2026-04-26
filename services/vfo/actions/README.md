@@ -63,6 +63,7 @@ Core templates:
 - choose hardware encode (`hevc_videotoolbox`) when available by default
 - fall back to software (`libx265`) automatically
 - keep `aggressive_vmaf` scoped to video-only retry behavior when enabled
+- append `_lowered_v_bitrate` to the final output name when an aggressive VMAF pass actually selects a reduced-bitrate candidate
 - print live ffmpeg progress by default through the shared `live_encode_tools.sh` wrapper
 - write encode output back to the controlling terminal even if a caller redirects stdout/stderr, so long-running child work stays visible in the same session
 - set `VFO_LIVE_USE_SCRIPT=0` if you need to disable the pseudo-tty wrapper for debugging
@@ -81,7 +82,8 @@ Device-target templates:
   - uses `h264_videotoolbox` when available, `libx264` fallback
 - `transcode_hevc_4k_dv_profile.sh`
   - Dolby Vision retention path with `dovi_tool`
-  - when input is DV profile 7, converts metadata to profile 8.1 before injection
+  - when input is DV profile 7, prepares a fresh P8.1 MKV before later encode stages
+  - validates the prepared DV output before the profile continues
   - gracefully falls back to HDR10-compatible output if DV retention fails
   - supports strict mode via `VFO_DV_REQUIRE_DOVI=1`
   - supports profile 7 conversion controls:
@@ -99,14 +101,14 @@ Device-target templates:
   - otherwise emits stream-ready MP4, defaulting to fragmented MP4 with init/moov at start
   - preserves dynamic-range signaling with metadata-repair defaults
   - writes per-output `*.dynamic_range_report.txt` sidecars
-  - 4K lane attempts DV retention/injection when source signals DV side data
+  - 4K lane prepares DV profile 7 MKV sources as P8.1 before encode when conversion is enabled, then attempts DV retention/injection using the prepared input
   - 4K lane defaults to strict DV retention (`VFO_DV_REQUIRE_DOVI=1`)
   - 4K lane supports profile 7 -> 8.1 conversion controls:
     - `VFO_DV_CONVERT_P7_TO_81=1` (default)
     - `VFO_DV_P7_TO_81_MODE=2|5` (default: `2`)
     - `VFO_DV_REQUIRE_P7_TO_81=1` (default)
     - `VFO_DV_P7_EXTRACT_MODE=auto|mkvextract|ffmpeg` (default: `auto`)
-  - 4K lane can use `mkvextract` for profile-7 MKV track extraction before P8.1 conversion fallback
+  - 4K lane can use `mkvextract` for profile-7 MKV track extraction during P8.1 preparation
   - all subtitle-intent lanes support dynamic-range controls:
     - `VFO_DYNAMIC_METADATA_REPAIR=1|0` (default: `1`)
     - `VFO_DYNAMIC_RANGE_STRICT=1|0` (default: `1`)

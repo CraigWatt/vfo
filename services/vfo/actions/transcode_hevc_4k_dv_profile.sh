@@ -22,6 +22,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=live_encode_tools.sh
 . "$SCRIPT_DIR/live_encode_tools.sh"
+# shellcheck source=dv_p7_to_p81_tools.sh
+. "$SCRIPT_DIR/dv_p7_to_p81_tools.sh"
 
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <input_file> <output_file>"
@@ -104,8 +106,18 @@ else
   VIDEO_ARGS=("${CPU_VIDEO_ARGS[@]}")
 fi
 
+SOURCE_INPUT="$INPUT"
+SOURCE_DV_PROFILE="$(dv_p7_to_p81_detect_dv_profile "$SOURCE_INPUT")"
 workdir="$(vfo_drive_backed_tmpdir "$OUTPUT")"
 trap 'rm -rf "$workdir"' EXIT
+
+INPUT="$(dv_p7_to_p81_prepare_input "$SOURCE_INPUT" "$workdir")" || {
+  echo "Failed to prepare a stable DV source for profile processing" >&2
+  exit 1
+}
+if [ "$INPUT" != "$SOURCE_INPUT" ]; then
+  echo "DV PREP: using preconverted P8.1 input for subsequent 4K profile stages"
+fi
 
 enc_mp4="$workdir/enc_video.mp4"
 enc_hevc="$workdir/enc.hevc"
@@ -145,9 +157,9 @@ source_dv_profile=""
 p7_to_81_requested=0
 p7_to_81_applied=0
 
-if has_dovi_side_data "$INPUT"; then
+if [ -n "$SOURCE_DV_PROFILE" ]; then
   source_is_dv=1
-  source_dv_profile="$(get_dovi_profile "$INPUT")"
+  source_dv_profile="$SOURCE_DV_PROFILE"
 fi
 
 if [ "$source_is_dv" -eq 1 ] && command -v dovi_tool >/dev/null 2>&1; then

@@ -69,6 +69,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/subtitle_policy_tools.sh"
 # shellcheck source=quality_mode_tools.sh
 . "$SCRIPT_DIR/quality_mode_tools.sh"
+# shellcheck source=dv_p7_to_p81_tools.sh
+. "$SCRIPT_DIR/dv_p7_to_p81_tools.sh"
 
 ENCODER_MODE="${VFO_ENCODER_MODE:-auto}" # auto|hw|cpu
 INCLUDE_DEFAULT_MAIN_SUB="${VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT:-0}"
@@ -217,7 +219,20 @@ extract_source_hevc_for_dv() {
   [ -s "$output_hevc" ]
 }
 
-dr_collect_source_state "$INPUT"
+SOURCE_INPUT="$INPUT"
+
+workdir="$(vfo_drive_backed_tmpdir "$OUTPUT")"
+trap 'rm -rf "$workdir"' EXIT
+
+INPUT="$(dv_p7_to_p81_prepare_input "$SOURCE_INPUT" "$workdir")" || {
+  echo "Failed to prepare a stable DV source for profile processing" >&2
+  exit 1
+}
+if [ "$INPUT" != "$SOURCE_INPUT" ]; then
+  echo "DV PREP: using preconverted P8.1 input for subsequent 4K profile stages"
+fi
+
+dr_collect_source_state "$SOURCE_INPUT"
 dr_compute_target_tags "preserve"
 COLOR_ARGS=()
 if [ "$VFO_DYNAMIC_METADATA_REPAIR" = "1" ]; then
@@ -248,9 +263,6 @@ using_hw=0
 if [ "$ENCODER_MODE" = "hw" ] || { [ "$ENCODER_MODE" = "auto" ] && has_videotoolbox_encoder; }; then
   using_hw=1
 fi
-
-workdir="$(vfo_drive_backed_tmpdir "$OUTPUT")"
-trap 'rm -rf "$workdir"' EXIT
 
 enc_mp4="$workdir/enc_video.mp4"
 enc_hevc="$workdir/enc.hevc"
@@ -336,20 +348,24 @@ run_4k_quality_mode_encode() {
   local score=""
   local best_candidate=""
   local best_score=""
+  local best_candidate_pass_index=""
 
   if ! quality_mode_is_aggressive_vmaf; then
+    QUALITY_MODE_VMAF_SELECTED_PASS_INDEX=0
     encode_4k_video_candidate "$output_path" 0
     return 0
   fi
 
   if [ "$DR_SOURCE_CLASS" != "sdr" ]; then
     echo "Aggressive VMAF requested, but 4K retries are currently limited to SDR sources; falling back to standard encode"
+    QUALITY_MODE_VMAF_SELECTED_PASS_INDEX=0
     encode_4k_video_candidate "$output_path" 0
     return 0
   fi
 
   if ! quality_mode_has_libvmaf; then
     echo "Aggressive VMAF requested, but ffmpeg libvmaf is unavailable; falling back to standard encode"
+    QUALITY_MODE_VMAF_SELECTED_PASS_INDEX=0
     encode_4k_video_candidate "$output_path" 0
     return 0
   fi
@@ -361,6 +377,7 @@ run_4k_quality_mode_encode() {
     if [ -z "$score" ]; then
       echo "Aggressive VMAF pass $((pass_index + 1)) could not parse a score; keeping the latest candidate"
       [ -n "$best_candidate" ] || best_candidate="$candidate_path"
+      [ -z "$best_candidate_pass_index" ] && best_candidate_pass_index="$pass_index"
       break
     fi
 
@@ -368,6 +385,7 @@ run_4k_quality_mode_encode() {
 
     if [ -z "$best_candidate" ] || quality_mode_score_meets_floor "$score" "$QUALITY_MODE_VMAF_MIN"; then
       best_candidate="$candidate_path"
+      best_candidate_pass_index="$pass_index"
       best_score="$score"
     fi
 
@@ -375,6 +393,7 @@ run_4k_quality_mode_encode() {
       if [ "$pass_index" -eq 0 ]; then
         echo "Baseline encode is already below the VMAF floor; preserving baseline output"
         best_candidate="$candidate_path"
+        best_candidate_pass_index="$pass_index"
       fi
       break
     fi
@@ -388,6 +407,7 @@ run_4k_quality_mode_encode() {
   }
 
   mv "$best_candidate" "$output_path"
+  QUALITY_MODE_VMAF_SELECTED_PASS_INDEX="$best_candidate_pass_index"
   if [ -n "$best_score" ]; then
     echo "Aggressive VMAF selected candidate score=${best_score}"
   fi
@@ -487,6 +507,10 @@ if [ "$SUBTITLE_POLICY_OUTPUT_CONTAINER" = "mkv" ]; then
     [ -n "$subtitle_pos" ] || continue
     subtitle_map_args+=(-map "1:s:${subtitle_pos}")
   done <<< "$SUBTITLE_POLICY_SELECTED_POSITIONS"
+  ACTUAL_OUTPUT="$(quality_mode_output_with_lowered_v_bitrate_suffix "$ACTUAL_OUTPUT")"
+  if [ "$ACTUAL_OUTPUT" != "${OUTPUT%.*}.mkv" ]; then
+    echo "Aggressive VMAF output suffix applied: $ACTUAL_OUTPUT"
+  fi
   ffmpeg -hide_banner -nostdin -y \
     -i "$new_video" -i "$INPUT" \
     -map 0:v:0 -map 1:a? \
@@ -495,6 +519,10 @@ if [ "$SUBTITLE_POLICY_OUTPUT_CONTAINER" = "mkv" ]; then
     -max_muxing_queue_size 4096 \
     "$ACTUAL_OUTPUT"
 else
+  ACTUAL_OUTPUT="$(quality_mode_output_with_lowered_v_bitrate_suffix "$ACTUAL_OUTPUT")"
+  if [ "$ACTUAL_OUTPUT" != "$OUTPUT" ]; then
+    echo "Aggressive VMAF output suffix applied: $ACTUAL_OUTPUT"
+  fi
   finalize_streamable_mp4 \
     "$new_video" \
     "$INPUT" \

@@ -435,20 +435,24 @@ run_legacy_quality_mode_encode() {
   local score=""
   local best_candidate=""
   local best_score=""
+  local best_candidate_pass_index=""
 
   if ! quality_mode_is_aggressive_vmaf; then
+    QUALITY_MODE_VMAF_SELECTED_PASS_INDEX=0
     encode_legacy_video_candidate "$output_path" 0
     return 0
   fi
 
   if [ "$DR_SOURCE_CLASS" != "sdr" ]; then
     echo "Aggressive VMAF requested, but this lane only enables bounded retries for SDR inputs; falling back to standard encode"
+    QUALITY_MODE_VMAF_SELECTED_PASS_INDEX=0
     encode_legacy_video_candidate "$output_path" 0
     return 0
   fi
 
   if ! quality_mode_has_libvmaf; then
     echo "Aggressive VMAF requested, but ffmpeg libvmaf is unavailable; falling back to standard encode"
+    QUALITY_MODE_VMAF_SELECTED_PASS_INDEX=0
     encode_legacy_video_candidate "$output_path" 0
     return 0
   fi
@@ -460,6 +464,7 @@ run_legacy_quality_mode_encode() {
     if [ -z "$score" ]; then
       echo "Aggressive VMAF pass $((pass_index + 1)) could not parse a score; keeping the latest candidate"
       [ -n "$best_candidate" ] || best_candidate="$candidate_path"
+      [ -z "$best_candidate_pass_index" ] && best_candidate_pass_index="$pass_index"
       break
     fi
 
@@ -467,6 +472,7 @@ run_legacy_quality_mode_encode() {
 
     if [ -z "$best_candidate" ] || quality_mode_score_meets_floor "$score" "$QUALITY_MODE_VMAF_MIN"; then
       best_candidate="$candidate_path"
+      best_candidate_pass_index="$pass_index"
       best_score="$score"
     fi
 
@@ -474,6 +480,7 @@ run_legacy_quality_mode_encode() {
       if [ "$pass_index" -eq 0 ]; then
         echo "Baseline encode is already below the VMAF floor; preserving baseline output"
         best_candidate="$candidate_path"
+        best_candidate_pass_index="$pass_index"
       fi
       break
     fi
@@ -487,6 +494,7 @@ run_legacy_quality_mode_encode() {
   }
 
   mv "$best_candidate" "$output_path"
+  QUALITY_MODE_VMAF_SELECTED_PASS_INDEX="$best_candidate_pass_index"
   if [ -n "$best_score" ]; then
     echo "Aggressive VMAF selected candidate score=${best_score}"
   fi
@@ -505,20 +513,28 @@ if [ "$SUBTITLE_POLICY_OUTPUT_CONTAINER" = "mkv" ]; then
     [ -n "$subtitle_pos" ] || continue
     subtitle_map_args+=(-map "1:s:${subtitle_pos}")
   done <<< "$SUBTITLE_POLICY_SELECTED_POSITIONS"
+  ACTUAL_OUTPUT="$(quality_mode_output_with_lowered_v_bitrate_suffix "$ACTUAL_OUTPUT")"
+  if [ "$ACTUAL_OUTPUT" != "$OUTPUT_PATH" ]; then
+    echo "Aggressive VMAF output suffix applied: $ACTUAL_OUTPUT"
+  fi
   ffmpeg -hide_banner -nostdin -y \
     -i "$video_work_output" -i "$INPUT" \
     -map 0:v:0 -map 1:a? \
     "${subtitle_map_args[@]}" \
     -c:v copy -c:a copy -c:s "${SUBTITLE_POLICY_OUTPUT_SUBTITLE_CODEC}" \
     -max_muxing_queue_size 4096 \
-    "$OUTPUT_PATH"
+    "$ACTUAL_OUTPUT"
 else
+  ACTUAL_OUTPUT="$(quality_mode_output_with_lowered_v_bitrate_suffix "$ACTUAL_OUTPUT")"
+  if [ "$ACTUAL_OUTPUT" != "$OUTPUT" ]; then
+    echo "Aggressive VMAF output suffix applied: $ACTUAL_OUTPUT"
+  fi
   finalize_streamable_mp4 \
     "$video_work_output" \
     "$INPUT" \
     "$SUBTITLE_POLICY_SELECTED_POSITIONS" \
     "$SUBTITLE_POLICY_OUTPUT_SUBTITLE_CODEC" \
-    "$OUTPUT"
+    "$ACTUAL_OUTPUT"
 fi
 
 dr_collect_output_state "$ACTUAL_OUTPUT"
