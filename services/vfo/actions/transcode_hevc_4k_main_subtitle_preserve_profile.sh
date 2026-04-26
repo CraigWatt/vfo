@@ -69,6 +69,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/subtitle_policy_tools.sh"
 # shellcheck source=quality_mode_tools.sh
 . "$SCRIPT_DIR/quality_mode_tools.sh"
+# shellcheck source=profile_test_tools.sh
+. "$SCRIPT_DIR/profile_test_tools.sh"
 # shellcheck source=dv_p7_to_p81_tools.sh
 . "$SCRIPT_DIR/dv_p7_to_p81_tools.sh"
 
@@ -232,7 +234,15 @@ if [ "$INPUT" != "$SOURCE_INPUT" ]; then
   echo "DV PREP: using preconverted P8.1 input for subsequent 4K profile stages"
 fi
 
-dr_collect_source_state "$SOURCE_INPUT"
+INPUT="$(profile_test_prepare_input "$INPUT" "$workdir")" || {
+  echo "Failed to prepare a smoke-test input trim" >&2
+  exit 1
+}
+if profile_test_is_enabled && [ "$INPUT" != "$SOURCE_INPUT" ]; then
+  echo "PROFILE TEST: using a shortened input segment for faster validation"
+fi
+
+dr_collect_source_state "$INPUT"
 dr_compute_target_tags "preserve"
 COLOR_ARGS=()
 if [ "$VFO_DYNAMIC_METADATA_REPAIR" = "1" ]; then

@@ -50,6 +50,7 @@ vfo provides these through scenario command placeholders:
 - `audio_conform_tools.sh`
 - `subtitle_policy_tools.sh`
 - `quality_mode_tools.sh`
+- `profile_test_tools.sh`
 - `live_encode_tools.sh`
 - `transcode_h264_1080_profile.sh`
 - `transcode_h264_1080_hdr_to_sdr_profile.sh`
@@ -64,6 +65,7 @@ Core templates:
 - fall back to software (`libx265`) automatically
 - keep `aggressive_vmaf` scoped to video-only retry behavior when enabled
 - append `_lowered_v_bitrate` to the final output name when an aggressive VMAF pass actually selects a reduced-bitrate candidate
+- set `SOURCE_TEST_ACTIVE=true` and `SOURCE_TEST_TRIM_DURATION=00:02:00` to trim long smoke-test assets to a short input segment before encode/remux work
 - print live ffmpeg progress by default through the shared `live_encode_tools.sh` wrapper
 - write encode output back to the controlling terminal even if a caller redirects stdout/stderr, so long-running child work stays visible in the same session
 - set `VFO_LIVE_USE_SCRIPT=0` if you need to disable the pseudo-tty wrapper for debugging
