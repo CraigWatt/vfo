@@ -43,6 +43,7 @@ struct arguments {
   bool visualize_detected;
   bool wizard_detected;
   bool show_detected;
+  bool config_detected;
   bool mezzanine_clean_detected;
   bool profiles_detected;
   bool wipe_detected;

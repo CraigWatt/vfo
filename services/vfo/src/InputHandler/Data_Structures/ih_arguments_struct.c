@@ -38,6 +38,7 @@ arguments_t* arguments_create_new_struct() {
   result->visualize_detected = false;
   result->wizard_detected = false;
   result->show_detected = false;
+  result->config_detected = false;
   result->mezzanine_clean_detected = false;
   result->profiles_detected = false;
   result->wipe_detected = false;
@@ -68,6 +69,8 @@ void ih_arguments_parser(int argc, char **argv, arguments_t* arguments) {
     arguments->wizard_detected = true;
   if(utils_string_array_contains_string(argv, argc, "show"))
     arguments->show_detected = true;
+  if(utils_string_array_contains_string(argv, argc, "config"))
+    arguments->config_detected = true;
   if(utils_string_array_contains_string(argv, argc, "mezzanine-clean"))
     arguments->mezzanine_clean_detected = true;
   if(utils_string_array_contains_string(argv, argc, "profiles"))

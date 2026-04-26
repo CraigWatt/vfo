@@ -281,6 +281,7 @@ vfo [argument] || [options]
 - `source`
 - `show`
 - `wizard`
+- `config`
 - `doctor`
 - `status`
 - `status-json`
@@ -303,6 +304,7 @@ A useful mental model is:
 - use `mezzanine-clean` for optional mezzanine filename/folder hygiene and recommendations
 - use `run` for the default pipeline (mezzanine -> source if enabled -> profiles -> optional quality scoring)
 - use `wizard` as onboarding: choose `quickstart` for recommended defaults or `advanced` for full tuning
+- use `config` to open the active config in `vim`, then fall back to `$EDITOR`
 
 Wizard behavior highlights:
 

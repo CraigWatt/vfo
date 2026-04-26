@@ -52,6 +52,7 @@ int main(void) {
         cmocka_unit_test(test_ih_arguments_parser_detects_mezzanine_and_profiles_commands),
         cmocka_unit_test(test_ih_arguments_parser_detects_visualize_command),
         cmocka_unit_test(test_ih_arguments_parser_detects_auto_command),
+        cmocka_unit_test(test_ih_arguments_parser_detects_config_command),
         cmocka_unit_test(test_ih_resolve_config_dir_prefers_env_override),
         cmocka_unit_test(test_ih_resolve_config_dir_uses_user_dir_for_wizard),
         cmocka_unit_test(test_ih_tier_state_evaluation),

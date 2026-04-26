@@ -29,6 +29,7 @@
 #include <limits.h>
 #include <strings.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -2661,6 +2662,112 @@ static bool ih_create_config_dir_if_needed(const char *config_dir) {
   return true;
 }
 
+static char* ih_shell_quote(const char *value) {
+  size_t length = 0;
+  size_t i = 0;
+  size_t out_length = 2;
+  char *quoted = NULL;
+  size_t out_index = 0;
+
+  if(value == NULL)
+    return strdup("''");
+
+  length = strlen(value);
+  for(i = 0; i < length; i++) {
+    if(value[i] == '\'')
+      out_length += 4;
+    else
+      out_length++;
+  }
+
+  quoted = malloc(out_length + 1);
+  if(quoted == NULL)
+    return NULL;
+
+  quoted[out_index++] = '\'';
+  for(i = 0; i < length; i++) {
+    if(value[i] == '\'') {
+      quoted[out_index++] = '\'';
+      quoted[out_index++] = '\\';
+      quoted[out_index++] = '\'';
+      quoted[out_index++] = '\'';
+    } else {
+      quoted[out_index++] = value[i];
+    }
+  }
+  quoted[out_index++] = '\'';
+  quoted[out_index] = '\0';
+
+  return quoted;
+}
+
+static bool ih_launch_config_editor(const char *editor, const char *config_path) {
+  char *quoted_path = NULL;
+  char command[IH_INPUT_BUFFER_SIZE * 2];
+  int system_result = 0;
+
+  if(editor == NULL || editor[0] == '\0' || config_path == NULL || config_path[0] == '\0')
+    return false;
+
+  quoted_path = ih_shell_quote(config_path);
+  if(quoted_path == NULL)
+    return false;
+
+  if(snprintf(command, sizeof(command), "%s %s", editor, quoted_path) < 0
+     || strlen(command) >= sizeof(command)) {
+    free(quoted_path);
+    return false;
+  }
+
+  system_result = system(command);
+
+  free(quoted_path);
+
+  if(system_result != -1 && WIFEXITED(system_result))
+    return WEXITSTATUS(system_result) == 0;
+
+  return false;
+}
+
+static bool ih_open_config_editor(const char *config_dir) {
+  char *config_path = NULL;
+  bool opened = false;
+  const char *editor = NULL;
+
+  if(config_dir == NULL || config_dir[0] == '\0') {
+    printf("CONFIG ERROR: could not resolve config directory\n");
+    return false;
+  }
+
+  if(!ih_create_config_dir_if_needed(config_dir)) {
+    printf("CONFIG ERROR: could not create config directory: %s\n", config_dir);
+    return false;
+  }
+
+  config_path = utils_combine_to_full_path(config_dir, IH_CONFIG_FILENAME);
+  if(config_path == NULL) {
+    printf("CONFIG ERROR: could not resolve config path for directory: %s\n", config_dir);
+    return false;
+  }
+
+  printf("CONFIG ALERT: active config file: %s\n", config_path);
+
+  opened = ih_launch_config_editor("vim", config_path);
+  if(opened == false) {
+    editor = getenv("EDITOR");
+    if(editor != NULL && editor[0] != '\0')
+      opened = ih_launch_config_editor(editor, config_path);
+  }
+
+  if(opened == false) {
+    printf("CONFIG ERROR: could not open config file with vim or $EDITOR\n");
+    printf("CONFIG INFO: open it manually: %s\n", config_path);
+  }
+
+  free(config_path);
+  return opened;
+}
+
 static bool ih_string_ends_with(const char *value, const char *suffix) {
   size_t value_length = 0;
   size_t suffix_length = 0;
@@ -3643,6 +3750,11 @@ int main (int argc, char **argv) {
 
   if(ih->arguments->wizard_detected == true) {
     return ih_run_wizard(config_dir);
+  }
+
+  if(ih->arguments->config_detected == true) {
+    bool config_success = ih_open_config_editor(config_dir);
+    return config_success ? EXIT_SUCCESS : EXIT_FAILURE;
   }
 
   /* initiate config data extraction and validation */

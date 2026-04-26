@@ -172,6 +172,21 @@ void test_ih_arguments_parser_detects_auto_command(void **state) {
   free(arguments);
 }
 
+void test_ih_arguments_parser_detects_config_command(void **state) {
+  arguments_t *arguments = NULL;
+  char *argv[] = {"vfo", "config"};
+  int argc = 2;
+  (void)state;
+
+  arguments = arguments_create_new_struct();
+  assert_non_null(arguments);
+
+  ih_arguments_parser(argc, argv, arguments);
+  assert_true(arguments->config_detected);
+
+  free(arguments);
+}
+
 void test_ih_tier_state_evaluation(void **state) {
   status_state_t base_state = STATUS_STATE_PENDING;
   status_state_t dv_state = STATUS_STATE_PENDING;

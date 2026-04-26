@@ -47,6 +47,7 @@ void ih_mes_usage () {
   fprintf(stdout, "%s doctor      # check environment and config readiness\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s wizard      # guided config setup/update\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s show        # print active config summary\n\n", __PROGRAM_NAME__);
+  fprintf(stdout, "%s config      # open the active config in vim or $EDITOR\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s status      # high-level engine observability snapshot\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s status-json # machine-readable observability snapshot\n\n", __PROGRAM_NAME__);
   fprintf(stdout, "%s visualize   # generate local workflow visualization artifacts\n\n", __PROGRAM_NAME__);
@@ -100,6 +101,8 @@ void ih_mes_arguments() {
                     "\t\tinteractive setup/update for vfo_config.conf\n\n");
     fprintf(stdout, GRAY "\tshow\n" NO_COLOR
                     "\t\tprint current vfo configuration summary\n\n");
+    fprintf(stdout, GRAY "\tconfig\n" NO_COLOR
+                    "\t\topen the active config in vim, then $EDITOR if needed\n\n");
     fprintf(stdout, GRAY "\tstatus\n" NO_COLOR
                     "\t\tprint high-level component readiness and stage status\n\n");
     fprintf(stdout, GRAY "\tstatus-json\n" NO_COLOR
