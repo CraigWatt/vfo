@@ -19,6 +19,7 @@ nav:
   - Profile Pack YAML Examples: profile-pack-yaml-examples.md
   - Capability Matrix: profile-capability-matrix.md
   - Latest E2E Toolchain: e2e-toolchain-latest.md
+  - VFO Practice Validation Loop: vfo-practice-validation-loop.md
   - Observability Contract: observability-contract.md
   - Web App Demo: vfo-web-app-launch.md
   - Profiles:

@@ -144,10 +144,16 @@ jobs:
         id: preflight
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           should_run=true
           reason="ok"
+          active_codex_prs="$(gh pr list \
+            --repo "${GITHUB_REPOSITORY}" \
+            --state open \
+            --json number,headRefName \
+            --jq '[.[] | select(.headRefName | startswith("codex/"))] | length' 2>/dev/null || echo "0")"
 
           if [ "${{ github.event.issue.state }}" != "open" ]; then
             should_run=false
@@ -155,6 +161,9 @@ jobs:
           elif [ -z "${OPENAI_API_KEY:-}" ]; then
             should_run=false
             reason="OPENAI_API_KEY is not configured."
+          elif [ "${active_codex_prs}" != "0" ]; then
+            should_run=false
+            reason="A codex/ pull request is already open; max 1 active Codex PR is allowed."
           fi
 
           echo "should_run=${should_run}" >> "$GITHUB_OUTPUT"
@@ -197,7 +206,7 @@ jobs:
             ${{ github.event.issue.body }}
 
             Guardrails:
-            - Follow AGENT.md naming and terminology policy.
+            - Follow AGENTS.md naming and terminology policy.
             - Keep scope tight and safe.
             - Do not modify release/deployment workflows.
             - Do not add unrestricted auto-merge or production deploy logic.
