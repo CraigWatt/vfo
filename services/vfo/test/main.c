@@ -83,6 +83,8 @@ int main(void) {
         cmocka_unit_test(test_utils_is_file_extension_valid_supports_ts_original),
         cmocka_unit_test(test_utils_is_file_extension_valid_supports_extended_mezzanine_inputs),
         cmocka_unit_test(test_utils_are_custom_folders_type_compliant_accepts_mixed_library),
+        cmocka_unit_test(test_utils_are_custom_folders_type_compliant_ignores_hidden_transient_dirs),
+        cmocka_unit_test(test_utils_prepared_dv_p81_variant_is_preferred_single_movie_file),
         /* Config */
         cmocka_unit_test(test_con_init_config_dir_null_ptr),
         cmocka_unit_test(test_con_init_config_dir_empty_str),

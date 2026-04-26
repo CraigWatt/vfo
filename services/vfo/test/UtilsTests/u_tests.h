@@ -39,5 +39,7 @@ void test_utils_is_file_extension_ts(void **state);
 void test_utils_is_file_extension_valid_supports_ts_original(void **state);
 void test_utils_is_file_extension_valid_supports_extended_mezzanine_inputs(void **state);
 void test_utils_are_custom_folders_type_compliant_accepts_mixed_library(void **state);
+void test_utils_are_custom_folders_type_compliant_ignores_hidden_transient_dirs(void **state);
+void test_utils_prepared_dv_p81_variant_is_preferred_single_movie_file(void **state);
 
 #endif // U_TESTS_H

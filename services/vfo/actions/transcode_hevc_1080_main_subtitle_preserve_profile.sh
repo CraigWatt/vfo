@@ -56,6 +56,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "$SCRIPT_DIR/subtitle_policy_tools.sh"
 # shellcheck source=quality_mode_tools.sh
 . "$SCRIPT_DIR/quality_mode_tools.sh"
+# shellcheck source=profile_test_tools.sh
+. "$SCRIPT_DIR/profile_test_tools.sh"
 
 ENCODER_MODE="${VFO_ENCODER_MODE:-auto}" # auto|hw|cpu
 INCLUDE_DEFAULT_MAIN_SUB="${VFO_MAIN_SUBTITLE_INCLUDE_DEFAULT:-0}"
@@ -70,6 +72,19 @@ CPU_PRESET="${CPU_PRESET:-slow}"
 VFO_DYNAMIC_METADATA_REPAIR="${VFO_DYNAMIC_METADATA_REPAIR:-1}"
 VFO_DYNAMIC_RANGE_STRICT="${VFO_DYNAMIC_RANGE_STRICT:-1}"
 VFO_DYNAMIC_RANGE_REPORT="${VFO_DYNAMIC_RANGE_REPORT:-1}"
+
+SOURCE_INPUT="$INPUT"
+
+workdir="$(vfo_drive_backed_tmpdir "$OUTPUT")"
+trap 'rm -rf "$workdir"' EXIT
+
+INPUT="$(profile_test_prepare_input "$SOURCE_INPUT" "$workdir")" || {
+  echo "Failed to prepare a smoke-test input trim" >&2
+  exit 1
+}
+if profile_test_is_enabled && [ "$INPUT" != "$SOURCE_INPUT" ]; then
+  echo "PROFILE TEST: using a shortened input segment for faster validation"
+fi
 
 has_videotoolbox_encoder() {
   ffmpeg -hide_banner -encoders 2>/dev/null | grep -q "hevc_videotoolbox"
@@ -166,9 +181,6 @@ using_hw=0
 if [ "$ENCODER_MODE" = "hw" ] || { [ "$ENCODER_MODE" = "auto" ] && has_videotoolbox_encoder; }; then
   using_hw=1
 fi
-
-workdir="$(vfo_drive_backed_tmpdir "$OUTPUT")"
-trap 'rm -rf "$workdir"' EXIT
 
 video_work_output="${workdir}/enc_video.mp4"
 

@@ -13,6 +13,7 @@ if [[ "$VFO_BIN" == */* ]]; then
   VFO_PATH_PREFIX="$(cd "$(dirname "$VFO_BIN")" && pwd)"
   VFO_COMMAND_NAME="$(basename "$VFO_BIN")"
 fi
+VFO_ACTIONS_PATH_PREFIX="${VFO_PRACTICE_ACTIONS_DIR:-${ROOT_DIR}/services/vfo/actions}"
 PROFILE_COMMAND="${VFO_PRACTICE_PROFILE_COMMAND:-${VFO_COMMAND_NAME} run}"
 REPORT_ROOT="${VFO_PRACTICE_REPORT_ROOT:-${ROOT_DIR}/tests/e2e/.reports/vfo-practice}"
 POLL_SECONDS="${VFO_PRACTICE_POLL_SECONDS:-21600}"
@@ -23,6 +24,8 @@ GITHUB_REPO="${VFO_PRACTICE_GITHUB_REPO:-CraigWatt/vfo}"
 SOURCE_TEST_ACTIVE_VALUE="${SOURCE_TEST_ACTIVE:-true}"
 SOURCE_TEST_TRIM_START_VALUE="${SOURCE_TEST_TRIM_START:-00:00:00}"
 SOURCE_TEST_TRIM_DURATION_VALUE="${SOURCE_TEST_TRIM_DURATION:-00:02:00}"
+VFO_ASSUME_YES_VALUE="${VFO_ASSUME_YES:-1}"
+VFO_LIVE_OUTPUT_VALUE="${VFO_LIVE_OUTPUT:-stderr}"
 
 MODE="once"
 LAST_FINGERPRINT=""
@@ -44,10 +47,13 @@ Options:
 Useful environment:
   VFO_PRACTICE_CREATE_ISSUES=1
   VFO_PRACTICE_VFO_BIN=/usr/local/bin/vfo
+  VFO_PRACTICE_ACTIONS_DIR=/Users/craigwatt/localProjects/vfo/services/vfo/actions
   VFO_PRACTICE_PROFILE_COMMAND="vfo run"
   VFO_PRACTICE_PROFILE_COMMAND="yes y | vfo profiles"
   SOURCE_TEST_ACTIVE=true
   SOURCE_TEST_TRIM_DURATION=00:02:00
+  VFO_ASSUME_YES=1
+  VFO_LIVE_OUTPUT=stderr
 
 Reports:
   tests/e2e/.reports/vfo-practice/latest
@@ -202,8 +208,10 @@ run_with_log() {
       SOURCE_TEST_ACTIVE="$SOURCE_TEST_ACTIVE_VALUE" \
       SOURCE_TEST_TRIM_START="$SOURCE_TEST_TRIM_START_VALUE" \
       SOURCE_TEST_TRIM_DURATION="$SOURCE_TEST_TRIM_DURATION_VALUE" \
-      PATH="${VFO_PATH_PREFIX:+${VFO_PATH_PREFIX}:}$PATH" \
-      bash -o pipefail -lc "$command_text"
+      VFO_ASSUME_YES="$VFO_ASSUME_YES_VALUE" \
+      VFO_LIVE_OUTPUT="$VFO_LIVE_OUTPUT_VALUE" \
+      PATH="${VFO_ACTIONS_PATH_PREFIX:+${VFO_ACTIONS_PATH_PREFIX}:}${VFO_PATH_PREFIX:+${VFO_PATH_PREFIX}:}$PATH" \
+      bash -o pipefail -c "$command_text"
   ) 2>&1 | tee "$log_file"
   status="${PIPESTATUS[0]}"
   printf '%s\n' "$status" > "$status_file"
@@ -372,7 +380,7 @@ analyze_run() {
   status_status="$(cat "${run_dir}/status.log.status" 2>/dev/null || printf '0')"
   profile_status="$(cat "${run_dir}/profile.log.status" 2>/dev/null || printf '0')"
 
-  fatal_pattern='MAJOR ERROR|RUN ERROR|PROFILE .*WARNING: .*failed|WARNING: all destination locations were exhausted|Source contains Dolby Vision .*conversion failed|ffmpeg command failed|Conversion failed|Error opening output|Could not write header|No space left on device|Cannot write moov atom|Invalid argument|syntax error|command not found|Segmentation fault|QUALITY .*ERROR|quality stage failed|NOT a valid profile|ERROR - detected one or more unknown words'
+  fatal_pattern='MAJOR ERROR|RUN ERROR|PROFILE .*WARNING: .*failed|WARNING: all destination locations were exhausted|Source contains Dolby Vision .*conversion failed|ffmpeg command failed|Conversion failed|Error opening output|Could not write header|No space left on device|Cannot write moov atom|Invalid argument|syntax error|command not found|Segmentation fault|QUALITY ERROR:|quality stage failed|NOT a valid profile|ERROR - detected one or more unknown words'
   weak_pattern='WARN:|WARNING:|Abort trap|fallback|deprecated|Last message repeated'
 
   first_error="$(first_matching_line "$fatal_pattern" "${run_dir}/doctor.log" "${run_dir}/status.log" "${run_dir}/profile.log" || true)"
@@ -461,6 +469,7 @@ run_cycle() {
     echo "vfo_bin=${VFO_BIN}"
     echo "vfo_command_name=${VFO_COMMAND_NAME}"
     echo "vfo_path_prefix=${VFO_PATH_PREFIX}"
+    echo "vfo_actions_path_prefix=${VFO_ACTIONS_PATH_PREFIX}"
     echo "profile_command=${PROFILE_COMMAND}"
     echo "source_test_active=${SOURCE_TEST_ACTIVE_VALUE}"
     echo "source_test_trim_start=${SOURCE_TEST_TRIM_START_VALUE}"
@@ -470,6 +479,7 @@ run_cycle() {
   log "Report directory: ${run_dir}"
   log "Context asset: ${asset}"
   log "Profile command: ${PROFILE_COMMAND}"
+  log "Actions path: ${VFO_ACTIONS_PATH_PREFIX}"
   log "Smoke trim: SOURCE_TEST_ACTIVE=${SOURCE_TEST_ACTIVE_VALUE} SOURCE_TEST_TRIM_DURATION=${SOURCE_TEST_TRIM_DURATION_VALUE}"
 
   set +e

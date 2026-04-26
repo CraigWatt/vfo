@@ -22,6 +22,30 @@ vfo_live_shell_quote() {
 }
 
 vfo_live_output_device() {
+  local live_output="${VFO_LIVE_OUTPUT:-auto}"
+  live_output="$(live_encode_lower_text "$live_output")"
+
+  case "$live_output" in
+    stderr|pipe|log)
+      printf '%s' stderr
+      return 0
+      ;;
+    tty)
+      if [ -w /dev/tty ] 2>/dev/null; then
+        printf '%s' /dev/tty
+        return 0
+      fi
+      printf '%s' stderr
+      return 0
+      ;;
+    auto|"")
+      ;;
+    *)
+      printf '%s' stderr
+      return 0
+      ;;
+  esac
+
   if tty -s >/dev/null 2>&1 && [ -w /dev/tty ] 2>/dev/null; then
     printf '%s' /dev/tty
     return 0
